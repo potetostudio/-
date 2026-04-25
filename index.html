@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI App Runway | DB版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- 1. あなたのFirebase設定をここに反映しました ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBf-upO8KlxJCg1QijjBOo7Vp9J44zz80M",
+            authDomain: "poteto0107-c6aa7.firebaseapp.com",
+            projectId: "poteto0107-c6aa7",
+            storageBucket: "poteto0107-c6aa7.firebasestorage.app",
+            messagingSenderId: "1077874289264",
+            appId: "1:1077874289264:web:da6c74c9b49ff49ecda2b5",
+            measurementId: "G-STKJDT4Q9Z"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- アプリのロジック ---
+
+        // アプリを動かす
+        window.runApp = () => {
+            const code = document.getElementById('codeInput').value;
+            const previewFrame = document.getElementById('preview');
+            const doc = previewFrame.contentWindow.document;
+            doc.open();
+            doc.write(code);
+            doc.close();
+        };
+
+        // 共有URLを発行する
+        window.shareApp = async () => {
+            const code = document.getElementById('codeInput').value;
+            if(!code) return;
+            showToast("URLを作成中...");
+
+            try {
+                // Firestoreにコードを保存
+                const docRef = await addDoc(collection(db, "apps"), {
+                    code: code,
+                    createdAt: new Date()
+                });
+                
+                // 短いURLを作成（#の後にデータベースのIDをつける）
+                const shareUrl = window.location.origin + window.location.pathname + '#' + docRef.id;
+                await navigator.clipboard.writeText(shareUrl);
+                showToast("短いURLをコピーしたよ！そのままSNSに貼れます。");
+            } catch (e) {
+                console.error("保存エラー:", e);
+                showToast("保存に失敗。Firestoreの『ルール』がテストモードか確認してね。");
+            }
+        };
+
+        // 読み込み機能
+        window.addEventListener('load', async () => {
+            lucide.createIcons();
+            const id = window.location.hash.substring(1);
+            
+            // URLにID（#以降）がある場合、DBから読み込む
+            if (id && id.length > 10) {
+                showToast("アプリを読み込み中...");
+                try {
+                    const docSnap = await getDoc(doc(db, "apps", id));
+                    if (docSnap.exists()) {
+                        document.getElementById('codeInput').value = docSnap.data().code;
+                        runApp();
+                        showToast("読み込み完了！");
+                    } else {
+                        showToast("アプリが見つかりませんでした。");
+                        runApp();
+                    }
+                } catch (e) {
+                    console.error("読み込みエラー:", e);
+                }
+            } else {
+                runApp();
+            }
+        });
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('opacity-100');
+            setTimeout(() => toast.classList.remove('opacity-100'), 3000);
+        }
+    </script>
+    <style>
+        body { font-family: sans-serif; background: #f8fafc; }
+        #preview { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+    <nav class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-2">
+            <span class="text-xl">🚀</span>
+            <h1 class="text-lg font-bold text-indigo-600 tracking-tight">AI App Runway</h1>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="shareApp()" class="px-4 py-2 text-sm font-semibold bg-indigo-50 text-indigo-600 rounded-full flex items-center gap-1 hover:bg-indigo-100 transition-all">
+                <i data-lucide="link-2" class="w-4 h-4"></i> 短いURLを発行
+            </button>
+            <button onclick="runApp()" class="px-6 py-2 bg-indigo-600 text-white text-sm font-bold rounded-full hover:bg-indigo-700 shadow-md transition-all active:scale-95">
+                アプリを起動
+            </button>
+        </div>
+    </nav>
+
+    <main class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden">
+        <div class="flex flex-col flex-1">
+            <textarea id="codeInput" 
+                class="flex-1 w-full p-4 rounded-xl border border-slate-200 bg-slate-900 text-slate-200 font-mono text-sm focus:outline-none"
+                placeholder="ここにAIコードを貼り付け...">
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; background:linear-gradient(to bottom right, #e0e7ff, #fdf2f8);">
+    <div style="text-align:center; background:white; padding:40px; border-radius:30px; box-shadow:0 20px 25px rgba(0,0,0,0.1);">
+        <h1 style="color:#4f46e5; margin-bottom:10px;">🌟 AI App Runway</h1>
+        <p>ここにAIが書いたコードを貼って起動しよう！</p>
+    </div>
+</body>
+</html></textarea>
+        </div>
+        <div class="flex-1">
+            <iframe id="preview" class="w-full h-full border-none"></iframe>
+        </div>
+    </main>
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-slate-800 text-white text-sm rounded-full opacity-0 transition-all duration-300 pointer-events-none z-50"></div>
+</body>
+</html>

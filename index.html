@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI App Runway | DB版</title>
+    <title>AI App Runway | Pro v5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="module">
@@ -23,93 +23,58 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- 基本ロジック ---
-        window.runApp = () => {
+        // --- 実行ロジック ---
+        window.runApp = (autoHide = true) => {
             const code = document.getElementById('codeInput').value;
             const previewFrame = document.getElementById('preview');
             const doc = previewFrame.contentWindow.document;
             doc.open();
             doc.write(code);
             doc.close();
+
+            // 🌟 実行時に自動で隠す設定
+            if(autoHide) hideEditor();
         };
 
         window.shareApp = async () => {
             const code = document.getElementById('codeInput').value;
             if(!code) return;
             showToast("URLを作成中...");
-
             try {
-                const docRef = await addDoc(collection(db, "apps"), {
-                    code: code,
-                    createdAt: new Date()
-                });
+                const docRef = await addDoc(collection(db, "apps"), { code: code, createdAt: new Date() });
                 const shareUrl = window.location.origin + window.location.pathname + '#' + docRef.id;
                 await navigator.clipboard.writeText(shareUrl);
-                showToast("短いURLをコピーしたよ！");
-            } catch (e) {
-                console.error(e);
-                showToast("保存に失敗しました。");
-            }
+                showToast("URLをコピーしました！");
+            } catch (e) { showToast("エラーが発生しました。"); }
         };
 
-        // 🌟 新機能：エディタの出し入れ（トグル）
-        window.toggleEditor = () => {
-            const editorPanel = document.getElementById('editorPanel');
-            const toggleIcon = document.getElementById('toggleIcon');
-            const toggleText = document.getElementById('toggleText');
-            
-            if (editorPanel.classList.contains('hidden')) {
-                editorPanel.classList.remove('hidden');
-                toggleText.innerText = "コードを隠す";
-                toggleIcon.setAttribute('data-lucide', 'layout-panel-left');
-            } else {
-                editorPanel.classList.add('hidden');
-                toggleText.innerText = "コードを表示";
-                toggleIcon.setAttribute('data-lucide', 'code-2');
-            }
-            lucide.createIcons(); // アイコンを再描画
+        window.hideEditor = () => {
+            const editor = document.getElementById('editorPanel');
+            const toggleBtn = document.getElementById('toggleBtn');
+            editor.classList.add('hidden'); // Tailwindのhiddenクラスを使用
+            toggleBtn.classList.remove('hidden');
         };
 
-        // 🌟 アプリモード（共有用）
-        window.setAppMode = (isApp) => {
-            const topNav = document.getElementById('topNav');
-            const editorPanel = document.getElementById('editorPanel');
-            const mainArea = document.getElementById('mainArea');
-            const editBtn = document.getElementById('editBtn');
-            const preview = document.getElementById('preview');
-
-            if (isApp) {
-                topNav.style.display = 'none';
-                editorPanel.classList.add('hidden');
-                mainArea.classList.remove('p-4', 'gap-4');
-                mainArea.classList.add('p-0');
-                preview.style.borderRadius = '0';
-                editBtn.style.display = 'block';
-            } else {
-                topNav.style.display = 'flex';
-                editorPanel.classList.remove('hidden');
-                mainArea.classList.add('p-4', 'gap-4');
-                mainArea.classList.remove('p-0');
-                preview.style.borderRadius = '12px';
-                editBtn.style.display = 'none';
-            }
+        window.showEditor = () => {
+            const editor = document.getElementById('editorPanel');
+            const toggleBtn = document.getElementById('toggleBtn');
+            editor.classList.remove('hidden');
+            toggleBtn.classList.add('hidden');
         };
 
         window.addEventListener('load', async () => {
             lucide.createIcons();
             const id = window.location.hash.substring(1);
+            
             if (id && id.length > 10) {
-                setAppMode(true);
-                try {
-                    const docSnap = await getDoc(doc(db, "apps", id));
-                    if (docSnap.exists()) {
-                        document.getElementById('codeInput').value = docSnap.data().code;
-                        runApp();
-                    }
-                } catch (e) { console.error(e); }
-            } else {
-                setAppMode(false);
-                runApp();
+                // 🌟 【重要】友達がリンクから入った時の挙動
+                const docSnap = await getDoc(doc(db, "apps", id));
+                if (docSnap.exists()) {
+                    document.getElementById('codeInput').value = docSnap.data().code;
+                    // 最初からエディタを隠して実行
+                    hideEditor();
+                    runApp(true); 
+                }
             }
         });
 
@@ -121,57 +86,49 @@
         };
     </script>
     <style>
-        body { font-family: sans-serif; background: #f8fafc; }
-        #preview { background: white; transition: all 0.2s ease-in-out; }
+        body { font-family: sans-serif; background: #0f172a; margin: 0; }
+        #preview { background: white; width: 100%; height: 100%; border: none; }
+        /* アニメーションを少し滑らかに */
+        #editorPanel { transition: all 0.3s ease; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
-    <nav id="topNav" class="bg-white border-b border-slate-200 px-4 py-2 flex justify-between items-center shadow-sm z-10">
+    <nav class="bg-white border-b border-slate-200 px-4 py-2 flex justify-between items-center shadow-sm z-30">
         <div class="flex items-center gap-2">
             <span class="text-xl">🚀</span>
-            <h1 class="text-md font-bold text-indigo-600 hidden md:block">AI App Runway</h1>
+            <h1 class="text-sm font-bold text-indigo-600">AI App Runway</h1>
         </div>
         
         <div class="flex gap-2">
-            <button onclick="toggleEditor()" class="px-3 py-2 text-xs font-bold bg-slate-100 text-slate-600 rounded-lg flex items-center gap-1 hover:bg-slate-200 transition-all">
-                <i id="toggleIcon" data-lucide="layout-panel-left" class="w-4 h-4"></i>
-                <span id="toggleText">コードを隠す</span>
+            <button id="toggleBtn" onclick="showEditor()" class="hidden px-3 py-1.5 text-xs font-bold bg-slate-800 text-white rounded-lg flex items-center gap-1 hover:bg-slate-700">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i> 編集モード
             </button>
 
-            <button onclick="shareApp()" class="px-3 py-2 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg flex items-center gap-1 hover:bg-indigo-100 transition-all">
-                <i data-lucide="link-2" class="w-4 h-4"></i> URL発行
+            <button onclick="shareApp()" class="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg flex items-center gap-1">
+                <i data-lucide="link-2" class="w-3.5 h-3.5"></i> URL発行
             </button>
             
-            <button onclick="runApp()" class="px-5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 shadow-md transition-all active:scale-95">
-                アプリ起動
+            <button onclick="runApp(true)" class="px-5 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700">
+                反映
             </button>
         </div>
     </nav>
 
-    <main id="mainArea" class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden bg-slate-50">
+    <main class="flex-1 flex overflow-hidden">
         
-        <div id="editorPanel" class="flex-1 flex flex-col min-w-[300px]">
+        <div id="editorPanel" class="w-[400px] h-full bg-slate-900 flex flex-col border-r border-slate-700 shrink-0">
+            <div class="bg-slate-800 px-4 py-2 text-[10px] text-slate-400 font-bold">貼り付け専用エディタ</div>
             <textarea id="codeInput" 
-                class="flex-1 w-full p-4 rounded-xl border border-slate-200 bg-slate-900 text-slate-200 font-mono text-sm focus:outline-none shadow-inner"
-                placeholder="コードを貼り付け...">
-<!DOCTYPE html>
-<html>
-<body style="display:flex; justify-content:center; align-items:center; height:100vh; margin:0; background:#0f172a; color:white; font-family:sans-serif;">
-    <h1 style="font-size:3rem; text-shadow:0 0 20px #6366f1;">🎮 GAME ON!</h1>
-</body>
-</html></textarea>
+                class="flex-1 w-full p-4 bg-slate-900 text-indigo-300 font-mono text-sm focus:outline-none resize-none"
+                placeholder="AIのコードを貼り付けて「反映」を押してね"></textarea>
         </div>
 
-        <div id="previewPanel" class="flex-[1.5] flex bg-white w-full h-full relative rounded-xl shadow-lg overflow-hidden">
-            <iframe id="preview" class="w-full h-full border-none"></iframe>
+        <div class="flex-1 h-full bg-white relative">
+            <iframe id="preview" title="App Content"></iframe>
         </div>
 
     </main>
-
-    <button id="editBtn" onclick="setAppMode(false)" class="fixed bottom-6 right-6 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-full shadow-2xl hover:bg-indigo-700 transition-all hidden z-50">
-        ✏️ 作成画面に戻る
-    </button>
 
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-slate-800 text-white text-xs rounded-full opacity-0 transition-all duration-300 pointer-events-none z-50"></div>
 

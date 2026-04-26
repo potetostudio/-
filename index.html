@@ -3,73 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI App Runway | Final Fix v16</title>
+    <title>AI App Runway | Shared v18</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="module">
-        // Firebase設定などは省略せずに保持
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        const firebaseConfig = {
-  apiKey: "AIzaSyBSZNHnNcui0Q1VkRshaHEuiMt8wDV2zGk",
-  authDomain: "poteto0107-78af7.firebaseapp.com",
-  projectId: "poteto0107-78af7",
-  storageBucket: "poteto0107-78af7.firebasestorage.app",
-  messagingSenderId: "208184037315",
-  appId: "1:208184037315:web:c220bbc24c600a011bf776"
-};
-        initializeApp(firebaseConfig);
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // 🌟 あなたの新しい個人用Firebase設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyBSZNHnNcui0Q1VkRshaHEuiMt8wDV2zGk",
+            authDomain: "poteto0107-78af7.firebaseapp.com",
+            projectId: "poteto0107-78af7",
+            storageBucket: "poteto0107-78af7.firebasestorage.app",
+            messagingSenderId: "208184037315",
+            appId: "1:208184037315:web:c220bbc24c600a011bf776"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- 🌟 新機能：URL作成（共有）機能 ---
+        window.createShareUrl = async () => {
+            const code = document.getElementById('codeInput').value;
+            if (!code) {
+                alert("共有するコードがありません");
+                return;
+            }
+
+            showToast("共有URLを作成中...");
+            try {
+                // Firestoreの 'apps' コレクションに保存
+                const docRef = await addDoc(collection(db, "apps"), {
+                    code: code,
+                    createdAt: new Date()
+                });
+                
+                // 現在のURL（GitHub PagesのURL）を取得してIDを付与
+                const baseUrl = window.location.origin + window.location.pathname;
+                const shareUrl = `${baseUrl}?id=${docRef.id}`;
+
+                // クリップボードにコピー
+                await navigator.clipboard.writeText(shareUrl);
+                alert("共有URLを作成してコピーしました！\n" + shareUrl);
+            } catch (e) {
+                console.error(e);
+                alert("URL作成に失敗しました。Firestoreが有効になっているか確認してください。");
+            }
+        };
+
+        // URLパラメータにIDがあれば自動実行する機能
+        const loadSharedApp = async () => {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            if (id) {
+                showToast("共有アプリを読み込み中...");
+                const docSnap = await getDoc(doc(db, "apps", id));
+                if (docSnap.exists()) {
+                    const code = docSnap.data().code;
+                    document.getElementById('codeInput').value = code;
+                    window.runApp(true); // 全画面で実行
+                }
+            }
+        };
+
+        // --- AI生成・実行ロジック ---
         window.generateWithAI = async () => {
             const prompt = document.getElementById('aiPrompt').value;
             const apiKey = localStorage.getItem('gemini_api_key');
             const btn = document.getElementById('genBtn');
 
-            if (!apiKey) { alert("右上の設定からAPIキーを入力してください"); return; }
+            if (!apiKey) { alert("設定からAPIキーを入力してください"); return; }
             if (!prompt) return;
 
-            showToast("接続テスト中...");
+            showToast("AIが生成中...");
             btn.disabled = true;
 
-            // 🌟 2026年時点で最も確実に動くモデル名のリスト
-            const apiVersions = ["v1beta", "v1"];
-            const modelNames = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"];
+            const configs = [
+                { ver: "v1", model: "gemini-1.5-flash" },
+                { ver: "v1beta", model: "gemini-1.5-flash" }
+            ];
 
             let success = false;
-
-            for (const ver of apiVersions) {
-                for (const model of modelNames) {
-                    if (success) break;
-                    try {
-                        const url = `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${apiKey}`;
-                        const response = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{ parts: [{ text: prompt + "。HTML/CSS/JSを1つにまとめたコードのみ出力して。解説不要。" }] }]
-                            })
-                        });
-
-                        const data = await response.json();
-
-                        if (response.ok) {
-                            let code = data.candidates[0].content.parts[0].text;
-                            code = code.replace(/```html/g, "").replace(/```/g, "").trim();
-                            document.getElementById('codeInput').value = code;
-                            window.runApp(false);
-                            showToast(`成功! (${model})`);
-                            success = true;
-                        } else {
-                            console.log(`試行失敗: ${ver}/${model} - ${data.error.message}`);
-                        }
-                    } catch (e) {
-                        console.error(e);
+            for (const conf of configs) {
+                if (success) break;
+                try {
+                    const url = `https://generativelanguage.googleapis.com/${conf.ver}/models/${conf.model}:generateContent?key=${apiKey}`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt + "。HTML/CSS/JSを1つにまとめたコードのみ出力して。解説不要。" }] }]
+                        })
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        let code = data.candidates[0].content.parts[0].text;
+                        code = code.replace(/```html/g, "").replace(/```/g, "").trim();
+                        document.getElementById('codeInput').value = code;
+                        window.runApp(false);
+                        showToast("生成完了！");
+                        success = true;
                     }
-                }
+                } catch (e) { console.error(e); }
             }
-
-            if (!success) {
-                showToast("全モデルで失敗しました。キーを作り直してください。");
-            }
+            if (!success) showToast("失敗しました。APIキーを確認してください。");
             btn.disabled = false;
         };
 
@@ -83,42 +121,51 @@
         window.saveKey = () => {
             localStorage.setItem('gemini_api_key', document.getElementById('apiKeyInput').value.trim());
             document.getElementById('settingsModal').classList.add('hidden');
-            showToast("保存完了");
+            showToast("キーを保存しました");
         };
 
         window.showToast = (msg) => {
             const t = document.getElementById('toast');
             t.innerText = msg; t.classList.add('opacity-100');
-            setTimeout(() => t.classList.remove('opacity-100'), 4000);
+            setTimeout(() => t.classList.remove('opacity-100'), 3000);
         };
-        window.addEventListener('load', () => lucide.createIcons());
+
+        window.addEventListener('load', () => {
+            lucide.createIcons();
+            loadSharedApp();
+        });
     </script>
 </head>
-<body class="h-screen flex flex-col overflow-hidden bg-slate-50 text-slate-800">
+<body class="h-screen flex flex-col overflow-hidden bg-slate-50">
     <nav class="bg-white border-b px-4 py-2 flex justify-between items-center shadow-sm z-30">
         <div class="flex items-center gap-2 font-bold text-indigo-600">🚀 AI APP RUNWAY</div>
         <div class="flex gap-2">
+            <button onclick="createShareUrl()" class="px-3 py-1.5 border border-slate-200 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-50 flex items-center gap-1">
+                <i data-lucide="share-2" class="w-3.5 h-3.5"></i> URL作成
+            </button>
             <button onclick="document.getElementById('settingsModal').classList.remove('hidden')" class="p-2 text-slate-400"><i data-lucide="settings"></i></button>
-            <button onclick="runApp(true)" class="px-4 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg">全画面実行</button>
+            <button onclick="runApp(true)" class="px-4 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-md">全画面実行</button>
         </div>
     </nav>
+
     <main class="flex-1 flex overflow-hidden">
         <div id="editorPanel" class="w-[380px] bg-slate-900 flex flex-col border-r border-slate-700 shrink-0">
             <div class="p-4 bg-slate-800 border-b border-slate-700 flex gap-2">
-                <input id="aiPrompt" type="text" class="flex-1 bg-slate-700 text-white text-xs p-2 rounded" placeholder="例：おみくじアプリ">
+                <input id="aiPrompt" type="text" class="flex-1 bg-slate-700 text-white text-xs p-2 rounded" placeholder="例：ブロック崩し">
                 <button id="genBtn" onclick="generateWithAI()" class="px-3 py-1 bg-indigo-500 text-white text-xs font-bold rounded">生成</button>
             </div>
-            <textarea id="codeInput" class="flex-1 p-4 bg-slate-900 text-indigo-300 font-mono text-[10px] outline-none resize-none"></textarea>
+            <textarea id="codeInput" class="flex-1 p-4 bg-slate-900 text-indigo-300 font-mono text-[10px] outline-none resize-none" placeholder="ここにコードが出ます"></textarea>
         </div>
         <iframe id="preview" class="flex-1 bg-white border-none"></iframe>
     </main>
+
     <div id="settingsModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 hidden">
-        <div class="bg-white p-8 rounded-2xl w-80">
-            <h2 class="font-bold mb-4">API Key</h2>
-            <input id="apiKeyInput" type="password" class="w-full p-2 border rounded mb-4" placeholder="AIzaSy...">
-            <button onclick="saveKey()" class="w-full py-2 bg-indigo-600 text-white font-bold rounded">保存</button>
+        <div class="bg-white p-8 rounded-2xl w-80 shadow-2xl">
+            <h2 class="font-bold mb-4">Gemini API Key</h2>
+            <input id="apiKeyInput" type="password" class="w-full p-2 border rounded-xl mb-4" placeholder="AIzaSy...">
+            <button onclick="saveKey()" class="w-full py-2 bg-indigo-600 text-white font-bold rounded-xl">保存</button>
         </div>
     </div>
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-slate-800 text-white text-xs rounded-full opacity-0 transition-all pointer-events-none z-50"></div>
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-slate-800 text-white text-xs rounded-full opacity-0 transition-all pointer-events-none z-50 shadow-lg"></div>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI App Runway | Pro v5</title>
+    <title>AI App Runway | Pro v6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="module">
@@ -24,20 +24,30 @@
         const db = getFirestore(app);
 
         // --- 実行ロジック ---
-        window.runApp = (autoHide = true) => {
-            const code = document.getElementById('codeInput').value;
+        window.runApp = (shouldDestroy = true) => {
+            const codeInput = document.getElementById('codeInput');
+            if (!codeInput) return; // すでに削除済みの場合は何もしない
+
+            const code = codeInput.value;
             const previewFrame = document.getElementById('preview');
             const doc = previewFrame.contentWindow.document;
             doc.open();
             doc.write(code);
             doc.close();
 
-            // 🌟 実行時に自動で隠す設定
-            if(autoHide) hideEditor();
+            // 🌟 物理的に搬入口を削除する
+            if(shouldDestroy) {
+                const editorPanel = document.getElementById('editorPanel');
+                if (editorPanel) {
+                    editorPanel.remove(); // DOMから完全に消去
+                }
+            }
         };
 
         window.shareApp = async () => {
-            const code = document.getElementById('codeInput').value;
+            // 物理削除後は codeInput がないので、iframeの中身を取得するか、変数を保存しておく必要があります
+            // 今回はシンプルにするため、削除前に保存していたコードを使用する設計にします
+            const code = document.getElementById('codeInput')?.value || window.lastCode;
             if(!code) return;
             showToast("URLを作成中...");
             try {
@@ -48,32 +58,20 @@
             } catch (e) { showToast("エラーが発生しました。"); }
         };
 
-        window.hideEditor = () => {
-            const editor = document.getElementById('editorPanel');
-            const toggleBtn = document.getElementById('toggleBtn');
-            editor.classList.add('hidden'); // Tailwindのhiddenクラスを使用
-            toggleBtn.classList.remove('hidden');
-        };
-
-        window.showEditor = () => {
-            const editor = document.getElementById('editorPanel');
-            const toggleBtn = document.getElementById('toggleBtn');
-            editor.classList.remove('hidden');
-            toggleBtn.classList.add('hidden');
-        };
-
         window.addEventListener('load', async () => {
             lucide.createIcons();
             const id = window.location.hash.substring(1);
             
             if (id && id.length > 10) {
-                // 🌟 【重要】友達がリンクから入った時の挙動
+                // 🌟 友達がリンクから入った時
                 const docSnap = await getDoc(doc(db, "apps", id));
                 if (docSnap.exists()) {
-                    document.getElementById('codeInput').value = docSnap.data().code;
-                    // 最初からエディタを隠して実行
-                    hideEditor();
-                    runApp(true); 
+                    const code = docSnap.data().code;
+                    window.lastCode = code; // バックアップ
+                    // エディタにセットして即座に削除実行
+                    const input = document.getElementById('codeInput');
+                    input.value = code;
+                    runApp(true); // 物理削除して実行
                 }
             }
         });
@@ -86,46 +84,39 @@
         };
     </script>
     <style>
-        body { font-family: sans-serif; background: #0f172a; margin: 0; }
+        body { font-family: sans-serif; background: #ffffff; margin: 0; }
         #preview { background: white; width: 100%; height: 100%; border: none; }
-        /* アニメーションを少し滑らかに */
-        #editorPanel { transition: all 0.3s ease; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
-    <nav class="bg-white border-b border-slate-200 px-4 py-2 flex justify-between items-center shadow-sm z-30">
+    <nav class="bg-white border-b border-slate-200 px-4 py-2 flex justify-between items-center z-30">
         <div class="flex items-center gap-2">
             <span class="text-xl">🚀</span>
             <h1 class="text-sm font-bold text-indigo-600">AI App Runway</h1>
         </div>
         
         <div class="flex gap-2">
-            <button id="toggleBtn" onclick="showEditor()" class="hidden px-3 py-1.5 text-xs font-bold bg-slate-800 text-white rounded-lg flex items-center gap-1 hover:bg-slate-700">
-                <i data-lucide="settings" class="w-3.5 h-3.5"></i> 編集モード
-            </button>
-
             <button onclick="shareApp()" class="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg flex items-center gap-1">
                 <i data-lucide="link-2" class="w-3.5 h-3.5"></i> URL発行
             </button>
-            
             <button onclick="runApp(true)" class="px-5 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700">
-                反映
+                反映して全画面化
             </button>
         </div>
     </nav>
 
-    <main class="flex-1 flex overflow-hidden">
+    <main class="flex-1 flex overflow-hidden bg-white">
         
-        <div id="editorPanel" class="w-[400px] h-full bg-slate-900 flex flex-col border-r border-slate-700 shrink-0">
-            <div class="bg-slate-800 px-4 py-2 text-[10px] text-slate-400 font-bold">貼り付け専用エディタ</div>
+        <div id="editorPanel" class="w-[350px] h-full bg-slate-100 flex flex-col border-r border-slate-200 shrink-0">
+            <div class="bg-slate-200 px-4 py-2 text-[10px] text-slate-500 font-bold">CODE IMPORTER</div>
             <textarea id="codeInput" 
-                class="flex-1 w-full p-4 bg-slate-900 text-indigo-300 font-mono text-sm focus:outline-none resize-none"
-                placeholder="AIのコードを貼り付けて「反映」を押してね"></textarea>
+                class="flex-1 w-full p-4 bg-white text-slate-700 font-mono text-xs focus:outline-none resize-none border-none"
+                placeholder="AIが作った2画面エディタコードをここに貼り付けてください..."></textarea>
         </div>
 
-        <div class="flex-1 h-full bg-white relative">
-            <iframe id="preview" title="App Content"></iframe>
+        <div class="flex-1 h-full relative">
+            <iframe id="preview" title="Main Content"></iframe>
         </div>
 
     </main>

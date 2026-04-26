@@ -3,9 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI App Runway | Pro v10</title>
+    <title>AI App Runway | Pro v11</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body { font-family: sans-serif; background: #ffffff; margin: 0; }
+        #preview { background: white; width: 100%; height: 100%; border: none; }
+        
+        /* 🌟 共有リンクの時は、JSが動く前から搬入口を「絶対」に見せない設定 */
+        body.is-shared #editorPanel {
+            display: none !important;
+            width: 0 !important;
+        }
+        body.is-shared #runBtn {
+            display: none !important;
+        }
+    </style>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -24,7 +39,12 @@
         const db = getFirestore(app);
         window.cachedCode = "";
 
-        // 🌟 実行＆搬入口を「抹消」する関数
+        // 🌟 ページ読み込みの「前」に共有リンクか判定する
+        if (window.location.hash.length > 10) {
+            document.body.classList.add('is-shared');
+        }
+
+        // --- 実行ロジック ---
         window.runApp = (codeToRun = null) => {
             const input = document.getElementById('codeInput');
             const targetCode = codeToRun || (input ? input.value : window.cachedCode);
@@ -38,13 +58,12 @@
             doc.write(targetCode);
             doc.close();
 
-            // 🌟 搬入口を物理的に削除
+            // 物理的に削除（念押し）
             const panel = document.getElementById('editorPanel');
             if (panel) panel.remove();
             
-            // UI：反映ボタンを消す
             const runBtn = document.getElementById('runBtn');
-            if (runBtn) runBtn.classList.add('hidden');
+            if (runBtn) runBtn.style.display = 'none';
         };
 
         window.shareApp = async () => {
@@ -60,27 +79,23 @@
             } catch (e) { showToast("保存に失敗しました"); }
         };
 
-        // 🌟 ページ読み込み時の処理
-        window.addEventListener('load', async () => {
+        // 🌟 起動時の処理
+        window.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
             const id = window.location.hash.substring(1);
 
             if (id && id.length > 10) {
-                // 共有リンクの場合、まず搬入口を非表示にしておく（一瞬見えるのを防ぐ）
-                const panel = document.getElementById('editorPanel');
-                if (panel) panel.style.display = 'none';
-
                 try {
                     const docSnap = await getDoc(doc(db, "apps", id));
                     if (docSnap.exists()) {
                         const code = docSnap.data().code;
-                        // 読み込み完了後に実行＆削除
                         window.runApp(code);
                     } else {
-                        if (panel) panel.style.display = 'flex'; // データがなければ表示に戻す
+                        // データがない時だけ搬入口を戻す
+                        document.body.classList.remove('is-shared');
                     }
                 } catch (e) {
-                    if (panel) panel.style.display = 'flex';
+                    document.body.classList.remove('is-shared');
                 }
             }
         });
@@ -92,10 +107,6 @@
             setTimeout(() => toast.classList.remove('opacity-100'), 3000);
         };
     </script>
-    <style>
-        body { font-family: sans-serif; background: #ffffff; }
-        #preview { background: white; width: 100%; height: 100%; border: none; }
-    </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
@@ -105,7 +116,7 @@
             <h1 class="text-sm font-bold text-indigo-600">AI App Runway</h1>
         </div>
         <div class="flex gap-2">
-            <button onclick="shareApp()" class="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg flex items-center gap-1 hover:bg-indigo-100 transition-all">
+            <button onclick="shareApp()" class="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg flex items-center gap-1">
                 <i data-lucide="link-2" class="w-3.5 h-3.5"></i> URL発行
             </button>
             <button id="runBtn" onclick="runApp()" class="px-5 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700">
@@ -116,13 +127,13 @@
 
     <main id="mainArea" class="flex-1 flex overflow-hidden">
         <div id="editorPanel" class="w-[350px] h-full bg-slate-900 flex flex-col border-r border-slate-700 shrink-0">
-            <div class="bg-slate-800 px-4 py-2 text-[10px] text-slate-400 font-bold">IMPORTER</div>
+            <div class="bg-slate-800 px-4 py-2 text-[10px] text-slate-400 font-bold tracking-widest">IMPORTER</div>
             <textarea id="codeInput" 
                 class="flex-1 w-full p-4 bg-slate-900 text-indigo-300 font-mono text-xs focus:outline-none resize-none"
-                placeholder="AIのコードを貼り付けて反映を押してください"></textarea>
+                placeholder="コードを貼り付けて反映を押してください"></textarea>
         </div>
 
-        <div class="flex-1 h-full">
+        <div class="flex-1 h-full relative">
             <iframe id="preview" title="App Preview"></iframe>
         </div>
     </main>

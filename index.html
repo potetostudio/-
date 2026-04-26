@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI App Runway | DB版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -10,7 +10,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // --- 1. あなたのFirebase設定をここに反映しました ---
         const firebaseConfig = {
             apiKey: "AIzaSyBf-upO8KlxJCg1QijjBOo7Vp9J44zz80M",
             authDomain: "poteto0107-c6aa7.firebaseapp.com",
@@ -24,9 +23,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- アプリのロジック ---
-
-        // アプリを動かす
         window.runApp = () => {
             const code = document.getElementById('codeInput').value;
             const previewFrame = document.getElementById('preview');
@@ -36,69 +32,97 @@
             doc.close();
         };
 
-        // 共有URLを発行する
         window.shareApp = async () => {
             const code = document.getElementById('codeInput').value;
             if(!code) return;
             showToast("URLを作成中...");
 
             try {
-                // Firestoreにコードを保存
                 const docRef = await addDoc(collection(db, "apps"), {
                     code: code,
                     createdAt: new Date()
                 });
-                
-                // 短いURLを作成（#の後にデータベースのIDをつける）
                 const shareUrl = window.location.origin + window.location.pathname + '#' + docRef.id;
                 await navigator.clipboard.writeText(shareUrl);
                 showToast("短いURLをコピーしたよ！そのままSNSに貼れます。");
             } catch (e) {
                 console.error("保存エラー:", e);
-                showToast("保存に失敗。Firestoreの『ルール』がテストモードか確認してね。");
+                showToast("保存に失敗しました。");
             }
         };
 
-        // 読み込み機能
+        // 🌟 新機能：アプリモードとエディタモードの切り替え
+        window.setAppMode = (isApp) => {
+            const topNav = document.getElementById('topNav');
+            const editorPanel = document.getElementById('editorPanel');
+            const mainArea = document.getElementById('mainArea');
+            const editBtn = document.getElementById('editBtn');
+            const preview = document.getElementById('preview');
+
+            if (isApp) {
+                // アプリモード（全画面）
+                topNav.style.display = 'none';
+                editorPanel.style.display = 'none';
+                mainArea.classList.remove('p-4', 'gap-4');
+                mainArea.classList.add('p-0');
+                preview.style.borderRadius = '0';
+                preview.style.boxShadow = 'none';
+                editBtn.style.display = 'block'; // 右下の編集ボタンを表示
+            } else {
+                // エディタモード
+                topNav.style.display = 'flex';
+                editorPanel.style.display = 'flex';
+                mainArea.classList.add('p-4', 'gap-4');
+                mainArea.classList.remove('p-0');
+                preview.style.borderRadius = '12px';
+                preview.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)';
+                editBtn.style.display = 'none';
+            }
+        };
+
         window.addEventListener('load', async () => {
             lucide.createIcons();
             const id = window.location.hash.substring(1);
             
-            // URLにID（#以降）がある場合、DBから読み込む
             if (id && id.length > 10) {
+                // 【重要】URLにIDがある時は、全画面のアプリモードにする
+                setAppMode(true);
                 showToast("アプリを読み込み中...");
                 try {
                     const docSnap = await getDoc(doc(db, "apps", id));
                     if (docSnap.exists()) {
                         document.getElementById('codeInput').value = docSnap.data().code;
                         runApp();
-                        showToast("読み込み完了！");
                     } else {
                         showToast("アプリが見つかりませんでした。");
+                        setAppMode(false);
                         runApp();
                     }
                 } catch (e) {
-                    console.error("読み込みエラー:", e);
+                    console.error(e);
                 }
             } else {
+                // 普通に開いた時はエディタを表示
+                setAppMode(false);
                 runApp();
             }
         });
 
-        function showToast(msg) {
+        window.showToast = (msg) => {
             const toast = document.getElementById('toast');
             toast.innerText = msg;
             toast.classList.add('opacity-100');
             setTimeout(() => toast.classList.remove('opacity-100'), 3000);
-        }
+        };
     </script>
     <style>
         body { font-family: sans-serif; background: #f8fafc; }
-        #preview { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        #preview { background: white; transition: all 0.3s ease; }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
-    <nav class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shadow-sm">
+<body class="h-screen flex flex-col overflow-hidden bg-slate-900">
+
+    <nav id="topNav" class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shadow-sm z-10">
         <div class="flex items-center gap-2">
             <span class="text-xl">🚀</span>
             <h1 class="text-lg font-bold text-indigo-600 tracking-tight">AI App Runway</h1>
@@ -113,8 +137,9 @@
         </div>
     </nav>
 
-    <main class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden">
-        <div class="flex flex-col flex-1">
+    <main id="mainArea" class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden relative">
+        
+        <div id="editorPanel" class="flex flex-col flex-1 z-10">
             <textarea id="codeInput" 
                 class="flex-1 w-full p-4 rounded-xl border border-slate-200 bg-slate-900 text-slate-200 font-mono text-sm focus:outline-none"
                 placeholder="ここにAIコードを貼り付け...">
@@ -123,18 +148,26 @@
 <head>
     <meta charset="UTF-8">
 </head>
-<body style="display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; background:linear-gradient(to bottom right, #e0e7ff, #fdf2f8);">
+<body style="display:flex; justify-content:center; align-items:center; height:100vh; margin:0; font-family:sans-serif; background:linear-gradient(to bottom right, #e0e7ff, #fdf2f8);">
     <div style="text-align:center; background:white; padding:40px; border-radius:30px; box-shadow:0 20px 25px rgba(0,0,0,0.1);">
-        <h1 style="color:#4f46e5; margin-bottom:10px;">🌟 AI App Runway</h1>
-        <p>ここにAIが書いたコードを貼って起動しよう！</p>
+        <h1 style="color:#4f46e5; margin-bottom:10px;">📱 全画面アプリ化！</h1>
+        <p>共有されたURLを開くと、コードが隠れて<br>本物のアプリみたいになるよ！</p>
     </div>
 </body>
 </html></textarea>
         </div>
-        <div class="flex-1">
+
+        <div id="previewPanel" class="flex-1 flex bg-white w-full h-full relative z-0">
             <iframe id="preview" class="w-full h-full border-none"></iframe>
         </div>
+
     </main>
+
+    <button id="editBtn" onclick="setAppMode(false)" class="fixed bottom-6 right-6 px-4 py-2 bg-slate-800/80 backdrop-blur text-white text-xs font-bold rounded-full shadow-lg hover:bg-slate-700 transition-all hidden z-50">
+        ✏️ 作成画面
+    </button>
+
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-slate-800 text-white text-sm rounded-full opacity-0 transition-all duration-300 pointer-events-none z-50"></div>
+
 </body>
 </html>

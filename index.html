@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI App Runway | Pro v6</title>
+    <title>AI App Runway | Pro v7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="module">
@@ -23,39 +23,52 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // 🌟 バックアップ用の変数
+        window.savedCode = "";
+
         // --- 実行ロジック ---
         window.runApp = (shouldDestroy = true) => {
             const codeInput = document.getElementById('codeInput');
-            if (!codeInput) return; // すでに削除済みの場合は何もしない
+            if (!codeInput) return;
 
             const code = codeInput.value;
+            window.savedCode = code; // 🌟 削除前にコードを保存しておく
+
             const previewFrame = document.getElementById('preview');
             const doc = previewFrame.contentWindow.document;
             doc.open();
             doc.write(code);
             doc.close();
 
-            // 🌟 物理的に搬入口を削除する
             if(shouldDestroy) {
                 const editorPanel = document.getElementById('editorPanel');
-                if (editorPanel) {
-                    editorPanel.remove(); // DOMから完全に消去
-                }
+                if (editorPanel) editorPanel.remove();
             }
         };
 
+        // --- URL発行ロジック ---
         window.shareApp = async () => {
-            // 物理削除後は codeInput がないので、iframeの中身を取得するか、変数を保存しておく必要があります
-            // 今回はシンプルにするため、削除前に保存していたコードを使用する設計にします
-            const code = document.getElementById('codeInput')?.value || window.lastCode;
-            if(!code) return;
+            // エディタがあるならそこから、ないなら保存用変数から取得
+            const currentCode = document.getElementById('codeInput')?.value || window.savedCode;
+            
+            if(!currentCode || currentCode.trim() === "") {
+                showToast("保存するコードがありません");
+                return;
+            }
+
             showToast("URLを作成中...");
             try {
-                const docRef = await addDoc(collection(db, "apps"), { code: code, createdAt: new Date() });
+                const docRef = await addDoc(collection(db, "apps"), { 
+                    code: currentCode, 
+                    createdAt: new Date() 
+                });
                 const shareUrl = window.location.origin + window.location.pathname + '#' + docRef.id;
                 await navigator.clipboard.writeText(shareUrl);
                 showToast("URLをコピーしました！");
-            } catch (e) { showToast("エラーが発生しました。"); }
+            } catch (e) { 
+                console.error(e);
+                showToast("保存に失敗しました"); 
+            }
         };
 
         window.addEventListener('load', async () => {
@@ -63,15 +76,11 @@
             const id = window.location.hash.substring(1);
             
             if (id && id.length > 10) {
-                // 🌟 友達がリンクから入った時
                 const docSnap = await getDoc(doc(db, "apps", id));
                 if (docSnap.exists()) {
                     const code = docSnap.data().code;
-                    window.lastCode = code; // バックアップ
-                    // エディタにセットして即座に削除実行
-                    const input = document.getElementById('codeInput');
-                    input.value = code;
-                    runApp(true); // 物理削除して実行
+                    document.getElementById('codeInput').value = code;
+                    runApp(true); // 友達用：最初から削除して実行
                 }
             }
         });
@@ -84,7 +93,7 @@
         };
     </script>
     <style>
-        body { font-family: sans-serif; background: #ffffff; margin: 0; }
+        body { font-family: sans-serif; background: #ffffff; }
         #preview { background: white; width: 100%; height: 100%; border: none; }
     </style>
 </head>
@@ -97,28 +106,26 @@
         </div>
         
         <div class="flex gap-2">
-            <button onclick="shareApp()" class="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg flex items-center gap-1">
+            <button onclick="shareApp()" class="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg flex items-center gap-1 hover:bg-indigo-100 transition-all">
                 <i data-lucide="link-2" class="w-3.5 h-3.5"></i> URL発行
             </button>
-            <button onclick="runApp(true)" class="px-5 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700">
+            <button onclick="runApp(true)" class="px-5 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 shadow-md">
                 反映して全画面化
             </button>
         </div>
     </nav>
 
     <main class="flex-1 flex overflow-hidden bg-white">
-        
         <div id="editorPanel" class="w-[350px] h-full bg-slate-100 flex flex-col border-r border-slate-200 shrink-0">
-            <div class="bg-slate-200 px-4 py-2 text-[10px] text-slate-500 font-bold">CODE IMPORTER</div>
+            <div class="bg-slate-200 px-4 py-2 text-[10px] text-slate-500 font-bold tracking-widest">IMPORTER</div>
             <textarea id="codeInput" 
-                class="flex-1 w-full p-4 bg-white text-slate-700 font-mono text-xs focus:outline-none resize-none border-none"
-                placeholder="AIが作った2画面エディタコードをここに貼り付けてください..."></textarea>
+                class="flex-1 w-full p-4 bg-white text-slate-700 font-mono text-xs focus:outline-none resize-none"
+                placeholder="AIのコードを貼り付けてね"></textarea>
         </div>
 
         <div class="flex-1 h-full relative">
             <iframe id="preview" title="Main Content"></iframe>
         </div>
-
     </main>
 
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-slate-800 text-white text-xs rounded-full opacity-0 transition-all duration-300 pointer-events-none z-50"></div>

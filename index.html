@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI App Runway | Pro v8</title>
+    <title>AI App Runway | Pro v9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="module">
@@ -29,8 +29,9 @@
         // --- 実行ロジック ---
         window.runApp = () => {
             const input = document.getElementById('codeInput');
-            if (input) {
-                window.cachedCode = input.value; // コードを退避
+            // 💡 空っぽの入力欄で上書きしないようにガードを追加！
+            if (input && input.value.trim() !== "") {
+                window.cachedCode = input.value;
             }
             
             const previewFrame = document.getElementById('preview');
@@ -39,7 +40,7 @@
             doc.write(window.cachedCode);
             doc.close();
 
-            // 物理的に削除（消去）
+            // 🌟 物理的に削除（消去）して全画面化
             const panel = document.getElementById('editorPanel');
             if (panel) panel.remove();
             
@@ -90,14 +91,21 @@
             }
         };
 
+        // 🌟 リンクを開いた時の処理
         window.addEventListener('load', async () => {
             lucide.createIcons();
             const id = window.location.hash.substring(1);
             if (id && id.length > 10) {
                 const docSnap = await getDoc(doc(db, "apps", id));
                 if (docSnap.exists()) {
-                    window.cachedCode = docSnap.data().code;
-                    runApp(); // 友達用：即座に削除して実行
+                    const code = docSnap.data().code;
+                    window.cachedCode = code; // データを退避
+                    
+                    // 💡 入力欄に一旦セットしてから実行する
+                    const input = document.getElementById('codeInput');
+                    if(input) input.value = code;
+                    
+                    runApp(); // 自動で全画面化（エディタ削除）して実行！
                 }
             }
         });
@@ -119,10 +127,10 @@
         </div>
         
         <div class="flex gap-2">
-            <button id="editBtn" onclick="restoreEditor()" class="hidden px-3 py-1.5 text-xs font-bold bg-slate-100 text-slate-700 rounded-lg flex items-center gap-1">
+            <button id="editBtn" onclick="restoreEditor()" class="hidden px-3 py-1.5 text-xs font-bold bg-slate-100 text-slate-700 rounded-lg flex items-center gap-1 hover:bg-slate-200">
                 <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> 編集する
             </button>
-            <button onclick="shareApp()" class="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg flex items-center gap-1">
+            <button onclick="shareApp()" class="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg flex items-center gap-1 hover:bg-indigo-100">
                 <i data-lucide="link-2" class="w-3.5 h-3.5"></i> URL発行
             </button>
             <button id="runBtn" onclick="runApp()" class="px-5 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700">
@@ -136,10 +144,10 @@
             <div class="bg-slate-800 px-4 py-2 text-[10px] text-slate-400 font-bold">IMPORTER</div>
             <textarea id="codeInput" 
                 class="flex-1 w-full p-4 bg-slate-900 text-indigo-300 font-mono text-xs focus:outline-none resize-none"
-                placeholder="コードを貼り付けて反映を押してください"></textarea>
+                placeholder="AIが作った2画面コードを貼り付けて反映を押してください"></textarea>
         </div>
 
-        <div class="flex-1 h-full">
+        <div class="flex-1 h-full relative">
             <iframe id="preview" class="w-full h-full border-none" title="Preview"></iframe>
         </div>
     </main>

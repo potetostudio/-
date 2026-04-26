@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI App Runway | Pro v9</title>
+    <title>AI App Runway | Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="module">
@@ -26,51 +26,38 @@
         // 🌟 データを保持する変数
         window.cachedCode = "";
 
-        // --- 実行ロジック ---
-        window.runApp = () => {
+        // --- 実行ロジック：反映ボタンを押すと左側が消える ---
+        window.runApp = (forceRemove = true) => {
             const input = document.getElementById('codeInput');
-            // 💡 空っぽの入力欄で上書きしないようにガードを追加！
+            // 入力があればキャッシュを更新
             if (input && input.value.trim() !== "") {
                 window.cachedCode = input.value;
             }
             
+            // 中身が空なら何もしない
+            if (!window.cachedCode) return;
+
             const previewFrame = document.getElementById('preview');
             const doc = previewFrame.contentWindow.document;
             doc.open();
             doc.write(window.cachedCode);
             doc.close();
 
-            // 🌟 物理的に削除（消去）して全画面化
-            const panel = document.getElementById('editorPanel');
-            if (panel) panel.remove();
-            
-            // UI切り替え
-            document.getElementById('runBtn').classList.add('hidden');
-            document.getElementById('editBtn').classList.remove('hidden');
-        };
-
-        // --- 編集画面の復活 ---
-        window.restoreEditor = () => {
-            if (document.getElementById('editorPanel')) return;
-
-            const main = document.getElementById('mainArea');
-            const panel = document.createElement('div');
-            panel.id = "editorPanel";
-            panel.className = "w-[350px] h-full bg-slate-900 flex flex-col border-r border-slate-700 shrink-0";
-            panel.innerHTML = `
-                <div class="bg-slate-800 px-4 py-2 text-[10px] text-slate-400 font-bold">IMPORTER</div>
-                <textarea id="codeInput" class="flex-1 w-full p-4 bg-slate-900 text-indigo-300 font-mono text-xs focus:outline-none resize-none">${window.cachedCode}</textarea>
-            `;
-            main.insertBefore(panel, main.firstChild);
-            
-            document.getElementById('runBtn').classList.remove('hidden');
-            document.getElementById('editBtn').classList.add('hidden');
+            // 🌟 搬入口を物理的に「削除」して全画面にする
+            if (forceRemove) {
+                const panel = document.getElementById('editorPanel');
+                if (panel) {
+                    panel.remove(); // DOMから完全に消去
+                }
+                // ボタンの表示切り替え
+                document.getElementById('runBtn').classList.add('hidden');
+            }
         };
 
         // --- URL発行 ---
         window.shareApp = async () => {
-            const codeInput = document.getElementById('codeInput');
-            const codeToSave = codeInput ? codeInput.value : window.cachedCode;
+            const input = document.getElementById('codeInput');
+            const codeToSave = input ? input.value : window.cachedCode;
 
             if(!codeToSave) {
                 showToast("コードを入力してください");
@@ -87,25 +74,20 @@
                 await navigator.clipboard.writeText(shareUrl);
                 showToast("URLをコピーしました！");
             } catch (e) {
-                showToast("エラーが発生しました");
+                showToast("保存に失敗しました");
             }
         };
 
-        // 🌟 リンクを開いた時の処理
+        // 🌟 リンクを開いた時の初期化
         window.addEventListener('load', async () => {
             lucide.createIcons();
             const id = window.location.hash.substring(1);
             if (id && id.length > 10) {
                 const docSnap = await getDoc(doc(db, "apps", id));
                 if (docSnap.exists()) {
-                    const code = docSnap.data().code;
-                    window.cachedCode = code; // データを退避
-                    
-                    // 💡 入力欄に一旦セットしてから実行する
-                    const input = document.getElementById('codeInput');
-                    if(input) input.value = code;
-                    
-                    runApp(); // 自動で全画面化（エディタ削除）して実行！
+                    window.cachedCode = docSnap.data().code;
+                    // 💡 友達用：最初から左側を消した状態で実行
+                    runApp(true);
                 }
             }
         });
@@ -118,7 +100,7 @@
         };
     </script>
 </head>
-<body class="h-screen flex flex-col overflow-hidden bg-slate-900">
+<body class="h-screen flex flex-col overflow-hidden bg-white">
 
     <nav class="bg-white border-b border-slate-200 px-4 py-2 flex justify-between items-center z-30">
         <div class="flex items-center gap-2">
@@ -127,28 +109,25 @@
         </div>
         
         <div class="flex gap-2">
-            <button id="editBtn" onclick="restoreEditor()" class="hidden px-3 py-1.5 text-xs font-bold bg-slate-100 text-slate-700 rounded-lg flex items-center gap-1 hover:bg-slate-200">
-                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> 編集する
-            </button>
             <button onclick="shareApp()" class="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg flex items-center gap-1 hover:bg-indigo-100">
                 <i data-lucide="link-2" class="w-3.5 h-3.5"></i> URL発行
             </button>
-            <button id="runBtn" onclick="runApp()" class="px-5 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700">
+            <button id="runBtn" onclick="runApp(true)" class="px-5 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700">
                 反映
             </button>
         </div>
     </nav>
 
-    <main id="mainArea" class="flex-1 flex overflow-hidden bg-white">
+    <main class="flex-1 flex overflow-hidden bg-white">
         <div id="editorPanel" class="w-[350px] h-full bg-slate-900 flex flex-col border-r border-slate-700 shrink-0">
-            <div class="bg-slate-800 px-4 py-2 text-[10px] text-slate-400 font-bold">IMPORTER</div>
+            <div class="bg-slate-800 px-4 py-2 text-[10px] text-slate-400 font-bold">IMPORTER (PASTE HERE)</div>
             <textarea id="codeInput" 
                 class="flex-1 w-full p-4 bg-slate-900 text-indigo-300 font-mono text-xs focus:outline-none resize-none"
-                placeholder="AIが作った2画面コードを貼り付けて反映を押してください"></textarea>
+                placeholder="AIが作ったコードを貼り付けて「反映」を押してください"></textarea>
         </div>
 
-        <div class="flex-1 h-full relative">
-            <iframe id="preview" class="w-full h-full border-none" title="Preview"></iframe>
+        <div class="flex-1 h-full">
+            <iframe id="preview" class="w-full h-full border-none" title="App Preview"></iframe>
         </div>
     </main>
 

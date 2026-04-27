@@ -3,14 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI App Runway | Shared v18</title>
+    <title>AI App Runway | v24</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 履歴パネル */
+        #historyPanel {
+            width: 200px; min-width: 200px;
+            background: #0f172a; border-right: 1px solid #1e293b;
+            display: flex; flex-direction: column;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        #historyPanel.collapsed { width: 0; min-width: 0; opacity: 0; }
+        .hist-item {
+            padding: 12px; border-bottom: 1px solid #1e293b; cursor: pointer;
+            display: flex; flex-direction: column; position: relative; transition: background 0.2s;
+        }
+        .hist-item:hover { background: #1e293b; }
+        
+        /* プレビューエリア */
+        #previewContainer { transition: all 0.3s ease; }
+        .preview-mobile { 
+            width: 375px !important; margin: 20px auto !important; 
+            border: 12px solid #334155 !important; border-radius: 32px !important; 
+            height: 80% !important; 
+        }
+
+        /* 修正(Iterate)エリア */
+        #iterateArea {
+            border-top: 1px solid #1e293b; background: #0a0f1a; padding: 12px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        #iteratePrompt {
+            background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+            padding: 8px 12px; color: #e2e8f0; font-size: 12px; outline: none;
+        }
+
+        #toast { transition: opacity 0.3s; pointer-events: none; }
+    </style>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🌟 あなたの新しい個人用Firebase設定
         const firebaseConfig = {
             apiKey: "AIzaSyBSZNHnNcui0Q1VkRshaHEuiMt8wDV2zGk",
             authDomain: "poteto0107-78af7.firebaseapp.com",
@@ -19,109 +54,89 @@
             messagingSenderId: "208184037315",
             appId: "1:208184037315:web:c220bbc24c600a011bf776"
         };
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- 🌟 新機能：URL作成（共有）機能 ---
-        window.createShareUrl = async () => {
-            const code = document.getElementById('codeInput').value;
-            if (!code) {
-                alert("共有するコードがありません");
-                return;
-            }
-
-            showToast("共有URLを作成中...");
-            try {
-                // Firestoreの 'apps' コレクションに保存
-                const docRef = await addDoc(collection(db, "apps"), {
-                    code: code,
-                    createdAt: new Date()
-                });
-                
-                // 現在のURL（GitHub PagesのURL）を取得してIDを付与
-                const baseUrl = window.location.origin + window.location.pathname;
-                const shareUrl = `${baseUrl}?id=${docRef.id}`;
-
-                // クリップボードにコピー
-                await navigator.clipboard.writeText(shareUrl);
-                alert("共有URLを作成してコピーしました！\n" + shareUrl);
-            } catch (e) {
-                console.error(e);
-                alert("URL作成に失敗しました。Firestoreが有効になっているか確認してください。");
-            }
-        };
-
-        // URLパラメータにIDがあれば自動実行する機能
-        const loadSharedApp = async () => {
-            const params = new URLSearchParams(window.location.search);
-            const id = params.get('id');
-            if (id) {
-                showToast("共有アプリを読み込み中...");
-                const docSnap = await getDoc(doc(db, "apps", id));
-                if (docSnap.exists()) {
-                    const code = docSnap.data().code;
-                    document.getElementById('codeInput').value = code;
-                    window.runApp(true); // 全画面で実行
-                }
-            }
-        };
-
-        // --- AI生成・実行ロジック ---
-        window.generateWithAI = async () => {
-            const prompt = document.getElementById('aiPrompt').value;
+        // API呼び出し（修正用）
+        const callGemini = async (promptText) => {
             const apiKey = localStorage.getItem('gemini_api_key');
-            const btn = document.getElementById('genBtn');
-
-            if (!apiKey) { alert("設定からAPIキーを入力してください"); return; }
-            if (!prompt) return;
-
-            showToast("AIが生成中...");
-            btn.disabled = true;
-
-            const configs = [
-                { ver: "v1", model: "gemini-1.5-flash" },
-                { ver: "v1beta", model: "gemini-1.5-flash" }
-            ];
-
-            let success = false;
-            for (const conf of configs) {
-                if (success) break;
-                try {
-                    const url = `https://generativelanguage.googleapis.com/${conf.ver}/models/${conf.model}:generateContent?key=${apiKey}`;
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt + "。HTML/CSS/JSを1つにまとめたコードのみ出力して。解説不要。" }] }]
-                        })
-                    });
-                    const data = await response.json();
-                    if (response.ok) {
-                        let code = data.candidates[0].content.parts[0].text;
-                        code = code.replace(/```html/g, "").replace(/```/g, "").trim();
-                        document.getElementById('codeInput').value = code;
-                        window.runApp(false);
-                        showToast("生成完了！");
-                        success = true;
-                    }
-                } catch (e) { console.error(e); }
-            }
-            if (!success) showToast("失敗しました。APIキーを確認してください。");
-            btn.disabled = false;
+            if (!apiKey) { alert("設定からAPIキーを入力してください"); return null; }
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    let code = data.candidates[0].content.parts[0].text;
+                    return code.replace(/```html/gi, "").replace(/```/g, "").trim();
+                }
+            } catch (e) { console.error(e); }
+            return null;
         };
 
-        window.runApp = (force) => {
+        // 修正アクション
+        window.iterateWithAI = async () => {
+            const prompt = document.getElementById('iteratePrompt').value.trim();
+            const currentCode = document.getElementById('codeInput').value.trim();
+            if (!prompt) return;
+            
+            showToast("AIが修正中...");
+            const fullPrompt = `以下のコードを修正してください。\n指示：${prompt}\n\n現在のコード：\n${currentCode}\n\n修正後のHTML/CSS/JSコードのみ出力して。`;
+            const code = await callGemini(fullPrompt);
+            if (code) {
+                document.getElementById('codeInput').value = code;
+                window.runApp(false);
+                addToHistory(prompt, code);
+                document.getElementById('iteratePrompt').value = '';
+                showToast("修正完了！");
+            } else { showToast("エラーが発生しました。"); }
+        };
+
+        window.runApp = (full) => {
             const code = document.getElementById('codeInput').value;
             const doc = document.getElementById('preview').contentWindow.document;
             doc.open(); doc.write(code); doc.close();
-            if (force) document.getElementById('editorPanel').style.display = 'none';
+            if (full) document.getElementById('editorPanel').style.display = 'none';
         };
 
-        window.saveKey = () => {
-            localStorage.setItem('gemini_api_key', document.getElementById('apiKeyInput').value.trim());
-            document.getElementById('settingsModal').classList.add('hidden');
-            showToast("キーを保存しました");
+        window.toggleDevice = () => {
+            document.getElementById('preview').classList.toggle('preview-mobile');
+        };
+
+        window.downloadCode = () => {
+            const code = document.getElementById('codeInput').value;
+            const blob = new Blob([code], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'app.html'; a.click();
+        };
+
+        window.createShareUrl = async () => {
+            const code = document.getElementById('codeInput').value;
+            if (!code) return;
+            const docRef = await addDoc(collection(db, "apps"), { code, createdAt: new Date() });
+            const url = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`;
+            navigator.clipboard.writeText(url);
+            alert("URLをコピーしました");
+        };
+
+        const loadHistory = () => JSON.parse(localStorage.getItem('ai_history') || '[]');
+        const addToHistory = (prompt, code) => {
+            const history = loadHistory();
+            history.unshift({ id: Date.now(), prompt, code });
+            localStorage.setItem('ai_history', JSON.stringify(history.slice(0, 10)));
+            renderHistory();
+        };
+        window.renderHistory = () => {
+            const list = document.getElementById('historyList');
+            list.innerHTML = loadHistory().map(h => `
+                <div class="hist-item" onclick="document.getElementById('codeInput').value=\`${h.code.replace(/`/g, '\\`')}\`;window.runApp(false);">
+                    <div class="text-white text-xs truncate">${h.prompt}</div>
+                </div>
+            `).join('');
         };
 
         window.showToast = (msg) => {
@@ -130,42 +145,55 @@
             setTimeout(() => t.classList.remove('opacity-100'), 3000);
         };
 
-        window.addEventListener('load', () => {
-            lucide.createIcons();
-            loadSharedApp();
-        });
+        window.addEventListener('load', () => { lucide.createIcons(); renderHistory(); });
     </script>
 </head>
-<body class="h-screen flex flex-col overflow-hidden bg-slate-50">
-    <nav class="bg-white border-b px-4 py-2 flex justify-between items-center shadow-sm z-30">
-        <div class="flex items-center gap-2 font-bold text-indigo-600">🚀 AI APP RUNWAY</div>
+<body class="h-screen flex flex-col overflow-hidden bg-slate-900">
+
+    <nav class="bg-white border-b px-4 py-2 flex justify-between items-center z-30">
+        <div class="font-black text-indigo-600 italic">AI RUNWAY v24</div>
         <div class="flex gap-2">
-            <button onclick="createShareUrl()" class="px-3 py-1.5 border border-slate-200 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-50 flex items-center gap-1">
-                <i data-lucide="share-2" class="w-3.5 h-3.5"></i> URL作成
-            </button>
+            <button onclick="toggleDevice()" class="p-2 text-slate-400"><i data-lucide="smartphone"></i></button>
+            <button onclick="downloadCode()" class="p-2 text-slate-400"><i data-lucide="download"></i></button>
+            <button onclick="createShareUrl()" class="px-3 py-1 bg-slate-100 text-xs font-bold rounded-lg">URL作成</button>
             <button onclick="document.getElementById('settingsModal').classList.remove('hidden')" class="p-2 text-slate-400"><i data-lucide="settings"></i></button>
-            <button onclick="runApp(true)" class="px-4 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-md">全画面実行</button>
+            <button onclick="runApp(true)" class="px-4 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-lg">全画面表示</button>
         </div>
     </nav>
 
     <main class="flex-1 flex overflow-hidden">
-        <div id="editorPanel" class="w-[380px] bg-slate-900 flex flex-col border-r border-slate-700 shrink-0">
-            <div class="p-4 bg-slate-800 border-b border-slate-700 flex gap-2">
-                <input id="aiPrompt" type="text" class="flex-1 bg-slate-700 text-white text-xs p-2 rounded" placeholder="例：ブロック崩し">
-                <button id="genBtn" onclick="generateWithAI()" class="px-3 py-1 bg-indigo-500 text-white text-xs font-bold rounded">生成</button>
-            </div>
-            <textarea id="codeInput" class="flex-1 p-4 bg-slate-900 text-indigo-300 font-mono text-[10px] outline-none resize-none" placeholder="ここにコードが出ます"></textarea>
+        <div id="historyPanel">
+            <div class="p-3 text-slate-500 text-[10px] font-bold uppercase">History</div>
+            <div id="historyList" class="flex-1 overflow-y-auto"></div>
         </div>
-        <iframe id="preview" class="flex-1 bg-white border-none"></iframe>
+
+        <div id="editorPanel" class="w-[400px] flex flex-col border-r border-slate-800 shrink-0">
+            <textarea id="codeInput" class="flex-1 p-4 bg-slate-900 text-indigo-300 font-mono text-[11px] outline-none resize-none" placeholder="ここにコードを貼り付けるか、修正指示を出してください..."></textarea>
+            
+            <div id="iterateArea">
+                <div class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                    <i data-lucide="wand-2" class="w-3"></i> AIに修正・機能追加を頼む
+                </div>
+                <div class="flex gap-2">
+                    <input id="iteratePrompt" type="text" class="flex-1" placeholder="例：色を青くして / スコア機能を追加">
+                    <button id="iterateBtn" onclick="iterateWithAI()" class="bg-emerald-600 text-white px-3 py-1 rounded-md text-xs font-bold">送信</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 bg-slate-200 flex flex-col p-4">
+            <iframe id="preview" class="flex-1 bg-white shadow-2xl rounded-sm"></iframe>
+        </div>
     </main>
 
-    <div id="settingsModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 hidden">
-        <div class="bg-white p-8 rounded-2xl w-80 shadow-2xl">
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-3xl w-80">
             <h2 class="font-bold mb-4">Gemini API Key</h2>
-            <input id="apiKeyInput" type="password" class="w-full p-2 border rounded-xl mb-4" placeholder="AIzaSy...">
-            <button onclick="saveKey()" class="w-full py-2 bg-indigo-600 text-white font-bold rounded-xl">保存</button>
+            <input id="apiKeyInput" type="password" class="w-full p-3 border rounded-xl mb-4" placeholder="AIzaSy...">
+            <button onclick="localStorage.setItem('gemini_api_key', document.getElementById('apiKeyInput').value);document.getElementById('settingsModal').classList.add('hidden');" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl">保存</button>
         </div>
     </div>
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-slate-800 text-white text-xs rounded-full opacity-0 transition-all pointer-events-none z-50 shadow-lg"></div>
+
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-slate-800 text-white text-xs rounded-full opacity-0 shadow-2xl"></div>
 </body>
 </html>

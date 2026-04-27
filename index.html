@@ -3,84 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI App Runway | v30 TWO-STAGE</title>
+    <title>AI App Runway | v31 INTEGRATED</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700&family=JetBrains+Mono:wght@400&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; overflow: hidden; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=JetBrains+Mono:wght@400&display=swap');
+        
+        body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
 
-        /* 初期の貼り付け画面 */
+        /* 1. 貼り付け専用オーバーレイ（実行したら消える） */
         #launchPad {
-            position: fixed; inset: 0; background: #020617; z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 40px; transition: all 0.5s ease;
+            position: fixed; inset: 0; background: #020617; z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
         }
-        #launchPad.hidden { opacity: 0; pointer-events: none; transform: translateY(-20px); }
+        #launchPad.hidden { display: none; }
 
-        /* メインレイアウト */
-        #mainLayout { display: flex; height: 100vh; width: 100vw; opacity: 0; transition: opacity 0.5s; }
-        #mainLayout.visible { opacity: 1; }
+        /* 2. プレビュー（ゲーム画面）メイン */
+        #previewContainer { width: 100vw; height: 100vh; position: relative; }
+        iframe { width: 100%; height: 100%; border: none; background: #fff; }
 
-        /* エディタの開閉 */
-        #editorPanel {
-            width: 450px; background: #050a18; border-right: 1px solid #1e293b;
-            display: flex; flex-direction: column; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        /* 3. 統合コントロール（画面上に浮く最小限のUI） */
+        #integratedUI {
+            position: fixed; top: 20px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            pointer-events: none; z-index: 100;
         }
-        #editorPanel.collapsed { width: 0; border-right: none; }
-
-        /* 履歴 */
-        #historyPanel {
-            width: 260px; margin-left: -260px; background: #0f172a; border-right: 1px solid #1e293b;
-            transition: all 0.4s; opacity: 0;
+        .ui-panel {
+            pointer-events: auto; background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        #historyPanel.visible { margin-left: 0; opacity: 1; }
 
-        #previewContainer { flex: 1; background: #000; position: relative; }
-        iframe { width: 100%; height: 100%; border: none; background: white; }
+        /* 履歴サイドバー（浮遊式） */
+        #historyDrawer {
+            position: fixed; top: 80px; left: -300px; width: 280px; bottom: 80px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 200;
+        }
+        #historyDrawer.open { left: 20px; }
 
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        /* AI編集用フローティングバー */
+        #aiCommandCenter {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 600px; padding: 6px;
+        }
+
+        /* アニメーション */
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        const HARDCODED_API_KEY = ""; // 🔑 キーを入れてください
+        const HARDCODED_API_KEY = ""; // 🔑 ここにAPIキーを入力
 
-        // 1. 貼り付け・初期実行
+        let currentCode = "";
+
+        // 初期化：コードを貼り付けて開始
         window.initApp = () => {
-            const rawCode = document.getElementById('initialPaste').value;
-            if (!rawCode) return alert("コードを貼り付けてください");
-
-            // 余計なエディタUIを消すための簡易クリーニング（正規表現）
-            const cleanedCode = rawCode.replace(/id="editor"/g, 'id="old-editor" style="display:none"')
-                                      .replace(/class="editor"/g, 'class="old-editor" style="display:none"');
-
-            document.getElementById('editSource').value = cleanedCode;
+            const code = document.getElementById('initialPaste').value;
+            if (!code) return;
+            currentCode = code;
             document.getElementById('launchPad').classList.add('hidden');
-            document.getElementById('mainLayout').classList.add('visible');
-            
-            window.runApp();
+            renderApp();
         };
 
-        // 2. 実行
-        window.runApp = () => {
-            const code = document.getElementById('editSource').value;
+        // 実行
+        window.renderApp = () => {
             const preview = document.getElementById('preview');
-            preview.srcdoc = ""; 
-            setTimeout(() => { preview.srcdoc = code; }, 50);
+            preview.srcdoc = currentCode;
         };
 
-        // 3. AI修正
+        // AI修正指示（GAME CODEの機能を肩代わり）
         window.iterateWithAI = async () => {
-            const prompt = document.getElementById('iteratePrompt').value.trim();
-            const currentCode = document.getElementById('editSource').value.trim();
+            const prompt = document.getElementById('aiInput').value.trim();
             if (!prompt) return;
 
             setLoading(true);
-            const fullPrompt = `以下のHTMLを修正してください。
-【重要】プレビュー内にエディタ、境界線、全画面ボタンなどのツールUIは絶対に含めないでください。これらはシステム側で用意されています。純粋なアプリの内容のみを出力してください。
+            const fullPrompt = `以下のHTMLコードを指示通り修正してください。
+【禁止】プレビュー内のエディタUIや境界線、重複するコントロールボタンはすべて削除し、純粋なゲーム/アプリ画面だけにしてください。
 指示：${prompt}
-コード：\n${currentCode}`;
+現在のコード：\n${currentCode}`;
 
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${HARDCODED_API_KEY}`, {
@@ -89,68 +90,87 @@
                     body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
                 });
                 const data = await response.json();
-                let code = data.candidates[0].content.parts[0].text.replace(/```html/gi, "").replace(/```/g, "").trim();
-
-                document.getElementById('editSource').value = code;
-                document.getElementById('iteratePrompt').value = '';
-            } catch (e) { alert("APIエラー"); }
+                currentCode = data.candidates[0].content.parts[0].text.replace(/```html/gi, "").replace(/```/g, "").trim();
+                
+                renderApp();
+                addToHistory(prompt, currentCode);
+                document.getElementById('aiInput').value = "";
+            } catch (e) { alert("API Error"); }
             setLoading(false);
         };
 
-        window.setLoading = (l) => {
-            const btn = document.getElementById('iterateBtn');
-            btn.innerHTML = l ? '<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i>' : '適用';
+        const setLoading = (l) => {
+            const btn = document.getElementById('aiBtn');
+            btn.innerHTML = l ? '<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i>' : '修正';
             lucide.createIcons();
         };
 
-        window.toggleEditor = () => document.getElementById('editorPanel').classList.toggle('collapsed');
-        window.toggleHistory = () => document.getElementById('historyPanel').classList.toggle('visible');
-        window.addEventListener('load', () => { lucide.createIcons(); });
+        const addToHistory = (p, c) => {
+            const h = JSON.parse(localStorage.getItem('v31_h') || '[]');
+            h.unshift({ p, c, t: Date.now() });
+            localStorage.setItem('v31_h', JSON.stringify(h.slice(0, 10)));
+            renderHistoryList();
+        };
+
+        window.renderHistoryList = () => {
+            const list = document.getElementById('historyList');
+            const h = JSON.parse(localStorage.getItem('v31_h') || '[]');
+            list.innerHTML = h.map(i => `
+                <div onclick="restore('${i.t}')" class="p-3 mb-2 bg-white/5 rounded-lg border border-white/5 hover:border-indigo-500 cursor-pointer transition-all">
+                    <div class="text-[10px] font-bold text-white truncate">${i.p}</div>
+                </div>
+            `).join('');
+        };
+
+        window.restore = (time) => {
+            const h = JSON.parse(localStorage.getItem('v31_h') || '[]');
+            const found = h.find(i => i.t == time);
+            if(found) { currentCode = found.c; renderApp(); }
+        };
+
+        window.toggleHistory = () => document.getElementById('historyDrawer').classList.toggle('open');
+        window.addEventListener('load', () => { lucide.createIcons(); renderHistoryList(); });
     </script>
 </head>
 <body>
 
-    <div id="launchPad">
-        <div class="max-w-2xl w-full text-center space-y-6">
-            <h1 class="text-3xl font-black italic text-indigo-500 uppercase tracking-tighter">AI App Runway v30</h1>
-            <p class="text-slate-400 text-sm">他人が作ったコードや、ベースになるコードをここに貼り付けてください</p>
-            <textarea id="initialPaste" class="w-full h-64 bg-slate-900 border border-white/10 rounded-2xl p-6 mono text-xs text-indigo-200 outline-none focus:border-indigo-500 transition-all shadow-2xl" placeholder="<html>..."></textarea>
-            <button onclick="initApp()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/20 transition-all uppercase tracking-widest">
-                実行して開発を開始する
+    <div id="launchPad" class="fade-in">
+        <div class="w-full max-w-xl space-y-6">
+            <h1 class="text-2xl font-black italic text-indigo-500 tracking-tighter">RUNWAY v31</h1>
+            <textarea id="initialPaste" class="w-full h-80 bg-slate-900 border border-white/10 rounded-2xl p-6 text-indigo-100 mono text-xs outline-none focus:border-indigo-500 shadow-2xl" placeholder="ここにベースとなるコードを貼り付けてください..."></textarea>
+            <button onclick="initApp()" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20">
+                開発を開始する
             </button>
         </div>
     </div>
 
-    <div id="mainLayout">
-        <aside id="historyPanel" class="flex flex-col">
-            <div class="p-4 border-b border-white/5 text-[10px] font-bold text-slate-500">HISTORY</div>
-            <div id="historyList" class="flex-1 overflow-y-auto"></div>
-        </aside>
+    <div id="previewContainer">
+        <iframe id="preview"></iframe>
+    </div>
 
-        <section id="editorPanel">
-            <div class="h-14 flex items-center justify-between px-4 border-b border-white/5 bg-slate-950">
-                <button onclick="toggleHistory()" class="text-slate-500 hover:text-white"><i data-lucide="history" class="w-5 h-5"></i></button>
-                <span class="text-[10px] font-bold text-slate-500 mono">EDIT_MODE</span>
-                <button onclick="runApp()" class="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black rounded-full uppercase">実行</button>
-            </div>
-            <textarea id="editSource" class="flex-1 p-6 bg-transparent text-indigo-100 mono text-[12px] leading-relaxed outline-none resize-none" placeholder="AI修正専用エディタ..."></textarea>
-            
-            <div class="p-4 bg-slate-950 border-t border-white/5">
-                <div class="relative">
-                    <input id="iteratePrompt" type="text" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 transition-all" placeholder="AIに修正を頼む...">
-                    <button id="iterateBtn" onclick="iterateWithAI()" class="absolute right-1.5 top-1.5 bottom-1.5 bg-indigo-600 text-white px-4 rounded-lg text-xs font-bold transition-all">適用</button>
-                </div>
-            </div>
-        </section>
+    <div id="integratedUI">
+        <button onclick="toggleHistory()" class="ui-panel p-3 text-slate-400 hover:text-white transition-all shadow-2xl">
+            <i data-lucide="history" class="w-6 h-6"></i>
+        </button>
 
-        <section id="previewContainer">
-            <div class="absolute top-4 left-4 z-10">
-                <button onclick="toggleEditor()" class="p-2 glass text-white rounded-lg hover:bg-white/10 transition-all">
-                    <i data-lucide="layout" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <iframe id="preview"></iframe>
-        </section>
+        <div class="flex gap-2">
+            <button onclick="location.reload()" class="ui-panel px-4 py-2 text-[10px] font-black text-slate-400 hover:text-white">RELOAD</button>
+        </div>
+    </div>
+
+    <aside id="historyDrawer" class="ui-panel flex flex-col p-4">
+        <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
+            <span class="text-[10px] font-black text-slate-500">HISTORY</span>
+            <button onclick="toggleHistory()" class="text-slate-500"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div id="historyList" class="flex-1 overflow-y-auto"></div>
+    </aside>
+
+    <div id="aiCommandCenter" class="ui-panel fade-in">
+        <div class="flex gap-2 p-1">
+            <input id="aiInput" type="text" class="flex-1 bg-transparent border-none text-sm text-white px-4 outline-none placeholder-slate-500" placeholder="指示を出す（例：UIを消してゲームを全画面化して）">
+            <button id="aiBtn" onclick="iterateWithAI()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-500/20">修正</button>
+        </div>
     </div>
 
 </body>

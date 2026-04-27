@@ -3,38 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Runway v36 | Fullscreen Mode</title>
+    <title>Runway v37 | Fullscreen Focus</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=JetBrains+Mono:wght@400&display=swap');
+        body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
         
-        body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; }
-
         /* 貼り付け画面 */
-        #launchPad { position: fixed; inset: 0; background: radial-gradient(circle at top, #1e293b 0%, #020617 100%); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; transition: opacity 0.5s; }
-        #launchPad.hidden { opacity: 0; pointer-events: none; }
-        .large-editor { width: 100%; max-width: 1000px; height: 60vh; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 30px; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none; transition: all 0.3s; backdrop-filter: blur(10px); }
+        #launchPad { position: fixed; inset: 0; background: #020617; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        #launchPad.hidden { display: none; }
+        .large-editor { width: 100%; max-width: 1000px; height: 60vh; background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 20px; color: #fff; font-family: monospace; outline: none; }
 
-        /* プレビューエリア */
-        #previewContainer { width: 100vw; height: 100vh; position: relative; background: #000; transition: all 0.3s ease; }
-        iframe { width: 100%; height: 100%; border: none; background: white; display: block; }
+        /* ゲーム表示エリア */
+        #previewContainer { width: 100vw; height: 100vh; position: relative; }
+        iframe { width: 100%; height: 100%; border: none; background: white; }
 
-        /* UIツールキット（全画面時に隠れる要素） */
-        .tool-ui { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); opacity: 1; pointer-events: auto; }
-        .ui-hidden { opacity: 0 !important; pointer-events: none !important; transform: translateY(20px); }
-        .header-hidden { transform: translateY(-100px) !important; opacity: 0 !important; }
-
-        .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        /* 全画面切り替え時に消えるUI */
+        .ui-element { transition: opacity 0.2s; }
+        .ui-hidden { opacity: 0 !important; pointer-events: none !important; }
 
         /* フローティングUI */
-        #aiCommandCenter { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 700px; z-index: 500; }
-        #topBar { position: fixed; top: 20px; left: 20px; right: 20px; z-index: 600; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
-        .ptr { pointer-events: auto; }
-
-        /* 全画面切替用インジケーター（全画面時のみ薄く表示） */
-        #fullscreenHint { position: fixed; top: 10px; right: 10px; font-size: 10px; color: rgba(255,255,255,0.2); pointer-events: none; display: none; }
-        body.is-fullscreen #fullscreenHint { display: block; }
+        #topBar { position: fixed; top: 20px; left: 20px; right: 20px; z-index: 500; display: flex; justify-content: space-between; pointer-events: none; }
+        #bottomBar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; z-index: 500; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; pointer-events: auto; }
     </style>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -51,127 +42,90 @@
         const db = getFirestore(app);
 
         let currentCode = "";
-        let isViewMode = false;
+        let isFullscreen = false;
 
-        // 全画面モードの切り替え
-        window.toggleViewMode = () => {
-            isViewMode = !isViewMode;
-            document.body.classList.toggle('is-fullscreen', isViewMode);
-            document.getElementById('aiCommandCenter').classList.toggle('ui-hidden', isViewMode);
-            document.getElementById('topBar').classList.toggle('header-hidden', isViewMode);
-            // アイコン更新
-            const icon = document.getElementById('viewModeIcon');
-            icon.setAttribute('data-lucide', isViewMode ? 'eye-off' : 'eye');
-            lucide.createIcons();
+        // 【復活】全画面モード切り替え
+        window.toggleFullscreen = () => {
+            isFullscreen = !isFullscreen;
+            document.querySelectorAll('.ui-element').forEach(el => {
+                el.classList.toggle('ui-hidden', isFullscreen);
+            });
         };
 
-        // ESCキーでも戻れるように
         window.addEventListener('keydown', (e) => {
-            if (e.key === "Escape" && isViewMode) toggleViewMode();
+            if (e.key === "Escape") {
+                isFullscreen = false;
+                document.querySelectorAll('.ui-element').forEach(el => el.classList.remove('ui-hidden'));
+            }
         });
 
         window.addEventListener('load', async () => {
             lucide.createIcons();
-            const urlParams = new URLSearchParams(window.location.search);
-            const appId = urlParams.get('id');
-            if (appId) {
-                const docSnap = await getDoc(doc(db, "apps", appId));
-                if (docSnap.exists()) {
-                    currentCode = docSnap.data().code;
-                    document.getElementById('launchPad').classList.add('hidden');
-                    window.renderApp();
-                }
+            const id = new URLSearchParams(window.location.search).get('id');
+            if (id) {
+                const snap = await getDoc(doc(db, "apps", id));
+                if (snap.exists()) { currentCode = snap.data().code; document.getElementById('launchPad').classList.add('hidden'); render(); }
             }
         });
 
-        window.initApp = () => {
-            const code = document.getElementById('initialPaste').value;
-            if (!code) return;
-            currentCode = code.replace(/id="editor"|class="editor"|#editor|\.editor/gi, 'style="display:none"')
-                             .replace(/#sidebar|#controls|#toolbar/gi, (m) => m + '-hidden');
+        window.init = () => {
+            currentCode = document.getElementById('initialPaste').value;
+            if (!currentCode) return;
             document.getElementById('launchPad').classList.add('hidden');
-            window.renderApp();
+            render();
         };
 
-        window.renderApp = () => { document.getElementById('preview').srcdoc = currentCode; };
+        const render = () => { document.getElementById('preview').srcdoc = currentCode; };
 
-        window.shareApp = async () => {
-            const btn = document.getElementById('shareBtn');
-            btn.innerText = "SAVING...";
-            try {
-                const docRef = await addDoc(collection(db, "apps"), { code: currentCode, createdAt: new Date() });
-                const shareUrl = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`;
-                await navigator.clipboard.writeText(shareUrl);
-                alert("共有URLをコピーしました！");
-            } catch (e) { alert("保存失敗"); }
-            btn.innerText = "SHARE URL";
+        window.share = async () => {
+            const ref = await addDoc(collection(db, "apps"), { code: currentCode, createdAt: new Date() });
+            const url = `${window.location.origin}${window.location.pathname}?id=${ref.id}`;
+            await navigator.clipboard.writeText(url);
+            alert("URLをコピーしました");
         };
 
-        window.iterateWithAI = async () => {
+        window.aiFix = async () => {
             const key = localStorage.getItem('gemini_api_key') || prompt("Gemini APIキーを入力:");
-            if (!key) return;
-            localStorage.setItem('gemini_api_key', key);
-            const promptInput = document.getElementById('aiInput');
-            if (!promptInput.value) return;
-            setLoading(true);
+            if (!key) return; localStorage.setItem('gemini_api_key', key);
+            const promptStr = document.getElementById('aiInput').value;
+            if (!promptStr) return;
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: `プレビューUIを含めず、中身だけを全画面で修正してください。指示：${promptInput.value}\n現在のコード：\n${currentCode}` }] }] })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `プレビューUIを含めず、中身だけを全画面で出力してください。指示：${promptStr}\nコード：\n${currentCode}` }] }] })
                 });
-                const data = await response.json();
+                const data = await res.json();
                 currentCode = data.candidates[0].content.parts[0].text.replace(/```html/gi, "").replace(/```/g, "").trim();
-                window.renderApp();
-                promptInput.value = "";
+                render();
             } catch (e) { alert("AIエラー"); }
-            setLoading(false);
-        };
-
-        const setLoading = (l) => {
-            const btn = document.getElementById('aiBtn');
-            btn.innerHTML = l ? '<i data-lucide="loader-2" class="animate-spin w-5 h-5"></i>' : '<i data-lucide="sparkles" class="w-5 h-5"></i>';
-            lucide.createIcons();
-        };
-
-        window.setApiKey = () => {
-            const key = prompt("Gemini APIキーを入力:", localStorage.getItem('gemini_api_key') || "");
-            if (key !== null) localStorage.setItem('gemini_api_key', key);
         };
     </script>
 </head>
 <body>
 
-    <div id="fullscreenHint">Press ESC to show UI</div>
-
     <div id="launchPad">
-        <div class="w-full max-w-5xl flex flex-col items-center space-y-6">
-            <h1 class="text-3xl font-black italic text-white tracking-tighter uppercase">Runway <span class="text-indigo-500">v36</span></h1>
-            <textarea id="initialPaste" class="large-editor" placeholder="HTMLコードを貼り付けてください..."></textarea>
-            <button onclick="initApp()" class="w-full max-w-[400px] py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-500 transition-all shadow-2xl">START SESSION</button>
-        </div>
+        <textarea id="initialPaste" class="large-editor" placeholder="HTMLを貼り付け"></textarea>
+        <button onclick="init()" class="mt-4 px-10 py-4 bg-indigo-600 rounded-xl font-bold">起動</button>
     </div>
 
     <div id="previewContainer">
         <iframe id="preview"></iframe>
     </div>
 
-    <div id="topBar" class="tool-ui">
-        <div class="flex gap-3 ptr">
-            <button onclick="location.reload()" class="glass p-3 text-slate-400 hover:text-white rounded-2xl transition-all"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
-            <button onclick="setApiKey()" class="glass px-4 py-2 text-[9px] font-bold text-slate-500 hover:text-indigo-400 rounded-xl transition-all">API KEY</button>
+    <div id="topBar" class="ui-element">
+        <div class="flex gap-2">
+            <button onclick="location.reload()" class="glass p-3"><i data-lucide="refresh-cw"></i></button>
         </div>
-        <div class="flex gap-3 ptr">
-            <button onclick="toggleViewMode()" class="glass flex items-center gap-2 px-5 py-2.5 text-[10px] font-black text-white rounded-2xl transition-all border-indigo-500/50">
-                <i id="viewModeIcon" data-lucide="eye" class="w-4 h-4 text-indigo-400"></i> VIEW MODE
-            </button>
-            <button id="shareBtn" onclick="shareApp()" class="glass px-6 py-2.5 text-[10px] font-black text-indigo-400 hover:text-white rounded-2xl transition-all">SHARE URL</button>
+        <div class="flex gap-2">
+            <button onclick="toggleFullscreen()" class="glass px-6 py-2 font-bold border-indigo-500">全画面表示</button>
+            <button onclick="share()" class="glass px-6 py-2 font-bold">共有</button>
         </div>
     </div>
 
-    <div id="aiCommandCenter" class="tool-ui">
-        <div class="glass p-1.5 rounded-[24px] flex items-center gap-2 shadow-2xl border-white/10">
-            <input id="aiInput" type="text" onkeypress="if(event.key==='Enter') iterateWithAI()" class="flex-1 bg-transparent border-none text-sm text-white px-5 py-3.5 outline-none placeholder-slate-600 font-semibold" placeholder="AIへの修正指示（ESCで全画面）">
-            <button id="aiBtn" onclick="iterateWithAI()" class="bg-indigo-600 hover:bg-indigo-500 text-white w-12 h-12 rounded-[18px] flex items-center justify-center transition-all shadow-lg"><i data-lucide="sparkles" class="w-5 h-5"></i></button>
+    <div id="bottomBar" class="ui-element">
+        <div class="glass p-2 flex gap-2">
+            <input id="aiInput" type="text" onkeypress="if(event.key==='Enter') aiFix()" class="flex-1 bg-transparent px-4 outline-none" placeholder="AI修正指示（EscでUI復帰）">
+            <button onclick="aiFix()" class="bg-indigo-600 p-3 rounded-lg"><i data-lucide="sparkles"></i></button>
         </div>
     </div>
 

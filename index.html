@@ -3,47 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI App Runway | v26 ULTIMATE</title>
+    <title>AI App Runway | v27 PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap');
         
-        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; }
-        .mono { font-family: 'Fira Code', monospace; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #030712; color: #f3f4f6; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
 
-        /* サイドバー：初期状態は隠す(collapsed) */
+        /* サイドバー：初期は非表示 */
         #historyPanel {
             width: 260px;
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-left: -260px;
+            transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
             background: #0f172a;
             border-right: 1px solid #1e293b;
-            margin-left: -260px; /* 最初は左に追い出す */
             opacity: 0;
+            z-index: 40;
         }
-        #historyPanel.visible {
-            margin-left: 0;
-            opacity: 1;
+        #historyPanel.visible { margin-left: 0; opacity: 1; }
+
+        /* プレビューエリアの保護（余計なUIを排除） */
+        .preview-frame {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            width: 100%;
+            height: 100%;
+            border: none;
         }
 
-        /* エディタとプレビューの境界 */
-        .panel-container { gap: 1px; background-color: #1e293b; }
-
-        /* ネオンボタン */
-        .btn-primary {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-            transition: all 0.2s;
+        /* 実行ボタンのネオン */
+        .btn-run {
+            background: #4f46e5;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.4);
         }
-        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(79, 70, 229, 0.4); }
-        .btn-primary:active { transform: translateY(0); }
+        .btn-run:hover {
+            background: #6366f1;
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
+            transform: scale(1.05);
+        }
 
-        /* スクロールバー */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-
-        /* プレビューiframeのコンテナ */
-        .preview-wrapper { position: relative; background: #f1f5f9; border-radius: 12px; overflow: hidden; margin: 12px; }
+        /* スクロールバー消し */
+        textarea::-webkit-scrollbar { width: 4px; }
+        textarea::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -64,35 +69,28 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // 実行機能（修正：srcdocを使用して確実に実行）
+        // 実行：ボタンを押したときのみ動作
         window.runApp = () => {
             const code = document.getElementById('codeInput').value;
             const preview = document.getElementById('preview');
             if (!code) return;
             
-            // scriptタグの実行を確実にするため srcdoc を更新
-            preview.srcdoc = code;
-            
-            showStatus("アプリを実行中...", "emerald");
+            // 実行前に一旦クリアして確実にリロード
+            preview.srcdoc = ""; 
+            setTimeout(() => {
+                preview.srcdoc = code;
+                showStatus("実行完了", "emerald");
+            }, 50);
         };
 
-        // 修正（Gemini 2.0 Flash）
+        // 修正依頼
         window.iterateWithAI = async () => {
             const prompt = document.getElementById('iteratePrompt').value.trim();
             const currentCode = document.getElementById('codeInput').value.trim();
             if (!prompt) return;
 
             setLoading(true);
-            const fullPrompt = `以下のHTML/CSS/JSコードを修正してください。
-指示：${prompt}
-
-【ルール】
-1. HTML, CSS, JSを全て含んだ1つのコードブロックとして出力してください。
-2. 解説や説明文は一切含めないでください。
-3. コード以外の文字は出力しないでください。
-
-現在のコード：
-${currentCode}`;
+            const fullPrompt = `以下のコードを指示通りに修正してください。解説不要。HTML/CSS/JSをまとめた一つの完結したコードのみ返して。\n\n指示：${prompt}\n\n現在のコード：\n${currentCode}`;
 
             try {
                 const key = HARDCODED_API_KEY || localStorage.getItem('gemini_api_key');
@@ -106,12 +104,12 @@ ${currentCode}`;
                 code = code.replace(/```html/gi, "").replace(/```/g, "").trim();
 
                 document.getElementById('codeInput').value = code;
-                window.runApp(); // 修正後に自動実行
+                // AI修正後は自動で実行せず、ユーザーが確認してから「実行」を押すスタイルに（要望反映）
+                showStatus("AI修正完了！「実行」を押して反映", "indigo");
                 addToHistory(prompt, code);
                 document.getElementById('iteratePrompt').value = '';
             } catch (e) {
-                console.error(e);
-                alert("APIエラーが発生しました。キーを確認してください。");
+                alert("エラーが発生しました。");
             }
             setLoading(false);
         };
@@ -120,147 +118,94 @@ ${currentCode}`;
             const btn = document.getElementById('iterateBtn');
             btn.disabled = loading;
             btn.innerHTML = loading ? '<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i>' : '適用';
-            showStatus(loading ? "AIが構築中..." : "待機中", loading ? "indigo" : "emerald");
             lucide.createIcons();
         };
 
         const showStatus = (text, color) => {
-            const statusEl = document.getElementById('statusIndicator');
-            const statusText = document.getElementById('statusText');
-            statusText.innerText = text;
-            statusEl.className = `w-2 h-2 rounded-full bg-${color}-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]`;
+            const statusEl = document.getElementById('statusText');
+            const dot = document.getElementById('statusDot');
+            statusEl.innerText = text;
+            dot.className = `w-2 h-2 rounded-full bg-${color}-500 animate-pulse`;
         };
 
-        // UI制御
-        window.toggleHistory = () => {
-            document.getElementById('historyPanel').classList.toggle('visible');
-        };
-
-        window.downloadCode = () => {
-            const code = document.getElementById('codeInput').value;
-            const blob = new Blob([code], { type: 'text/html' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'my-ai-app.html';
-            a.click();
-        };
-
-        window.createShareUrl = async () => {
-            const code = document.getElementById('codeInput').value;
-            if (!code) return;
-            const docRef = await addDoc(collection(db, "apps"), { code, createdAt: new Date() });
-            navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?id=${docRef.id}`);
-            alert("共有URLをコピーしました！");
-        };
+        window.toggleHistory = () => document.getElementById('historyPanel').classList.toggle('visible');
 
         const addToHistory = (prompt, code) => {
-            const history = JSON.parse(localStorage.getItem('v26_history') || '[]');
+            const history = JSON.parse(localStorage.getItem('v27_history') || '[]');
             history.unshift({ id: Date.now(), prompt, code });
-            localStorage.setItem('v26_history', JSON.stringify(history.slice(0, 20)));
+            localStorage.setItem('v27_history', JSON.stringify(history.slice(0, 15)));
             renderHistory();
         };
 
         window.renderHistory = () => {
             const list = document.getElementById('historyList');
-            const history = JSON.parse(localStorage.getItem('v26_history') || '[]');
+            const history = JSON.parse(localStorage.getItem('v27_history') || '[]');
             list.innerHTML = history.map(h => `
-                <div class="p-3 mb-2 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-indigo-500 cursor-pointer transition-all group" 
-                     onclick="document.getElementById('codeInput').value=\`${h.code.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`;window.runApp();">
-                    <div class="text-slate-200 text-xs font-bold truncate group-hover:text-indigo-300">${h.prompt}</div>
-                    <div class="text-slate-500 text-[10px] mt-1">${new Date(h.id).toLocaleTimeString()}</div>
+                <div class="p-3 mb-2 rounded-lg bg-slate-800/50 border border-slate-700/30 hover:border-indigo-500 cursor-pointer transition-all" 
+                     onclick="document.getElementById('codeInput').value=\`${h.code.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`;">
+                    <div class="text-white text-[11px] font-bold truncate">${h.prompt}</div>
+                    <div class="text-slate-500 text-[9px] mt-1">${new Date(h.id).toLocaleTimeString()}</div>
                 </div>
             `).join('');
         };
 
-        window.addEventListener('load', () => { 
-            lucide.createIcons(); 
-            renderHistory();
-            // 初回実行
-            if(document.getElementById('codeInput').value) window.runApp();
-        });
+        window.addEventListener('load', () => { lucide.createIcons(); renderHistory(); });
     </script>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
-    <header class="h-14 border-b border-slate-800 bg-slate-950 flex items-center justify-between px-4 z-50">
-        <div class="flex items-center gap-4">
-            <button onclick="toggleHistory()" class="p-2.5 hover:bg-slate-800 rounded-xl text-slate-400 transition-colors">
+    <header class="h-16 border-b border-white/5 bg-slate-950 flex items-center justify-between px-6 z-50">
+        <div class="flex items-center gap-6">
+            <button onclick="toggleHistory()" class="p-2 hover:bg-white/5 rounded-full text-slate-400">
                 <i data-lucide="history" class="w-5 h-5"></i>
             </button>
-            <div class="flex items-center gap-2.5">
-                <div class="flex -space-x-1">
-                    <div class="w-2.5 h-2.5 bg-indigo-500 rounded-full border-2 border-slate-950"></div>
-                    <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-950"></div>
-                </div>
-                <h1 class="text-sm font-bold tracking-tight text-white uppercase italic">Runway <span class="text-indigo-500">v26</span></h1>
-            </div>
+            <div class="text-xs font-black tracking-[4px] text-indigo-500 uppercase">Runway v27</div>
         </div>
 
-        <div class="flex items-center gap-3">
-            <button onclick="downloadCode()" class="p-2 text-slate-400 hover:text-white transition-colors" title="HTMLを保存">
-                <i data-lucide="download" class="w-5 h-5"></i>
-            </button>
-            <button onclick="createShareUrl()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition-all border border-slate-700">
-                共有リンク
-            </button>
-            <button onclick="window.runApp()" class="px-5 py-1.5 btn-primary text-white text-xs font-bold rounded-lg flex items-center gap-2">
-                <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i> 実行
+        <div class="flex items-center gap-4">
+            <button onclick="window.runApp()" class="btn-run px-8 py-2 rounded-full text-white text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                <i data-lucide="play" class="w-4 h-4 fill-current"></i> 実行
             </button>
         </div>
     </header>
 
     <main class="flex-1 flex overflow-hidden">
-        <aside id="historyPanel" class="flex flex-col z-40">
-            <div class="p-5 flex items-center justify-between border-b border-slate-800">
-                <span class="text-[10px] font-black text-slate-500 tracking-[2px]">VERSIONS</span>
-                <button onclick="toggleHistory()" class="text-slate-500 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+        <aside id="historyPanel" class="flex flex-col">
+            <div class="p-6 border-b border-white/5">
+                <h2 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">History</h2>
             </div>
-            <div id="historyList" class="flex-1 overflow-y-auto p-4">
-                </div>
+            <div id="historyList" class="flex-1 overflow-y-auto p-4"></div>
         </aside>
 
-        <section id="editorPanel" class="w-[480px] flex flex-col bg-slate-900/50 shrink-0 border-r border-slate-800">
-            <div class="flex-1 flex flex-col min-h-0">
-                <div class="h-9 px-4 flex items-center justify-between bg-slate-950/50 border-b border-slate-800">
-                    <span class="text-[10px] font-bold text-slate-500 mono">index.html</span>
-                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">EDITABLE</span>
+        <section class="w-[500px] flex flex-col bg-[#050a18] border-r border-white/5 shrink-0">
+            <div class="px-6 py-3 bg-white/5 flex justify-between items-center">
+                <span class="text-[10px] font-bold text-slate-400 mono italic">main.editor</span>
+                <div class="flex items-center gap-2">
+                    <div id="statusDot" class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                    <span id="statusText" class="text-[9px] text-slate-500 uppercase font-bold">待機中</span>
                 </div>
-                <textarea id="codeInput" 
-                    class="flex-1 p-6 bg-transparent text-indigo-100 mono text-[12px] leading-relaxed outline-none resize-none"
-                    placeholder="ここにコードを貼り付けるか、下のボックスに修正指示を書いてください..."
-                    oninput="window.runApp()"></textarea>
             </div>
+            <textarea id="codeInput" 
+                class="flex-1 p-8 bg-transparent text-indigo-100 mono text-[13px] leading-relaxed outline-none resize-none"
+                placeholder="コードをここに貼り付けてください..."></textarea>
 
-            <div class="p-5 bg-slate-950 border-t border-slate-800">
-                <div class="flex items-center gap-2 mb-3 px-1">
-                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-400"></i>
-                    <span class="text-[10px] font-bold text-emerald-400 tracking-widest uppercase">AI Assistant</span>
-                </div>
-                <div class="flex gap-2 p-1.5 bg-slate-900 rounded-xl border border-slate-700/50 focus-within:border-indigo-500 transition-all shadow-inner">
+            <div class="p-6 bg-slate-950 border-t border-white/5">
+                <div class="relative group">
                     <input id="iteratePrompt" type="text" 
-                        class="flex-1 bg-transparent border-none text-sm text-slate-200 px-3 outline-none" 
-                        placeholder="例：もっとかっこいいボタンにして">
+                        class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white outline-none focus:border-indigo-500/50 transition-all shadow-2xl" 
+                        placeholder="AIに指示を出す（例：背景を動かして）">
                     <button id="iterateBtn" onclick="iterateWithAI()" 
-                        class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all min-w-[70px] shadow-lg shadow-indigo-500/20">
+                        class="absolute right-2 top-2 bottom-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-500/20">
                         適用
                     </button>
                 </div>
             </div>
         </section>
 
-        <section class="flex-1 flex flex-col bg-[#020617] relative">
-            <div class="preview-wrapper flex-1 shadow-2xl">
-                <iframe id="preview" class="w-full h-full border-none bg-white"></iframe>
-            </div>
-            
-            <div class="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-950/90 backdrop-blur-xl border border-slate-800 rounded-full flex items-center gap-3 shadow-2xl">
-                <div id="statusIndicator" class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                <span id="statusText" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ready</span>
-            </div>
+        <section class="flex-1 bg-[#020617] p-8">
+            <iframe id="preview" class="preview-frame"></iframe>
         </section>
     </main>
-
-    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg opacity-0 transition-all pointer-events-none z-50"></div>
 
 </body>
 </html>

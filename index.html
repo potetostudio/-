@@ -3,54 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Runway v32 | Ultimate Integrated</title>
+    <title>Runway v33 | Final Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=JetBrains+Mono:wght@400&display=swap');
         
-        body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; }
+        body, html { margin: 0; padding: 0; height: 100%; background: #020617; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; }
 
-        /* 貼り付けオーバーレイ */
+        /* 貼り付け画面（LaunchPad）を画面いっぱいに */
         #launchPad {
-            position: fixed; inset: 0; background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+            position: fixed; inset: 0; background: radial-gradient(circle at top, #1e293b 0%, #020617 100%);
             z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
         }
         #launchPad.hidden { display: none; }
 
-        /* メインコンテナ */
-        #previewContainer { width: 100vw; height: 100vh; position: relative; background: #000; }
+        /* テキストエリアを最大化 */
+        .large-editor {
+            width: 100%; max-width: 1000px; height: 65vh; /* 画面の65%の高さ */
+            background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px; padding: 30px; color: #e2e8f0; font-family: 'JetBrains Mono', monospace;
+            font-size: 13px; line-height: 1.6; outline: none; transition: all 0.3s;
+            backdrop-filter: blur(10px); box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .large-editor:focus { border-color: #6366f1; background: rgba(15, 23, 42, 0.8); }
+
+        /* メインプレビュー */
+        #previewContainer { width: 100vw; height: 100vh; position: relative; }
         iframe { width: 100%; height: 100%; border: none; background: white; }
 
         /* ガラスUI */
         .glass {
-            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        /* AIコマンドセンター（入力欄最大化） */
+        /* 修正指示バー */
         #aiCommandCenter {
-            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 800px; z-index: 500; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 700px; z-index: 500;
         }
-        #aiInput:focus { border-color: rgba(99, 102, 241, 0.5); box-shadow: 0 0 20px rgba(99, 102, 241, 0.2); }
-
-        /* 履歴ドロワー */
-        #historyDrawer {
-            position: fixed; top: 20px; left: -320px; width: 300px; bottom: 120px;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); z-index: 600;
-        }
-        #historyDrawer.open { left: 20px; }
-
-        /* アニメーション */
-        .pulse-indigo { animation: pulseIndigo 2s infinite; }
-        @keyframes pulseIndigo { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔑 キーをここに直書きするか、実行時にポップアップで入力
         const HARDCODED_API_KEY = ""; 
 
         const firebaseConfig = {
@@ -65,38 +62,41 @@
 
         let currentCode = "";
 
-        // URLパラメータからの読み込み
-        window.addEventListener('load', async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const appId = urlParams.get('id');
-            if (appId) {
-                const docSnap = await getDoc(doc(db, "apps", appId));
-                if (docSnap.exists()) {
-                    currentCode = docSnap.data().code;
-                    document.getElementById('launchPad').classList.add('hidden');
-                    renderApp();
+        // APIキー取得ロジックの修正
+        const getApiKey = () => {
+            if (HARDCODED_API_KEY) return HARDCODED_API_KEY;
+            let savedKey = localStorage.getItem('gemini_api_key');
+            if (!savedKey || savedKey === "null") {
+                savedKey = prompt("Gemini APIキーを入力してください（ブラウザに保存されます）:");
+                if (savedKey) {
+                    localStorage.setItem('gemini_api_key', savedKey);
+                } else {
+                    alert("APIキーがないとAI修正機能が使えません。");
                 }
             }
-            lucide.createIcons();
-            renderHistoryList();
-        });
+            return savedKey;
+        };
 
+        // 初期実行
         window.initApp = () => {
             const code = document.getElementById('initialPaste').value;
-            if (!code) return;
-            // 外部UIの強制クリーニング（エディタ、境界線、全画面ボタンの痕跡を消す）
-            currentCode = code.replace(/#editor|#toolbar|\.editor|\.toolbar|#controls/gi, (m) => m + '-hidden')
-                             .replace(/style="[^"]*border:[^"]*"/gi, 'style="border:none"');
+            if (!code) return alert("コードを貼り付けてください");
+            
+            // 強制クリーニング
+            currentCode = code.replace(/id="editor"|class="editor"/gi, 'style="display:none"')
+                             .replace(/#sidebar|#controls/gi, (m) => m + '-off');
+            
             document.getElementById('launchPad').classList.add('hidden');
-            renderApp();
+            window.renderApp();
+            
+            // 実行後にAPIキーを確認（必要ならここで聞く）
+            getApiKey();
         };
 
         window.renderApp = () => {
-            const preview = document.getElementById('preview');
-            preview.srcdoc = currentCode;
+            document.getElementById('preview').srcdoc = currentCode;
         };
 
-        // URL共有機能
         window.shareApp = async () => {
             if (!currentCode) return;
             const btn = document.getElementById('shareBtn');
@@ -105,32 +105,20 @@
                 const docRef = await addDoc(collection(db, "apps"), { code: currentCode, createdAt: new Date() });
                 const shareUrl = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`;
                 await navigator.clipboard.writeText(shareUrl);
-                alert("共有用URLをコピーしました！");
-                btn.innerText = "SHARE URL";
-            } catch (e) { alert("保存に失敗しました。"); btn.innerText = "SHARE"; }
+                alert("共有URLをコピーしました！");
+                btn.innerText = "SHARE";
+            } catch (e) { alert("保存失敗"); btn.innerText = "SHARE"; }
         };
 
-        // APIキーの取得
-        const getApiKey = () => {
-            if (HARDCODED_API_KEY) return HARDCODED_API_KEY;
-            let savedKey = localStorage.getItem('gemini_api_key');
-            if (!savedKey) {
-                savedKey = prompt("Gemini APIキーを入力してください（ブラウザに保存されます）:");
-                if (savedKey) localStorage.setItem('gemini_api_key', savedKey);
-            }
-            return savedKey;
-        };
-
-        // AI修正指示
         window.iterateWithAI = async () => {
             const promptInput = document.getElementById('aiInput');
             const prompt = promptInput.value.trim();
-            if (!prompt) return;
+            const key = getApiKey();
+            if (!prompt || !key) return;
 
             setLoading(true);
-            const key = getApiKey();
-            const fullPrompt = `以下のHTMLを修正。
-【絶対遵守】プレビュー内にエディタUI、境界線、重複ボタンを一切作らないで。指示された機能だけを全画面で実装して。
+            const fullPrompt = `以下のHTMLを指示通り修正。
+【絶対】プレビュー内にエディタUIや境界線、重複ボタンを一切作らないで。中身のゲーム画面だけを100%全画面で実装して。
 指示：${prompt}
 現在のコード：\n${currentCode}`;
 
@@ -142,11 +130,9 @@
                 });
                 const data = await response.json();
                 currentCode = data.candidates[0].content.parts[0].text.replace(/```html/gi, "").replace(/```/g, "").trim();
-                
-                renderApp();
-                addToHistory(prompt, currentCode);
+                window.renderApp();
                 promptInput.value = "";
-            } catch (e) { alert("APIキーが無効、またはエラーが発生しました。"); }
+            } catch (e) { alert("APIエラーが発生しました。キーを確認してください。"); }
             setLoading(false);
         };
 
@@ -156,44 +142,28 @@
             lucide.createIcons();
         };
 
-        const addToHistory = (p, c) => {
-            const h = JSON.parse(localStorage.getItem('v32_h') || '[]');
-            h.unshift({ p, c, t: Date.now() });
-            localStorage.setItem('v32_h', JSON.stringify(h.slice(0, 15)));
-            renderHistoryList();
+        window.clearApiKey = () => {
+            localStorage.removeItem('gemini_api_key');
+            alert("キーをリセットしました。再読み込みします。");
+            location.reload();
         };
 
-        window.renderHistoryList = () => {
-            const list = document.getElementById('historyList');
-            const h = JSON.parse(localStorage.getItem('v32_h') || '[]');
-            list.innerHTML = h.map(i => `
-                <div onclick="restore('${i.t}')" class="p-4 mb-2 bg-white/5 rounded-xl border border-white/5 hover:border-indigo-500/50 cursor-pointer transition-all">
-                    <div class="text-[11px] font-bold text-white truncate">${i.p}</div>
-                    <div class="text-[9px] text-slate-500 mt-1">${new Date(i.t).toLocaleTimeString()}</div>
-                </div>
-            `).join('');
-        };
-
-        window.restore = (time) => {
-            const h = JSON.parse(localStorage.getItem('v32_h') || '[]');
-            const found = h.find(i => i.t == time);
-            if(found) { currentCode = found.c; renderApp(); }
-        };
-
-        window.toggleHistory = () => document.getElementById('historyDrawer').classList.toggle('open');
-        window.clearApiKey = () => { localStorage.removeItem('gemini_api_key'); alert("キーを消去しました"); location.reload(); };
-
+        window.addEventListener('load', () => { lucide.createIcons(); });
     </script>
 </head>
 <body>
 
     <div id="launchPad">
-        <div class="w-full max-w-2xl space-y-8 px-6 text-center">
-            <div class="inline-block px-4 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold tracking-[4px] uppercase mb-4">Ultimate Engine</div>
-            <h1 class="text-4xl font-black italic text-white tracking-tighter">RUNWAY <span class="text-indigo-500 italic">v32</span></h1>
-            <textarea id="initialPaste" class="w-full h-72 bg-slate-900/50 border border-white/10 rounded-3xl p-8 text-indigo-100 mono text-xs outline-none focus:border-indigo-500/50 shadow-2xl backdrop-blur-md" placeholder="他人のコードやベースとなるHTMLをここに貼り付けてください..."></textarea>
-            <button onclick="initApp()" class="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-500 transition-all shadow-2xl shadow-indigo-500/40 uppercase tracking-widest text-sm">
-                INITIALIZE & LAUNCH
+        <div class="w-full max-w-5xl flex flex-col items-center space-y-6">
+            <div class="text-center">
+                <h1 class="text-3xl font-black italic text-white tracking-tighter">RUNWAY <span class="text-indigo-500">v33</span></h1>
+                <p class="text-slate-400 text-[10px] uppercase tracking-[4px] mt-2">Professional Code Injector</p>
+            </div>
+            
+            <textarea id="initialPaste" class="large-editor" placeholder="ここにベースとなるコードを貼り付けてください..."></textarea>
+            
+            <button onclick="initApp()" class="w-full max-w-[400px] py-4 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-500 transition-all shadow-2xl shadow-indigo-500/40 uppercase tracking-widest text-sm">
+                LAUNCH APPLICATION
             </button>
         </div>
     </div>
@@ -204,38 +174,28 @@
 
     <div class="fixed top-6 left-6 right-6 flex justify-between items-center pointer-events-none z-[700]">
         <div class="flex gap-3 pointer-events-auto">
-            <button onclick="toggleHistory()" class="glass p-3.5 text-slate-400 hover:text-white rounded-2xl transition-all">
-                <i data-lucide="menu" class="w-6 h-6"></i>
+            <button onclick="location.reload()" class="glass p-3 text-slate-400 hover:text-white rounded-2xl transition-all">
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
             </button>
-            <button onclick="clearApiKey()" class="glass px-4 py-2 text-[9px] font-black text-slate-500 hover:text-red-400 rounded-xl transition-all">API KEY RESET</button>
+            <button onclick="clearApiKey()" class="glass px-4 py-2 text-[9px] font-bold text-slate-500 hover:text-red-400 rounded-xl transition-all">
+                API KEY RESET
+            </button>
         </div>
-
         <div class="pointer-events-auto">
-            <button id="shareBtn" onclick="shareApp()" class="glass px-6 py-3 text-[10px] font-black text-indigo-400 hover:text-white tracking-[2px] rounded-2xl transition-all border-indigo-500/30">
-                SHARE URL
+            <button id="shareBtn" onclick="shareApp()" class="glass px-6 py-2.5 text-[10px] font-black text-indigo-400 hover:text-white rounded-2xl transition-all tracking-widest">
+                SHARE
             </button>
         </div>
     </div>
 
-    <aside id="historyDrawer" class="glass flex flex-col p-6 rounded-[32px]">
-        <div class="flex items-center justify-between mb-6">
-            <span class="text-[10px] font-black text-slate-500 tracking-[3px] uppercase">Timeline</span>
-            <button onclick="toggleHistory()" class="text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
-        </div>
-        <div id="historyList" class="flex-1 overflow-y-auto space-y-2"></div>
-    </aside>
-
     <div id="aiCommandCenter">
-        <div class="glass p-2 rounded-[28px] flex items-center gap-2 shadow-2xl border-white/20">
-            <div class="pl-5 pr-2">
-                <i data-lucide="zap" class="w-5 h-5 text-indigo-500"></i>
-            </div>
+        <div class="glass p-1.5 rounded-[24px] flex items-center gap-2 shadow-2xl border-white/10">
             <input id="aiInput" type="text" 
                 onkeypress="if(event.key==='Enter') iterateWithAI()"
-                class="flex-1 bg-transparent border-none text-base text-white py-4 outline-none placeholder-slate-500 font-semibold" 
-                placeholder="AIに指示を出す（例：UIを消して100%全画面にして）">
+                class="flex-1 bg-transparent border-none text-sm text-white px-5 py-3.5 outline-none placeholder-slate-500 font-semibold" 
+                placeholder="AIに指示（例：今のUIを全て消して全画面にして）">
             <button id="aiBtn" onclick="iterateWithAI()" 
-                class="bg-indigo-600 hover:bg-indigo-500 text-white w-14 h-14 rounded-[22px] flex items-center justify-center transition-all shadow-lg shadow-indigo-500/40 mr-1 shrink-0">
+                class="bg-indigo-600 hover:bg-indigo-500 text-white w-12 h-12 rounded-[18px] flex items-center justify-center transition-all shadow-lg">
                 <i data-lucide="sparkles" class="w-5 h-5"></i>
             </button>
         </div>

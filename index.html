@@ -337,23 +337,33 @@
             <div style="font-size:16px;font-weight:700;">Gallery</div>
         </div>
         <span id="gallery-count" style="font-size:11px;color:var(--text-3);margin-left:4px;"></span>
-        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-            <!-- Keyword search -->
+        <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+            <!-- キーワード検索 -->
             <div style="position:relative;">
-                <svg style="position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-3);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input id="search-input" oninput="renderGallery()" placeholder="キーワード検索..." style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px 6px 28px;font-size:11px;color:var(--text);outline:none;width:160px;font-family:var(--font);" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+                <svg style="position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:#8b949e;pointer-events:none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input id="search-input" oninput="renderGallery()" placeholder="キーワード検索..."
+                    style="background:#21262d;border:1px solid #484f58;border-radius:8px;padding:7px 10px 7px 30px;font-size:11px;color:#e6edf3;outline:none;width:150px;font-family:var(--font);transition:border-color 0.15s;"
+                    onfocus="this.style.borderColor='#7c5cfc'" onblur="this.style.borderColor='#484f58'">
             </div>
-            <!-- AI Search toggle -->
-            <button onclick="toggleAISearch()" id="ai-search-btn" style="display:flex;align-items:center;gap:5px;padding:6px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text-2);cursor:pointer;font-family:var(--font);">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+            <!-- AI検索ボタン -->
+            <button onclick="toggleAISearch()" id="ai-search-btn"
+                style="display:flex;align-items:center;gap:5px;padding:7px 11px;background:#21262d;border:1px solid #484f58;border-radius:8px;font-size:11px;font-weight:600;color:#c9d1d9;cursor:pointer;font-family:var(--font);transition:all 0.15s;white-space:nowrap;"
+                onmouseover="this.style.borderColor='#7c5cfc';this.style.color='#a78bfa'"
+                onmouseout="this.style.borderColor='#484f58';this.style.color='#c9d1d9'">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                 AI検索
             </button>
-            <button onclick="nav('studio')" style="display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;color:white;cursor:pointer;font-family:var(--font);" class="btn-glow">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            <!-- 作るボタン -->
+            <button onclick="nav('studio')"
+                style="display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;color:white;cursor:pointer;font-family:var(--font);white-space:nowrap;" class="btn-glow">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 作る
             </button>
-            <!-- ⚙️ APIキー設定ボタン -->
-            <button onclick="openAPIKeyModal(null)" title="APIキーを設定" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;cursor:pointer;color:#8b949e;flex-shrink:0;transition:all 0.15s;" onmouseover="this.style.borderColor='rgba(124,92,252,0.5)';this.style.color='#a78bfa'" onmouseout="this.style.borderColor='rgba(255,255,255,0.07)';this.style.color='#8b949e'">
+            <!-- 設定（プロフィール＋APIキー） -->
+            <button onclick="openSettingsModal()" title="設定"
+                style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;background:#21262d;border:1px solid #484f58;border-radius:8px;cursor:pointer;color:#c9d1d9;flex-shrink:0;transition:all 0.15s;"
+                onmouseover="this.style.borderColor='#7c5cfc';this.style.color='#a78bfa'"
+                onmouseout="this.style.borderColor='#484f58';this.style.color='#c9d1d9'">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
         </div>
@@ -618,24 +628,44 @@
 
 
 <!-- ══════════════════════════════════════
-     VIEW: APP
+     VIEW: APP  ※ゲーム画面のみ・コード非表示
 ══════════════════════════════════════ -->
-<div id="view-app" class="view" style="position:relative;">
-    <div id="app-topbar" style="display:flex;padding:10px 16px;align-items:center;gap:10px;">
-        <button onclick="nav('gallery')" style="padding:6px;background:none;border:none;color:var(--text);cursor:pointer;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="m19 12H5"/><path d="m12 5-7 7 7 7"/></svg>
-        </button>
-        <span id="app-display-title" style="font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">無題のアプリ</span>
-        <button onclick="likeApp()" style="display:flex;align-items:center;gap:5px;padding:5px 10px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.2);border-radius:8px;font-size:12px;color:var(--text-2);cursor:pointer;transition:all 0.15s;" id="like-btn">
-            <svg id="app-like-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+<div id="view-app" class="view" style="position:relative;background:#000;">
+
+    <!-- ゲーム画面（全画面iframe） -->
+    <iframe id="app-display-preview"
+        style="position:absolute;inset:0;width:100%;height:100%;border:none;background:white;z-index:1;"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock">
+    </iframe>
+
+    <!-- フローティングUI（右上に浮かせる） -->
+    <div id="app-topbar" style="position:absolute;top:12px;right:12px;z-index:10;display:flex;align-items:center;gap:6px;">
+        <!-- タイトル -->
+        <div style="padding:5px 12px;background:rgba(13,17,23,0.75);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:20px;font-size:12px;font-weight:600;color:#e6edf3;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            <span id="app-display-title">無題のアプリ</span>
+        </div>
+        <!-- いいねボタン -->
+        <button onclick="likeApp()" id="like-btn"
+            style="display:flex;align-items:center;gap:4px;padding:5px 10px;background:rgba(13,17,23,0.75);backdrop-filter:blur(12px);border:1px solid rgba(248,81,73,0.3);border-radius:20px;font-size:12px;color:#e6edf3;cursor:pointer;transition:all 0.15s;">
+            <svg id="app-like-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
             <span id="app-like-count">0</span>
         </button>
-        <button onclick="toggleFullscreenApp()" style="padding:6px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;color:var(--text-2);cursor:pointer;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <!-- ギャラリーに戻る -->
+        <button onclick="nav('gallery')"
+            style="display:flex;align-items:center;gap:4px;padding:5px 10px;background:rgba(13,17,23,0.75);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:20px;font-size:12px;color:#e6edf3;cursor:pointer;border:none;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            ギャラリー
+        </button>
+        <!-- 全画面 -->
+        <button onclick="toggleFullscreenApp()"
+            style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:rgba(13,17,23,0.75);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:50%;color:#e6edf3;cursor:pointer;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
         </button>
     </div>
-    <iframe id="app-display-preview" style="flex:1;border:none;background:white;" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
-    <button id="app-fs-exit" onclick="toggleFullscreenApp()" style="display:none;position:absolute;top:12px;right:12px;z-index:50;padding:8px;background:rgba(13,17,23,0.85);border:1px solid var(--border);border-radius:10px;color:var(--text-2);cursor:pointer;">
+
+    <!-- 全画面解除ボタン -->
+    <button id="app-fs-exit" onclick="toggleFullscreenApp()"
+        style="display:none;position:absolute;top:12px;right:12px;z-index:20;padding:7px;background:rgba(13,17,23,0.85);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#e6edf3;cursor:pointer;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
     </button>
 </div>
@@ -690,6 +720,19 @@ function nav(view) {
     if (view === 'gallery') renderGallery();
 }
 
+
+// ════════════════════════════════════════════
+//  ギャラリーからアプリを削除
+// ════════════════════════════════════════════
+function deleteApp(id, e) {
+    e.stopPropagation(); // カードのクリックイベントを止める
+    if (!confirm('このアプリをギャラリーから削除しますか？')) return;
+    apps = apps.filter(function(a){ return a.id !== id; });
+    localStorage.setItem('base44_apps', JSON.stringify(apps));
+    renderGallery();
+    showToast('削除しました');
+}
+
 // ════════════════════════════════════════════
 //  GALLERY
 // ════════════════════════════════════════════
@@ -718,15 +761,27 @@ function renderGallery() {
         card.className = 'app-card anim-fadeup';
         card.style.animationDelay = (i * 0.04) + 's';
         card.onclick = function(){ openAppView(app.id); };
+        var appId = app.id;
         card.innerHTML =
             '<div class="card-thumb">' +
                 '<span style="font-size:28px;z-index:1;position:relative;">' + (icons[i % icons.length]) + '</span>' +
             '</div>' +
             '<div class="card-body">' +
-                '<div class="card-title">' + escHtml(app.title) + '</div>' +
+                '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;">' +
+                    '<div class="card-title" style="flex:1;">' + escHtml(app.title) + '</div>' +
+                    '<button onclick="deleteApp(' + appId + ', event)" title="削除" ' +
+                        'style="flex-shrink:0;width:22px;height:22px;border-radius:6px;border:none;background:transparent;color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.12s;padding:0;" ' +
+                        'onmouseover="this.style.background=&quot;rgba(248,81,73,0.15)&quot;;this.style.color=&quot;#f85149&quot;" ' +
+                        'onmouseout="this.style.background=&quot;transparent&quot;;this.style.color=&quot;var(--text-3)&quot;">' +
+                        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+                    '</button>' +
+                '</div>' +
                 '<div class="card-meta">' +
-                    '<span style="font-size:10px;color:var(--text-3);">' + new Date(app.createdAt).toLocaleDateString('ja-JP') + '</span>' +
-                    '<span style="font-size:11px;color:var(--red);display:flex;align-items:center;gap:3px;">' +
+                    '<div style="display:flex;align-items:center;gap:5px;overflow:hidden;">' +
+                        (app.avatar ? '<img src="' + app.avatar + '" style="width:16px;height:16px;border-radius:50%;object-fit:cover;flex-shrink:0;">' : '<div style="width:16px;height:16px;border-radius:50%;background:#30363d;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#8b949e" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>') +
+                        '<span style="font-size:10px;color:#8b949e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(app.author || '匿名') + '</span>' +
+                    '</div>' +
+                    '<span style="font-size:11px;color:var(--red);display:flex;align-items:center;gap:3px;flex-shrink:0;">' +
                         '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' +
                         app.likes +
                     '</span>' +
@@ -1194,14 +1249,24 @@ function closeShareModal() {
 
 function publishApp() {
     var title = document.getElementById('share-title').value.trim() || '無題のアプリ';
-    // コードをエンコードして保存（ギャラリー閲覧者にコードを見せない）
-    var newApp = { id: Date.now(), title: title, code: encodeCode(currentCode), likes: 0, createdAt: Date.now() };
+    // 同一コードが既存ならタイトルだけ更新して上書き（重複投稿を防止）
+    var existing = apps.find(function(a){ return a.code === currentCode; });
+    if (existing) {
+        existing.title = title; existing.author = _profile.name || ''; existing.avatar = _profile.avatar || '';
+        localStorage.setItem('base44_apps', JSON.stringify(apps));
+        closeShareModal();
+        exitWorkspace();
+        nav('gallery');
+        showToast('同じコードが既にあったので上書きしました');
+        return;
+    }
+    var newApp = { id: Date.now(), title: title, code: currentCode, likes: 0, createdAt: Date.now(), author: _profile.name || '', avatar: _profile.avatar || '' };
     apps.push(newApp);
     localStorage.setItem('base44_apps', JSON.stringify(apps));
     closeShareModal();
     exitWorkspace();
     nav('gallery');
-    showToast('ギャラリーに保存しました！');
+    showToast('ギャラリーに公開しました！');
 }
 
 async function createShareLink() {
@@ -1212,8 +1277,7 @@ async function createShareLink() {
 
     try {
         var title = document.getElementById('share-title').value.trim() || '無題のアプリ';
-        // コードをエンコードしてFirebaseに保存（URL共有先でコードを見せない）
-        var ref   = await db.collection('apps').add({ title: title, code: encodeCode(currentCode), createdAt: new Date() });
+        var ref   = await db.collection('apps').add({ title: title, code: currentCode, createdAt: new Date() });
         currentShareURL = window.location.origin + window.location.pathname + '?id=' + ref.id;
 
         // Show URL box
@@ -1277,9 +1341,7 @@ function openAppView(id) {
     currentAppId = app.id;
     document.getElementById('app-display-title').textContent = app.title;
     document.getElementById('app-like-count').textContent    = app.likes;
-    // デコードしてiframeに渡す（srcdocにはデコード済みコードを使用）
-    var decoded = decodeCode(app.code);
-    document.getElementById('app-display-preview').srcdoc = decoded;
+    document.getElementById('app-display-preview').srcdoc = app.code;
     document.getElementById('app-like-icon').setAttribute('fill','none');
     nav('app');
 }
@@ -1297,7 +1359,7 @@ function likeApp() {
 function toggleFullscreenApp() {
     isFsApp = !isFsApp;
     document.getElementById('app-topbar').style.display  = isFsApp ? 'none' : 'flex';
-    document.getElementById('app-fs-exit').style.display = isFsApp ? 'block' : 'none';
+    document.getElementById('app-fs-exit').style.display = isFsApp ? 'flex' : 'none';
 }
 
 // ════════════════════════════════════════════
@@ -1310,12 +1372,10 @@ async function loadSharedApp() {
         var snap = await db.collection('apps').doc(id).get();
         if (snap.exists) {
             var data = snap.data();
-            // デコードしてプレビューに渡す
-            var decoded = decodeCode(data.code);
-            currentCode = decoded;
+            currentCode = data.code;
             document.getElementById('app-display-title').textContent = data.title || '共有されたアプリ';
             document.getElementById('app-like-count').textContent    = '-';
-            document.getElementById('app-display-preview').srcdoc   = decoded;
+            document.getElementById('app-display-preview').srcdoc   = data.code;
             nav('app');
             return true;
         }
@@ -1348,6 +1408,88 @@ function decodeCode(encoded) {
     } catch(e) {
         // フォールバック: 旧形式（エンコードなし）もそのまま動くよう対応
         try { return decodeURIComponent(escape(atob(encoded))); } catch(e2) { return encoded; }
+    }
+}
+
+
+// ════════════════════════════════════════════
+//  設定モーダル（プロフィール＋APIキー統合）
+// ════════════════════════════════════════════
+var _profile = JSON.parse(localStorage.getItem('base44_profile') || '{"name":"","avatar":""}');
+
+function openSettingsModal() {
+    // 現在の値を反映
+    document.getElementById('profile-name').value = _profile.name || '';
+    var img = document.getElementById('avatar-img');
+    var ph  = document.getElementById('avatar-placeholder');
+    if (_profile.avatar) {
+        img.src = _profile.avatar;
+        img.style.display = 'block';
+        ph.style.display  = 'none';
+    } else {
+        img.style.display = 'none';
+        ph.style.display  = 'block';
+    }
+    var keyInput  = document.getElementById('settings-apikey-input');
+    var keyStatus = document.getElementById('settings-key-status');
+    keyInput.value = _geminiApiKey || '';
+    if (_geminiApiKey) {
+        keyStatus.textContent = '✓ このセッションで設定済み: ' + _geminiApiKey.slice(0,8) + '••••••••';
+        keyStatus.style.color = '#3fb950';
+    } else {
+        keyStatus.textContent = '未設定';
+        keyStatus.style.color = '#8b949e';
+    }
+    document.getElementById('settings-modal').style.display = 'flex';
+}
+
+function closeSettingsModal() {
+    document.getElementById('settings-modal').style.display = 'none';
+}
+
+function saveSettings() {
+    // プロフィール保存
+    _profile.name = document.getElementById('profile-name').value.trim();
+    localStorage.setItem('base44_profile', JSON.stringify(_profile));
+
+    // APIキー設定（localStorageには保存しない）
+    var val = document.getElementById('settings-apikey-input').value.trim();
+    if (val && !val.startsWith('AIza')) {
+        document.getElementById('settings-key-status').textContent = 'キーの形式が正しくありません';
+        document.getElementById('settings-key-status').style.color = '#f85149';
+        return;
+    }
+    if (val) _geminiApiKey = val;
+
+    closeSettingsModal();
+    showToast('設定を保存しました');
+}
+
+function handleAvatarChange(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+        _profile.avatar = ev.target.result;
+        localStorage.setItem('base44_profile', JSON.stringify(_profile));
+        var img = document.getElementById('avatar-img');
+        var ph  = document.getElementById('avatar-placeholder');
+        img.src = _profile.avatar;
+        img.style.display = 'block';
+        ph.style.display  = 'none';
+    };
+    reader.readAsDataURL(file);
+}
+
+function toggleSettingsKeyVisibility() {
+    var input = document.getElementById('settings-apikey-input');
+    var icon  = document.getElementById('settings-eye-icon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    } else {
+        input.type = 'password';
+        icon.innerHTML = '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
     }
 }
 
@@ -1428,6 +1570,77 @@ function openAPIKeySettings() {
 }
 
 </script>
+<!-- ══════════════════════════════════════
+     SETTINGS MODAL（APIキー＋プロフィール）
+══════════════════════════════════════ -->
+<div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(6,9,16,0.88);backdrop-filter:blur(14px);z-index:300;align-items:center;justify-content:center;">
+    <div style="background:#161b22;border:1px solid rgba(255,255,255,0.12);border-radius:16px;width:min(420px,92vw);padding:28px;box-shadow:0 0 60px rgba(0,0,0,0.5);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;">
+            <span style="font-size:16px;font-weight:700;color:#e6edf3;">設定</span>
+            <button onclick="closeSettingsModal()" style="background:none;border:none;color:#484f58;cursor:pointer;font-size:22px;line-height:1;">&times;</button>
+        </div>
+
+        <!-- プロフィール設定 -->
+        <div style="margin-bottom:22px;">
+            <div style="font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">プロフィール</div>
+            <!-- アバター選択 -->
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+                <div id="avatar-preview" onclick="document.getElementById('avatar-file').click()" style="width:56px;height:56px;border-radius:50%;background:#21262d;border:2px dashed #484f58;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;transition:border-color 0.15s;"
+                    onmouseover="this.style.borderColor='#7c5cfc'" onmouseout="this.style.borderColor='#484f58'">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#484f58" stroke-width="2" id="avatar-placeholder" xmlns="http://www.w3.org/2000/svg"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <img id="avatar-img" style="display:none;width:100%;height:100%;object-fit:cover;" alt="avatar">
+                </div>
+                <div>
+                    <div style="font-size:12px;color:#c9d1d9;margin-bottom:4px;">アイコン画像</div>
+                    <button onclick="document.getElementById('avatar-file').click()" style="padding:5px 12px;background:#21262d;border:1px solid #484f58;border-radius:7px;font-size:11px;color:#c9d1d9;cursor:pointer;font-family:var(--font);">画像を選択</button>
+                    <input type="file" id="avatar-file" accept="image/*" style="display:none;" onchange="handleAvatarChange(event)">
+                </div>
+            </div>
+            <!-- 名前 -->
+            <div style="margin-bottom:10px;">
+                <label style="font-size:11px;font-weight:600;color:#8b949e;display:block;margin-bottom:5px;">表示名</label>
+                <input id="profile-name" type="text" placeholder="あなたの名前..."
+                    style="width:100%;background:#0d1117;border:1px solid #484f58;border-radius:8px;padding:9px 12px;font-size:13px;color:#e6edf3;outline:none;font-family:var(--font);transition:border-color 0.15s;"
+                    onfocus="this.style.borderColor='#7c5cfc'" onblur="this.style.borderColor='#484f58'">
+            </div>
+        </div>
+
+        <!-- 区切り -->
+        <div style="height:1px;background:#21262d;margin-bottom:22px;"></div>
+
+        <!-- APIキー設定 -->
+        <div style="margin-bottom:20px;">
+            <div style="font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">Gemini APIキー</div>
+            <div style="background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.2);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:11px;color:#8b949e;line-height:1.8;">
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:#7c5cfc;text-decoration:underline;">Google AI Studio</a>
+                からキーを取得して貼り付け。ページを閉じるとリセットされます。
+            </div>
+            <div style="position:relative;">
+                <input id="settings-apikey-input" type="password" placeholder="AIzaSy..."
+                    style="width:100%;background:#0d1117;border:1px solid #484f58;border-radius:8px;padding:10px 42px 10px 12px;font-size:13px;color:#e6edf3;outline:none;font-family:monospace;transition:border-color 0.15s;"
+                    onfocus="this.style.borderColor='#7c5cfc'" onblur="this.style.borderColor='#484f58'">
+                <button onclick="toggleSettingsKeyVisibility()"
+                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#484f58;">
+                    <svg id="settings-eye-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
+            <div id="settings-key-status" style="margin-top:6px;font-size:10px;height:14px;"></div>
+        </div>
+
+        <!-- 保存ボタン -->
+        <div style="display:flex;gap:8px;">
+            <button onclick="closeSettingsModal()"
+                style="flex:1;padding:10px;background:#21262d;border:1px solid #484f58;border-radius:9px;font-size:13px;font-weight:600;color:#8b949e;cursor:pointer;font-family:var(--font);">
+                キャンセル
+            </button>
+            <button onclick="saveSettings()"
+                style="flex:2;padding:10px;border-radius:9px;font-size:13px;font-weight:700;color:white;border:none;cursor:pointer;font-family:var(--font);background:linear-gradient(135deg,#7c5cfc,#a78bfa);box-shadow:0 4px 16px rgba(124,92,252,0.3);">
+                保存
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- ══════════════════════════════════════
      API KEY MODAL
 ══════════════════════════════════════ -->

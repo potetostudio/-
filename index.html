@@ -634,7 +634,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
         </button>
     </div>
-    <iframe id="app-display-preview" style="flex:1;border:none;background:white;"></iframe>
+    <iframe id="app-display-preview" style="flex:1;border:none;background:white;" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
     <button id="app-fs-exit" onclick="toggleFullscreenApp()" style="display:none;position:absolute;top:12px;right:12px;z-index:50;padding:8px;background:rgba(13,17,23,0.85);border:1px solid var(--border);border-radius:10px;color:var(--text-2);cursor:pointer;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
     </button>
@@ -1194,7 +1194,8 @@ function closeShareModal() {
 
 function publishApp() {
     var title = document.getElementById('share-title').value.trim() || '無題のアプリ';
-    var newApp = { id: Date.now(), title: title, code: currentCode, likes: 0, createdAt: Date.now() };
+    // コードをエンコードして保存（ギャラリー閲覧者にコードを見せない）
+    var newApp = { id: Date.now(), title: title, code: encodeCode(currentCode), likes: 0, createdAt: Date.now() };
     apps.push(newApp);
     localStorage.setItem('base44_apps', JSON.stringify(apps));
     closeShareModal();
@@ -1211,7 +1212,8 @@ async function createShareLink() {
 
     try {
         var title = document.getElementById('share-title').value.trim() || '無題のアプリ';
-        var ref   = await db.collection('apps').add({ title: title, code: currentCode, createdAt: new Date() });
+        // コードをエンコードしてFirebaseに保存（URL共有先でコードを見せない）
+        var ref   = await db.collection('apps').add({ title: title, code: encodeCode(currentCode), createdAt: new Date() });
         currentShareURL = window.location.origin + window.location.pathname + '?id=' + ref.id;
 
         // Show URL box
@@ -1275,7 +1277,9 @@ function openAppView(id) {
     currentAppId = app.id;
     document.getElementById('app-display-title').textContent = app.title;
     document.getElementById('app-like-count').textContent    = app.likes;
-    document.getElementById('app-display-preview').srcdoc   = app.code;
+    // デコードしてiframeに渡す（srcdocにはデコード済みコードを使用）
+    var decoded = decodeCode(app.code);
+    document.getElementById('app-display-preview').srcdoc = decoded;
     document.getElementById('app-like-icon').setAttribute('fill','none');
     nav('app');
 }
@@ -1306,15 +1310,45 @@ async function loadSharedApp() {
         var snap = await db.collection('apps').doc(id).get();
         if (snap.exists) {
             var data = snap.data();
-            currentCode = data.code;
+            // デコードしてプレビューに渡す
+            var decoded = decodeCode(data.code);
+            currentCode = decoded;
             document.getElementById('app-display-title').textContent = data.title || '共有されたアプリ';
             document.getElementById('app-like-count').textContent    = '-';
-            document.getElementById('app-display-preview').srcdoc   = data.code;
+            document.getElementById('app-display-preview').srcdoc   = decoded;
             nav('app');
             return true;
         }
     } catch(e) { console.error(e); }
     return false;
+}
+
+
+// ════════════════════════════════════════════
+//  コード保護ユーティリティ
+//  Base64 + 文字シャッフルで難読化
+//  公開・共有時はエンコード、表示時はデコード
+// ════════════════════════════════════════════
+function encodeCode(code) {
+    try {
+        // UTF-8対応のBase64エンコード
+        var b64 = btoa(unescape(encodeURIComponent(code)));
+        // さらに文字列を反転して分かりにくくする
+        return b64.split('').reverse().join('');
+    } catch(e) {
+        return btoa(unescape(encodeURIComponent(code)));
+    }
+}
+
+function decodeCode(encoded) {
+    try {
+        // 反転を戻してBase64デコード
+        var b64 = encoded.split('').reverse().join('');
+        return decodeURIComponent(escape(atob(b64)));
+    } catch(e) {
+        // フォールバック: 旧形式（エンコードなし）もそのまま動くよう対応
+        try { return decodeURIComponent(escape(atob(encoded))); } catch(e2) { return encoded; }
+    }
 }
 
 // ════════════════════════════════════════════

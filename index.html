@@ -386,15 +386,51 @@
 
     <!-- ── Launchpad ── -->
     <div id="studio-launchpad">
+        <!-- タイトル -->
         <div style="text-align:center;">
             <div style="font-size:10px;letter-spacing:0.25em;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;">Base44</div>
             <h1 style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#e6edf3,var(--accent-2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">HTML Sandbox</h1>
-            <p style="font-size:13px;color:var(--text-2);margin-top:6px;">コードを貼り付けてプレビュー・編集・共有</p>
+            <p style="font-size:13px;color:var(--text-2);margin-top:6px;">AIでコードを生成するか、HTMLを貼り付けて起動</p>
         </div>
+
+        <!-- ✨ AIでコードを生成 -->
+        <div style="width:100%;max-width:640px;background:rgba(124,92,252,0.08);border:1px solid rgba(124,92,252,0.25);border-radius:14px;padding:16px 18px;">
+            <div style="font-size:11px;font-weight:700;color:var(--accent-2);margin-bottom:10px;display:flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                AIでコードを生成
+            </div>
+            <div style="display:flex;gap:8px;">
+                <input id="ai-generate-input" type="text" placeholder="例: ブロック崩しゲーム / タイマーアプリ / カラフルな電卓"
+                    style="flex:1;background:#0d1117;border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:10px 14px;font-size:13px;color:#e6edf3;outline:none;font-family:var(--font);transition:border-color 0.15s;"
+                    onfocus="this.style.borderColor='rgba(124,92,252,0.6)'"
+                    onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
+                    onkeydown="if(event.key==='Enter')generateFromPrompt()">
+                <button id="ai-generate-btn" onclick="generateFromPrompt()"
+                    style="padding:10px 20px;border-radius:9px;font-size:13px;font-weight:700;color:white;border:none;cursor:pointer;font-family:var(--font);white-space:nowrap;background:linear-gradient(135deg,#7c5cfc,#a78bfa);box-shadow:0 4px 16px rgba(124,92,252,0.35);transition:opacity 0.15s;"
+                    onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    生成する
+                </button>
+            </div>
+            <!-- 生成中ステータス -->
+            <div id="ai-generate-status" style="display:none;margin-top:10px;font-size:11px;color:var(--accent-2);display:flex;align-items:center;gap:6px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 0.9s linear infinite;" xmlns="http://www.w3.org/2000/svg"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                <span id="ai-generate-status-text">AIがコードを生成中...</span>
+            </div>
+        </div>
+
+        <!-- または区切り -->
+        <div style="width:100%;max-width:640px;display:flex;align-items:center;gap:12px;">
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+            <span style="font-size:11px;color:var(--text-3);">または手動で貼り付け</span>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+        </div>
+
+        <!-- HTMLを貼り付け -->
         <div style="position:relative;width:100%;max-width:640px;">
             <div id="launchpad-highlight" style="position:absolute;inset:0;padding:14px 16px;font-family:var(--mono);font-size:11px;line-height:1.6;white-space:pre;overflow:hidden;border-radius:12px;pointer-events:none;background:var(--bg-2);border:1px solid var(--border);z-index:1;"><code class="language-markup" style="background:none;padding:0;font-size:inherit;"></code></div>
-            <textarea id="studio-code" style="position:relative;width:100%;height:220px;background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-family:var(--mono);font-size:11px;line-height:1.6;color:transparent;caret-color:var(--text);outline:none;resize:none;tab-size:2;z-index:2;" placeholder="HTMLを貼り付けてください..." oninput="updateLaunchpadHighlight()" onscroll="syncLaunchHighlight()"></textarea>
+            <textarea id="studio-code" style="position:relative;width:100%;height:160px;background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-family:var(--mono);font-size:11px;line-height:1.6;color:transparent;caret-color:var(--text);outline:none;resize:none;tab-size:2;z-index:2;" placeholder="HTMLをここに貼り付けてください..." oninput="updateLaunchpadHighlight()" onscroll="syncLaunchHighlight()"></textarea>
         </div>
+
         <div style="display:flex;gap:10px;">
             <button onclick="launchStudio()" style="padding:10px 32px;border-radius:10px;font-size:14px;font-weight:700;color:white;border:none;cursor:pointer;font-family:var(--font);" class="btn-glow">起動</button>
             <button onclick="nav('gallery')" style="padding:10px 20px;border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text-2);background:transparent;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px;">
@@ -461,7 +497,7 @@
                 <div style="padding:0 6px;color:var(--accent);flex-shrink:0;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                 </div>
-                <input id="ai-input" type="text" onkeydown="if(event.key==='Enter')executeAI()" style="flex:1;background:transparent;border:none;outline:none;font-size:12px;color:var(--text);font-family:var(--font);" placeholder="AIに修正を依頼... 例: 背景を黒にして / ボタンを追加して">
+                <input id="ai-input" type="text" onkeydown="if(event.key==='Enter')executeAI()" style="flex:1;background:transparent;border:none;outline:none;font-size:12px;color:var(--text);font-family:var(--font);" placeholder="AIに変更を依頼... 例: 背景を黒にして / スコア機能を追加 / ボタンを赤にして">
                 <button id="ai-btn" onclick="executeAI()" style="padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;color:white;border:none;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:5px;" class="btn-glow">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                     実行
@@ -756,6 +792,91 @@ function clearAISearch() {
     document.getElementById('ai-search-input').value = '';
     renderGallery();
     showToast('フィルターをクリアしました');
+}
+
+
+// ════════════════════════════════════════════
+//  ランチパッドからAI生成
+// ════════════════════════════════════════════
+async function generateFromPrompt() {
+    var prompt = document.getElementById('ai-generate-input').value.trim();
+    if (!prompt) {
+        document.getElementById('ai-generate-input').focus();
+        return;
+    }
+
+    var key = _geminiApiKey;
+    if (!key) {
+        openAPIKeyModal(function(){ generateFromPrompt(); });
+        return;
+    }
+
+    var btn    = document.getElementById('ai-generate-btn');
+    var status = document.getElementById('ai-generate-status');
+    var stxt   = document.getElementById('ai-generate-status-text');
+
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    status.style.display = 'flex';
+
+    var messages = [
+        'AIがコードを生成中...',
+        'HTMLを組み立て中...',
+        'CSSでスタイリング中...',
+        'JavaScriptを書いています...',
+        'もう少しで完成...'
+    ];
+    var mi = 0;
+    var msgTimer = setInterval(function(){
+        stxt.textContent = messages[mi % messages.length];
+        mi++;
+    }, 1400);
+
+    try {
+        var res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text:
+                '以下の内容のWebアプリをHTML/CSS/JavaScriptで作成してください。\n' +
+                '1つのHTMLファイルで完結させてください。\n' +
+                'Markdownのコードブロック記号（```html など）は不要です。HTMLコードのみ出力してください。\n\n' +
+                '作るもの: ' + prompt
+            }] }] })
+        });
+
+        var data = await res.json();
+        if (!res.ok) throw new Error((data.error && data.error.message) || 'API Error ' + res.status);
+
+        var code = data.candidates[0].content.parts[0].text
+            .replace(/```html\n?/gi, '')
+            .replace(/```\n?/g, '')
+            .trim();
+
+        // 生成したコードをエディタに入れてそのままワークスペース起動
+        document.getElementById('studio-code').value = code;
+        updateLaunchpadHighlight();
+        clearInterval(msgTimer);
+        status.style.display = 'none';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        currentCode = code;
+        document.getElementById('studio-launchpad').classList.add('hidden');
+        var ws = document.getElementById('studio-workspace');
+        ws.style.display = 'flex';
+        document.getElementById('studio-preview').srcdoc = currentCode;
+        versions = [{ id: Date.now(), code: currentCode, label: prompt + '（AI生成）', type: 'ai' }];
+        updateHistoryUI();
+        showToast('「' + prompt + '」を生成しました！');
+
+    } catch(e) {
+        clearInterval(msgTimer);
+        status.style.display = 'none';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        stxt.textContent = 'エラーが発生しました';
+        showToast('生成エラー: ' + e.message);
+        console.error(e);
+    }
 }
 
 // ════════════════════════════════════════════

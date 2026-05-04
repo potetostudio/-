@@ -178,7 +178,7 @@
         }
         #studio-launchpad.hidden { display: none; }
 
-        /* ── コードサイドパネル（折りたたみ可能） ── */
+        /* ── コードサイドパネル ── */
         #code-side-panel {
             width: 400px;
             min-width: 400px;
@@ -187,18 +187,11 @@
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
-            transition: width 0.25s cubic-bezier(.16,1,.3,1),
-                        min-width 0.25s cubic-bezier(.16,1,.3,1),
-                        opacity 0.2s ease;
             overflow: hidden;
         }
+        /* 非表示時は完全に消す */
         #code-side-panel.hidden-panel {
-            width: 0 !important;
-            min-width: 0 !important;
-            max-width: 0 !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-            overflow: hidden !important;
+            display: none !important;
         }
 
         /* ── Syntax editor ── */
@@ -536,7 +529,7 @@
     <div id="studio-workspace" style="display:none;width:100%;height:100%;position:relative;flex-direction:row;background:var(--bg);">
 
         <!-- ── コードサイドパネル（デフォルト非表示）── -->
-        <div id="code-side-panel" class="hidden-panel">
+        <div id="code-side-panel" style="display:none;width:400px;min-width:400px;background:var(--bg-1);border-right:1px solid var(--border);flex-direction:column;flex-shrink:0;overflow:hidden;">
             <div style="padding:8px 12px;background:var(--bg-2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#79c0ff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                 <span style="font-size:11px;font-weight:600;color:var(--text-2);">index.html</span>
@@ -1104,11 +1097,7 @@ function forceHideCodePanel() {
     codePanelOpen = false;
     var panel = document.getElementById('code-side-panel');
     if (panel) {
-        panel.classList.add('hidden-panel');
-        panel.style.width = '0';
-        panel.style.minWidth = '0';
-        panel.style.opacity = '0';
-        panel.style.pointerEvents = 'none';
+        panel.style.display = 'none';
     }
     var btn = document.getElementById('code-panel-btn');
     if (btn) btn.textContent = '< > コードを表示';
@@ -1119,23 +1108,12 @@ function toggleCodePanel() {
     var panel = document.getElementById('code-side-panel');
     var btn   = document.getElementById('code-panel-btn');
     if (codePanelOpen) {
-        // 表示
-        panel.classList.remove('hidden-panel');
-        panel.style.width = '';
-        panel.style.minWidth = '';
-        panel.style.opacity = '';
-        panel.style.pointerEvents = '';
-        // 現在のコードをサイドエディタに反映
+        panel.style.display = 'flex';
         document.getElementById('side-code-textarea').value = currentCode;
         onSideEditorInput();
         btn.textContent = '< > コードを隠す';
     } else {
-        // 非表示
-        panel.classList.add('hidden-panel');
-        panel.style.width = '0';
-        panel.style.minWidth = '0';
-        panel.style.opacity = '0';
-        panel.style.pointerEvents = 'none';
+        panel.style.display = 'none';
         btn.textContent = '< > コードを表示';
     }
 }

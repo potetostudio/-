@@ -322,7 +322,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
           <button onclick="loadTemplate('clock')" class="tpl-btn">🕐 時計</button>
         </div>
       </div>
-      <textarea id="lp-code" placeholder="HTMLをここに貼り付けてください..."></textarea>
+      <textarea id="lp-code" placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）"></textarea>
       <div class="lp-btns">
         <button class="lb main" onclick="launchStudio()">起動する</button>
         <button class="lb sub" onclick="nav('gallery')">ギャラリーを見る</button>
@@ -664,7 +664,35 @@ function resetS(){
 function launchStudio(){
   var c=document.getElementById('lp-code').value.trim();
   if(!c){T('コードを入力してください');return;}
-  startWS(c,'貼り付けコード','original');
+  startWS(wrapCode(c),'貼り付けコード','original');
+}
+
+// コードの種類を自動判定してHTMLとして実行できる形に変換
+function wrapCode(code) {
+  var trimmed = code.trim();
+  // すでにHTMLなら変換不要
+  if (/^<!DOCTYPE/i.test(trimmed) || /^<html/i.test(trimmed)) return trimmed;
+  // <body>や<head>タグがあればHTMLとして扱う
+  if (/<body[\s>]/i.test(trimmed) || /<head[\s>]/i.test(trimmed)) return trimmed;
+  // CSSのみ（セレクタや { } が含まれる）
+  if (/^[\s\S]*\{[\s\S]*\}/.test(trimmed) && !trimmed.includes('function') && !trimmed.includes('var ') && !trimmed.includes('const ') && !trimmed.includes('let ')) {
+    return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + trimmed + '</style></head><body><div class="demo">CSS Preview</div></body></html>';
+  }
+  // JSのみ（function/var/const/let/console が含まれる）
+  if (/^(function|var |const |let |\/\/|class |import |export )/.test(trimmed) || trimmed.includes('console.log') || trimmed.includes('=>')) {
+    return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>'
+      + '<pre id="out" style="background:#0d1117;color:#3fb950;padding:16px;margin:0;font-family:monospace;font-size:13px;min-height:100vh;white-space:pre-wrap;"></pre>'
+      + '<script>'
+      + 'var _log=console.log;console.log=function(){var a=Array.from(arguments).map(String).join(" ");document.getElementById("out").textContent+=a+"\n";_log.apply(console,arguments);};'
+      + 'try{' + trimmed.replace(/<\/script>/gi,'<\\/script>') + '}catch(e){document.getElementById("out").textContent+="Error: "+e.message;}'
+      + '<\/script></body></html>';
+  }
+  // HTMLの断片（タグが含まれる）→ bodyに包む
+  if (/<[a-zA-Z]/.test(trimmed)) {
+    return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:sans-serif;padding:16px;background:#fff}</style></head><body>' + trimmed + '</body></html>';
+  }
+  // それ以外はテキストとして表示
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><pre style="padding:16px;font-size:14px">' + trimmed + '</pre></body></html>';
 }
 function startWS(code,label,type){
   cur=code;
@@ -885,27 +913,222 @@ function loadPrism(){
 // ════════════════════════════════════════════
 //  テンプレート
 // ════════════════════════════════════════════
-var TEMPLATES = {
-  breakout: '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Block Breaker</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white}canvas{border:2px solid #6d5aef;border-radius:4px}#info{margin-top:12px;font-size:14px;color:#9b8bff}#msg{position:absolute;font-size:28px;font-weight:bold;color:#fff;text-shadow:0 0 20px #6d5aef;display:none}</style></head><body><div id="msg"></div><canvas id="c" width="480" height="320"></canvas><div id="info">← → キーまたはマウスで操作</div><script>var c=document.getElementById("c"),ctx=c.getContext("2d");var pw=80,ph=10,px=200,py=300,pv=0;var bx=240,by=160,bdx=4,bdy=-4,br=8;var cols=8,rows=4,bw=50,bh=18,bp=4;var blocks=[];var score=0,lives=3,going=false;var colors=["#f85149","#f0b429","#2ea043","#6d5aef","#e36209","#0075ca","#da3633","#8b5cf6"];for(var r=0;r<rows;r++)for(var col=0;col<cols;col++)blocks.push({x:col*(bw+bp)+10,y:r*(bh+bp)+30,alive:true,c:colors[r]});function draw(){ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,480,320);ctx.fillStyle="#6d5aef";ctx.beginPath();ctx.roundRect(px,py,pw,ph,5);ctx.fill();ctx.fillStyle="#f0b429";ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);ctx.fill();blocks.forEach(function(b){if(!b.alive)return;ctx.fillStyle=b.c;ctx.beginPath();ctx.roundRect(b.x,b.y,bw,bh,3);ctx.fill();});ctx.fillStyle="#9b8bff";ctx.font="14px sans-serif";ctx.fillText("SCORE: "+score,10,18);ctx.fillText("LIVES: "+lives,400,18);}function update(){if(!going)return;px+=pv;if(px<0)px=0;if(px+pw>480)px=480-pw;bx+=bdx;by+=bdy;if(bx-br<0){bx=br;bdx=Math.abs(bdx);}if(bx+br>480){bx=480-br;bdx=-Math.abs(bdx);}if(by-br<0){by=br;bdy=Math.abs(bdy);}if(by+br>py&&by-br<py+ph&&bx>px&&bx<px+pw){bdy=-Math.abs(bdy);var rel=(bx-(px+pw/2))/(pw/2);bdx=rel*6;}if(by>340){lives--;if(lives<=0){showMsg("GAME OVER");going=false;}else{bx=240;by=160;bdx=4;bdy=-4;}}blocks.forEach(function(b){if(!b.alive)return;if(bx>b.x&&bx<b.x+bw&&by>b.y&&by<b.y+bh){b.alive=false;score+=10;bdy=-bdy;}});if(blocks.every(function(b){return !b.alive;})){showMsg("CLEAR! "+score+"pts");going=false;}}function showMsg(t){var m=document.getElementById("msg");m.textContent=t;m.style.display="block";setTimeout(function(){m.style.display="none";},2000);}document.addEventListener("keydown",function(e){if(e.key==="ArrowLeft")pv=-6;if(e.key==="ArrowRight")pv=6;if(e.key===" "&&!going)going=true;});document.addEventListener("keyup",function(){pv=0;});c.addEventListener("mousemove",function(e){var r=c.getBoundingClientRect();px=e.clientX-r.left-pw/2;if(!going)going=true;});function loop(){update();draw();requestAnimationFrame(loop);}loop();<\/script></body></html>',
+function getTemplate(name) {
+  var t = {
+    breakout: function() {
+      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Block Breaker</title>'
+        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white}canvas{border:2px solid #6d5aef;border-radius:4px}#info{margin-top:10px;font-size:13px;color:#9b8bff}#msg{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);font-size:32px;font-weight:bold;color:#fff;text-shadow:0 0 20px #6d5aef;display:none;background:rgba(0,0,0,.7);padding:16px 32px;border-radius:12px}</style>'
+        + '</head><body><div id="msg"></div><canvas id="c" width="480" height="320"></canvas><div id="info">← → キーまたはマウスで操作 / SPACEでスタート</div>'
+        + '<script>'
+        + 'var c=document.getElementById("c"),ctx=c.getContext("2d");'
+        + 'var pw=80,ph=10,px=200,py=300,pv=0;'
+        + 'var bx=240,by=160,bdx=4,bdy=-4,br=8;'
+        + 'var cols=8,rows=4,bw=50,bh=18,bp=4;'
+        + 'var blocks=[],score=0,lives=3,going=false;'
+        + 'var colors=["#f85149","#f0b429","#2ea043","#6d5aef","#e36209","#0075ca","#da3633","#8b5cf6"];'
+        + 'for(var r=0;r<rows;r++)for(var col=0;col<cols;col++)blocks.push({x:col*(bw+bp)+10,y:r*(bh+bp)+30,alive:true,c:colors[r]});'
+        + 'function draw(){ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,480,320);'
+        + 'ctx.fillStyle="#6d5aef";ctx.beginPath();ctx.roundRect(px,py,pw,ph,5);ctx.fill();'
+        + 'ctx.fillStyle="#f0b429";ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);ctx.fill();'
+        + 'blocks.forEach(function(b){if(!b.alive)return;ctx.fillStyle=b.c;ctx.beginPath();ctx.roundRect(b.x,b.y,bw,bh,3);ctx.fill();});'
+        + 'ctx.fillStyle="#9b8bff";ctx.font="14px sans-serif";ctx.fillText("SCORE:"+score,10,18);ctx.fillText("LIVES:"+lives,400,18);}'
+        + 'function update(){if(!going)return;px+=pv;if(px<0)px=0;if(px+pw>480)px=480-pw;'
+        + 'bx+=bdx;by+=bdy;'
+        + 'if(bx-br<0){bx=br;bdx=Math.abs(bdx);}if(bx+br>480){bx=480-br;bdx=-Math.abs(bdx);}'
+        + 'if(by-br<0){by=br;bdy=Math.abs(bdy);}'
+        + 'if(by+br>py&&by-br<py+ph&&bx>px&&bx<px+pw){bdy=-Math.abs(bdy);var rel=(bx-(px+pw/2))/(pw/2);bdx=rel*6;}'
+        + 'if(by>340){lives--;if(lives<=0){showMsg("GAME OVER");going=false;}else{bx=240;by=160;bdx=4;bdy=-4;}}'
+        + 'blocks.forEach(function(b){if(!b.alive)return;if(bx>b.x&&bx<b.x+bw&&by>b.y&&by<b.y+bh){b.alive=false;score+=10;bdy=-bdy;}});'
+        + 'if(blocks.every(function(b){return !b.alive;})){showMsg("CLEAR! "+score+"pts");going=false;}}'
+        + 'function showMsg(txt){var m=document.getElementById("msg");m.textContent=txt;m.style.display="block";setTimeout(function(){m.style.display="none";},2500);}'
+        + 'document.addEventListener("keydown",function(e){if(e.key==="ArrowLeft")pv=-7;if(e.key==="ArrowRight")pv=7;if(e.key===" "&&!going){going=true;}e.preventDefault();});'
+        + 'document.addEventListener("keyup",function(){pv=0;});'
+        + 'c.addEventListener("mousemove",function(e){var r=c.getBoundingClientRect();px=e.clientX-r.left-pw/2;if(!going)going=true;});'
+        + 'function loop(){update();draw();requestAnimationFrame(loop);}loop();'
+        + '<\/script></body></html>';
+    },
+    timer: function() {
+      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Timer</title>'
+        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white;gap:24px}'
+        + '.disp{font-size:72px;font-weight:700;font-variant-numeric:tabular-nums;color:#f0f3f8;text-shadow:0 0 40px rgba(109,90,239,.5);letter-spacing:4px}'
+        + '.btns{display:flex;gap:12px}'
+        + 'button{padding:12px 28px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:all .15s}'
+        + '#sb{background:#6d5aef;color:white}#sb:hover{opacity:.85}'
+        + '#rb{background:#1e2330;color:#9ba6b8;border:1px solid rgba(255,255,255,.1)}#rb:hover{background:#2a3040}'
+        + '#lb{background:#2ea043;color:white}#lb:hover{opacity:.85}'
+        + '.laps{max-height:180px;overflow-y:auto;width:240px;display:flex;flex-direction:column;gap:6px}'
+        + '.lap{display:flex;justify-content:space-between;font-size:13px;color:#9ba6b8;padding:6px 10px;background:#0f1117;border-radius:6px}'
+        + '</style></head><body>'
+        + '<div class="disp" id="d">00:00.00</div>'
+        + '<div class="btns"><button id="sb" onclick="toggle()">スタート</button><button id="lb" onclick="addLap()">ラップ</button><button id="rb" onclick="reset()">リセット</button></div>'
+        + '<div class="laps" id="laps"></div>'
+        + '<script>'
+        + 'var t=0,iv=null,lc=0;'
+        + 'function fmt(ms){var m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),cs=Math.floor((ms%1000)/10);return (m<10?"0":"")+m+":"+(s<10?"0":"")+s+"."+(cs<10?"0":"")+cs;}'
+        + 'function toggle(){if(iv){clearInterval(iv);iv=null;document.getElementById("sb").textContent="スタート";}else{var st=Date.now()-t;iv=setInterval(function(){t=Date.now()-st;document.getElementById("d").textContent=fmt(t);},10);document.getElementById("sb").textContent="ストップ";}}'
+        + 'function reset(){clearInterval(iv);iv=null;t=0;lc=0;document.getElementById("d").textContent="00:00.00";document.getElementById("sb").textContent="スタート";document.getElementById("laps").innerHTML="";}'
+        + 'function addLap(){if(!iv)return;lc++;var l=document.createElement("div");l.className="lap";l.innerHTML="<span>Lap "+lc+"<\/span><span>"+fmt(t)+"<\/span>";document.getElementById("laps").prepend(l);}'
+        + '<\/script></body></html>';
+    },
+    paint: function() {
+      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Paint</title>'
+        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f1117;display:flex;flex-direction:column;height:100vh;font-family:sans-serif}'
+        + '#bar{height:52px;background:#171b24;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;padding:0 12px;gap:8px;flex-wrap:wrap}'
+        + '.cb{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0}'
+        + '.cb.on{border-color:white;transform:scale(1.25)}'
+        + 'label{font-size:11px;color:#9ba6b8}'
+        + 'input[type=range]{width:70px;accent-color:#6d5aef}'
+        + '#clr{padding:5px 10px;background:#da3633;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}'
+        + 'canvas{flex:1;cursor:crosshair;display:block}'
+        + '</style></head><body>'
+        + '<div id="bar">'
+        + '<span id="prev" style="width:20px;height:20px;border-radius:50%;background:#6d5aef;flex-shrink:0;border:2px solid white"></span>'
+        + '<label>太さ<input type="range" id="sz" min="2" max="40" value="8" oninput="sz=this.value"></label>'
+        + '<div class="cb on" style="background:#6d5aef" onclick="setCol(this,\'#6d5aef\')"></div>'
+        + '<div class="cb" style="background:#f85149" onclick="setCol(this,\'#f85149\')"></div>'
+        + '<div class="cb" style="background:#f0b429" onclick="setCol(this,\'#f0b429\')"></div>'
+        + '<div class="cb" style="background:#2ea043" onclick="setCol(this,\'#2ea043\')"></div>'
+        + '<div class="cb" style="background:#0075ca" onclick="setCol(this,\'#0075ca\')"></div>'
+        + '<div class="cb" style="background:#ec4899" onclick="setCol(this,\'#ec4899\')"></div>'
+        + '<div class="cb" style="background:#f0f3f8" onclick="setCol(this,\'#f0f3f8\')"></div>'
+        + '<div class="cb" style="background:#000000" onclick="setCol(this,\'#000000\')"></div>'
+        + '<button id="clr" onclick="clearC()">クリア</button>'
+        + '</div>'
+        + '<canvas id="c"></canvas>'
+        + '<script>'
+        + 'var c=document.getElementById("c"),ctx=c.getContext("2d"),drawing=false,col="#6d5aef",sz=8;'
+        + 'function resize(){c.width=c.offsetWidth;c.height=c.offsetHeight;ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);}resize();window.addEventListener("resize",resize);'
+        + 'function setCol(el,color){col=color;document.getElementById("prev").style.background=color;document.querySelectorAll(".cb").forEach(function(b){b.classList.remove("on");});el.classList.add("on");}'
+        + 'function pos(e){var r=c.getBoundingClientRect(),touch=e.touches&&e.touches[0];return{x:(touch?touch.clientX:e.clientX)-r.left,y:(touch?touch.clientY:e.clientY)-r.top};}'
+        + 'c.addEventListener("mousedown",function(e){drawing=true;ctx.beginPath();var p=pos(e);ctx.moveTo(p.x,p.y);});'
+        + 'c.addEventListener("mousemove",function(e){if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle=col;ctx.lineWidth=sz;ctx.lineCap="round";ctx.lineJoin="round";ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);});'
+        + 'c.addEventListener("mouseup",function(){drawing=false;});c.addEventListener("mouseleave",function(){drawing=false;});'
+        + 'c.addEventListener("touchstart",function(e){e.preventDefault();drawing=true;ctx.beginPath();var p=pos(e);ctx.moveTo(p.x,p.y);},{passive:false});'
+        + 'c.addEventListener("touchmove",function(e){e.preventDefault();if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle=col;ctx.lineWidth=sz;ctx.lineCap="round";ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});'
+        + 'c.addEventListener("touchend",function(){drawing=false;});'
+        + 'function clearC(){ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);}'
+        + '<\/script></body></html>';
+    },
+    calc: function() {
+      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Calculator</title>'
+        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;align-items:center;justify-content:center;height:100vh}'
+        + '.calc{background:#171b24;border-radius:20px;padding:20px;width:280px;box-shadow:0 20px 60px rgba(0,0,0,.5)}'
+        + '.disp{background:#0f1117;border-radius:12px;padding:16px;margin-bottom:16px;text-align:right}'
+        + '.expr{font-size:13px;color:#4a5568;min-height:18px;margin-bottom:4px}'
+        + '.num{font-size:36px;font-weight:700;color:#f0f3f8;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}'
+        + '.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}'
+        + 'button{padding:16px;border-radius:10px;border:none;font-size:18px;font-weight:600;cursor:pointer;transition:all .12s}'
+        + 'button:active{transform:scale(.94)}'
+        + '.nb{background:#1e2330;color:#f0f3f8}.nb:hover{background:#2a3040}'
+        + '.ob{background:#6d5aef;color:white}.ob:hover{opacity:.85}'
+        + '.eb{background:#9b8bff;color:white}.eb:hover{opacity:.85}'
+        + '.cb{background:#da3633;color:white}.cb:hover{opacity:.85}'
+        + '.z{grid-column:span 2}'
+        + '</style></head><body>'
+        + '<div class="calc">'
+        + '<div class="disp"><div class="expr" id="expr"></div><div class="num" id="num">0</div></div>'
+        + '<div class="grid">'
+        + '<button class="cb" onclick="cl()">AC</button>'
+        + '<button class="ob" onclick="pm()">+/-</button>'
+        + '<button class="ob" onclick="pct()">%</button>'
+        + '<button class="ob" onclick="op(\'plus\')">+</button>'
+        + '<button class="nb" onclick="n(\'7\')">7</button>'
+        + '<button class="nb" onclick="n(\'8\')">8</button>'
+        + '<button class="nb" onclick="n(\'9\')">9</button>'
+        + '<button class="ob" onclick="op(\'minus\')">-</button>'
+        + '<button class="nb" onclick="n(\'4\')">4</button>'
+        + '<button class="nb" onclick="n(\'5\')">5</button>'
+        + '<button class="nb" onclick="n(\'6\')">6</button>'
+        + '<button class="ob" onclick="op(\'mul\')">×</button>'
+        + '<button class="nb" onclick="n(\'1\')">1</button>'
+        + '<button class="nb" onclick="n(\'2\')">2</button>'
+        + '<button class="nb" onclick="n(\'3\')">3</button>'
+        + '<button class="ob" onclick="op(\'div\')">÷</button>'
+        + '<button class="nb z" onclick="n(\'0\')">0</button>'
+        + '<button class="nb" onclick="dot()">.</button>'
+        + '<button class="eb" onclick="eq()">=</button>'
+        + '</div></div>'
+        + '<script>'
+        + 'var cur="0",prev="",oper="",fresh=false;'
+        + 'function upd(){document.getElementById("num").textContent=cur;document.getElementById("expr").textContent=prev+(oper?{plus:"+",minus:"-",mul:"×",div:"÷"}[oper]:"");}'
+        + 'function n(v){if(cur.length>12)return;cur=fresh||cur==="0"?v:cur+v;fresh=false;upd();}'
+        + 'function dot(){if(!cur.includes(".")){cur+=".";upd();}}'
+        + 'function pm(){cur=String(-parseFloat(cur));upd();}'
+        + 'function pct(){cur=String(parseFloat(cur)/100);upd();}'
+        + 'function op(o){prev=cur;oper=o;fresh=true;upd();}'
+        + 'function eq(){if(!oper)return;var a=parseFloat(prev),b=parseFloat(cur),r;if(oper==="plus")r=a+b;else if(oper==="minus")r=a-b;else if(oper==="mul")r=a*b;else if(oper==="div")r=b?a/b:0;cur=String(r);prev="";oper="";fresh=true;upd();}'
+        + 'function cl(){cur="0";prev="";oper="";fresh=false;upd();}'
+        + '<\/script></body></html>';
+    },
+    snake: function() {
+      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Snake</title>'
+        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white;gap:12px}'
+        + 'canvas{border:2px solid #2a3040;border-radius:8px}'
+        + '#info{font-size:12px;color:#9ba6b8}'
+        + '#sc{font-size:20px;font-weight:700;color:#2ea043}'
+        + '</style></head><body>'
+        + '<div id="sc">SCORE: 0</div>'
+        + '<canvas id="c" width="400" height="400"></canvas>'
+        + '<div id="info">WASD / 矢印キーで操作 ／ SPACEでスタート</div>'
+        + '<script>'
+        + 'var c=document.getElementById("c"),ctx=c.getContext("2d"),gs=20,cols=20,rows=20;'
+        + 'var snake=[{x:10,y:10}],dx=0,dy=0,food={x:5,y:5},score=0,going=false,iv=null;'
+        + 'function rnd(){return{x:Math.floor(Math.random()*cols),y:Math.floor(Math.random()*rows)};}'
+        + 'function draw(){ctx.fillStyle="#0d1117";ctx.fillRect(0,0,400,400);'
+        + 'snake.forEach(function(s,i){ctx.fillStyle=i===0?"#2ea043":"#3fb950";ctx.beginPath();ctx.roundRect(s.x*gs+1,s.y*gs+1,gs-2,gs-2,4);ctx.fill();});'
+        + 'ctx.fillStyle="#f0b429";ctx.beginPath();ctx.arc(food.x*gs+gs/2,food.y*gs+gs/2,gs/2-2,0,Math.PI*2);ctx.fill();}'
+        + 'function update(){if(!going)return;'
+        + 'var head={x:snake[0].x+dx,y:snake[0].y+dy};'
+        + 'if(head.x<0||head.x>=cols||head.y<0||head.y>=rows||snake.some(function(s){return s.x===head.x&&s.y===head.y;})){clearInterval(iv);going=false;setTimeout(function(){alert("GAME OVER! Score: "+score);},100);return;}'
+        + 'snake.unshift(head);'
+        + 'if(head.x===food.x&&head.y===food.y){score++;document.getElementById("sc").textContent="SCORE: "+score;food=rnd();}else{snake.pop();}'
+        + 'draw();}'
+        + 'document.addEventListener("keydown",function(e){var m={"ArrowUp":[0,-1],"ArrowDown":[0,1],"ArrowLeft":[-1,0],"ArrowRight":[1,0],"w":[0,-1],"s":[0,1],"a":[-1,0],"d":[1,0]};'
+        + 'if(m[e.key]){var nd=m[e.key];if(nd[0]!==-dx||nd[1]!==-dy){dx=nd[0];dy=nd[1];}}'
+        + 'if(e.key===" "&&!going){going=true;dx=1;dy=0;iv=setInterval(update,120);}'
+        + 'if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))e.preventDefault();});'
+        + 'draw();'
+        + '<\/script></body></html>';
+    },
+    clock: function() {
+      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Clock</title>'
+        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white;gap:16px}'
+        + 'canvas{filter:drop-shadow(0 0 30px rgba(109,90,239,.4))}'
+        + '#dig{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;color:#9b8bff;letter-spacing:4px}'
+        + '#date{font-size:13px;color:#4a5568}'
+        + '</style></head><body>'
+        + '<canvas id="c" width="280" height="280"></canvas>'
+        + '<div id="dig"></div><div id="date"></div>'
+        + '<script>'
+        + 'var c=document.getElementById("c"),ctx=c.getContext("2d"),cx=140,cy=140,r=120;'
+        + 'function draw(){var now=new Date(),h=now.getHours(),m=now.getMinutes(),s=now.getSeconds(),ms=now.getMilliseconds();'
+        + 'ctx.clearRect(0,0,280,280);'
+        + 'ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle="#0f1117";ctx.fill();ctx.strokeStyle="#1e2330";ctx.lineWidth=3;ctx.stroke();'
+        + 'for(var i=0;i<60;i++){var a=i*Math.PI/30,x1=cx+Math.sin(a)*(r-8),y1=cy-Math.cos(a)*(r-8),x2,y2;'
+        + 'if(i%5===0){x2=cx+Math.sin(a)*(r-22);y2=cy-Math.cos(a)*(r-22);ctx.strokeStyle="#6d5aef";ctx.lineWidth=2;}else{x2=cx+Math.sin(a)*(r-14);y2=cy-Math.cos(a)*(r-14);ctx.strokeStyle="#2a3040";ctx.lineWidth=1;}'
+        + 'ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}'
+        + 'function hand(angle,len,w,col){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.sin(angle)*len,cy-Math.cos(angle)*len);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap="round";ctx.stroke();}'
+        + 'hand((h%12+m/60)*Math.PI/6,r*.55,5,"#f0f3f8");'
+        + 'hand((m+s/60)*Math.PI/30,r*.75,3,"#9b8bff");'
+        + 'hand((s+ms/1000)*Math.PI/30,r*.85,1.5,"#6d5aef");'
+        + 'ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle="#6d5aef";ctx.fill();'
+        + 'var days=["日","月","火","水","木","金","土"];'
+        + 'document.getElementById("dig").textContent=(h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;'
+        + 'document.getElementById("date").textContent=now.getFullYear()+"年"+(now.getMonth()+1)+"月"+now.getDate()+"日（"+days[now.getDay()]+"）";}'
+        + 'setInterval(draw,50);draw();'
+        + '<\/script></body></html>';
+    }
+  };
+  return t[name] ? t[name]() : null;
+}
 
-  timer: '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Timer</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white;gap:24px}.display{font-size:72px;font-weight:700;font-variant-numeric:tabular-nums;color:#f0f3f8;text-shadow:0 0 40px rgba(109,90,239,.5);letter-spacing:4px}.btns{display:flex;gap:12px}button{padding:12px 28px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:all .15s}#sb{background:#6d5aef;color:white}#sb:hover{opacity:.85}#rb{background:#1e2330;color:#9ba6b8;border:1px solid rgba(255,255,255,.1)}#rb:hover{background:#2a3040}.laps{max-height:180px;overflow-y:auto;width:240px;display:flex;flex-direction:column;gap:6px}.lap{display:flex;justify-content:space-between;font-size:13px;color:#9ba6b8;padding:6px 10px;background:#0f1117;border-radius:6px}</style></head><body><div class="display" id="d">00:00.00</div><div class="btns"><button id="sb" onclick="toggle()">スタート</button><button id="rb" onclick="reset()">リセット</button></div><div class="laps" id="laps"></div><script>var t=0,iv=null,lc=0;function fmt(ms){var m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),cs=Math.floor((ms%1000)/10);return (m<10?"0":"")+m+":"+(s<10?"0":"")+s+"."+(cs<10?"0":"")+cs;}function toggle(){if(iv){clearInterval(iv);iv=null;document.getElementById("sb").textContent="スタート";addLap();}else{var st=Date.now()-t;iv=setInterval(function(){t=Date.now()-st;document.getElementById("d").textContent=fmt(t);},10);document.getElementById("sb").textContent="ストップ";}}function reset(){clearInterval(iv);iv=null;t=0;lc=0;document.getElementById("d").textContent="00:00.00";document.getElementById("sb").textContent="スタート";document.getElementById("laps").innerHTML="";}function addLap(){lc++;var l=document.createElement("div");l.className="lap";l.innerHTML="<span>Lap "+lc+"</span><span>"+fmt(t)+"</span>";document.getElementById("laps").prepend(l);}<\/script></body></html>',
-
-  paint: '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Paint</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f1117;display:flex;flex-direction:column;height:100vh;font-family:sans-serif}#bar{height:50px;background:#171b24;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;padding:0 12px;gap:10px;flex-wrap:wrap}.color-btn{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s}.color-btn.active{border-color:white;transform:scale(1.2)}label{font-size:12px;color:#9ba6b8}input[type=range]{width:80px;accent-color:#6d5aef}#clr{padding:5px 12px;background:#da3633;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer}canvas{flex:1;cursor:crosshair;display:block}</style></head><body><div id="bar"><span id="preview" style="width:20px;height:20px;border-radius:50%;background:#6d5aef;flex-shrink:0"></span><label>太さ<input type="range" id="sz" min="1" max="40" value="8"></label>' +
-  Array.from({length:12},function(_,i){var cs=["#f85149","#f0b429","#2ea043","#6d5aef","#e36209","#0075ca","#ec4899","#8b5cf6","#f0f3f8","#9ba6b8","#1e2330","#000000"];return '<div class="color-btn" style="background:'+cs[i]+'" onclick="setColor(\''+cs[i]+'\')"></div>';}).join('') +
-  '<button id="clr" onclick="clearCanvas()">クリア</button></div><canvas id="c"></canvas><script>var c=document.getElementById("c"),ctx=c.getContext("2d"),drawing=false,color="#6d5aef",size=8;function resize(){c.width=c.offsetWidth;c.height=c.offsetHeight;ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);}resize();window.addEventListener("resize",resize);function setColor(col){color=col;document.getElementById("preview").style.background=col;document.querySelectorAll(".color-btn").forEach(function(b){b.classList.toggle("active",b.style.background===col||getComputedStyle(b).backgroundColor===col);});}document.getElementById("sz").oninput=function(){size=this.value;};function pos(e){var r=c.getBoundingClientRect(),touch=e.touches&&e.touches[0];return{x:(touch?touch.clientX:e.clientX)-r.left,y:(touch?touch.clientY:e.clientY)-r.top};}c.addEventListener("mousedown",function(e){drawing=true;var p=pos(e);ctx.beginPath();ctx.arc(p.x,p.y,size/2,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();});c.addEventListener("mousemove",function(e){if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle=color;ctx.lineWidth=size;ctx.lineCap="round";ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);});c.addEventListener("mouseup",function(){drawing=false;ctx.beginPath();});c.addEventListener("touchstart",function(e){e.preventDefault();drawing=true;var p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});c.addEventListener("touchmove",function(e){e.preventDefault();if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle=color;ctx.lineWidth=size;ctx.lineCap="round";ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});c.addEventListener("touchend",function(){drawing=false;});function clearCanvas(){ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);}<\/script></body></html>',
-
-  calc: '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Calculator</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;align-items:center;justify-content:center;height:100vh}.calc{background:#171b24;border-radius:20px;padding:20px;width:280px;box-shadow:0 20px 60px rgba(0,0,0,.5)}.display{background:#0f1117;border-radius:12px;padding:16px;margin-bottom:16px;text-align:right}.expr{font-size:13px;color:#4a5568;min-height:18px;margin-bottom:4px}.num{font-size:36px;font-weight:700;color:#f0f3f8;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}button{padding:16px;border-radius:10px;border:none;font-size:18px;font-weight:600;cursor:pointer;transition:all .12s}button:active{transform:scale(.94)}.num-btn{background:#1e2330;color:#f0f3f8}.num-btn:hover{background:#2a3040}.op-btn{background:#6d5aef;color:white}.op-btn:hover{opacity:.85}.eq-btn{background:#9b8bff;color:white}.eq-btn:hover{opacity:.85}.cl-btn{background:#da3633;color:white}.cl-btn:hover{opacity:.85}.zero{grid-column:span 2}</style></head><body><div class="calc"><div class="display"><div class="expr" id="expr"></div><div class="num" id="num">0</div></div><div class="grid"><button class="cl-btn" onclick="cl()">AC</button><button class="op-btn" onclick="op("+/-")">+/-</button><button class="op-btn" onclick="op("%")">%</button><button class="op-btn" onclick="op("+")">+</button><button class="num-btn" onclick="num("7")">7</button><button class="num-btn" onclick="num("8")">8</button><button class="num-btn" onclick="num("9")">9</button><button class="op-btn" onclick="op("-")">-</button><button class="num-btn" onclick="num("4")">4</button><button class="num-btn" onclick="num("5")">5</button><button class="num-btn" onclick="num("6")">6</button><button class="op-btn" onclick="op("*")">×</button><button class="num-btn" onclick="num("1")">1</button><button class="num-btn" onclick="num("2")">2</button><button class="num-btn" onclick="num("3")">3</button><button class="op-btn" onclick="op("/")">÷</button><button class="num-btn zero" onclick="num("0")">0</button><button class="num-btn" onclick="dot()">.</button><button class="eq-btn" onclick="eq()">=</button></div></div><script>var cur="0",prev="",oper="",fresh=false;function upd(){document.getElementById("num").textContent=cur;document.getElementById("expr").textContent=prev+(oper?oper:"");}function num(n){if(cur.length>12)return;if(fresh){cur=n;fresh=false;}else{cur=cur==="0"?n:cur+n;}upd();}function dot(){if(!cur.includes(".")){cur+=".";upd();}}function op(o){if(o==="+/-"){cur=String(-parseFloat(cur));upd();return;}if(o==="%"){cur=String(parseFloat(cur)/100);upd();return;}prev=cur;oper=o;fresh=true;upd();}function eq(){if(!oper)return;var a=parseFloat(prev),b=parseFloat(cur),r;if(oper==="+")r=a+b;else if(oper==="-")r=a-b;else if(oper==="*")r=a*b;else if(oper==="/")r=b?a/b:"Error";cur=String(r);prev="";oper="";fresh=true;upd();}function cl(){cur="0";prev="";oper="";fresh=false;upd();}<\/script></body></html>',
-
-  snake: '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Snake</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white;gap:12px}canvas{border:2px solid #2a3040;border-radius:8px}#info{font-size:13px;color:#9ba6b8}#score{font-size:18px;font-weight:700;color:#2ea043}</style></head><body><div id="score">SCORE: 0</div><canvas id="c" width="400" height="400"></canvas><div id="info">WASD / 矢印キーで操作　スペースでスタート</div><script>var c=document.getElementById("c"),ctx=c.getContext("2d"),gs=20,cols=20,rows=20;var snake=[{x:10,y:10}],dx=0,dy=0,food={x:5,y:5},score=0,going=false,iv=null;function rnd(){return{x:Math.floor(Math.random()*cols),y:Math.floor(Math.random()*rows)};}food=rnd();function draw(){ctx.fillStyle="#0d1117";ctx.fillRect(0,0,400,400);snake.forEach(function(s,i){ctx.fillStyle=i===0?"#2ea043":"#3fb950";ctx.beginPath();ctx.roundRect(s.x*gs+1,s.y*gs+1,gs-2,gs-2,4);ctx.fill();});ctx.fillStyle="#f0b429";ctx.beginPath();ctx.arc(food.x*gs+gs/2,food.y*gs+gs/2,gs/2-2,0,Math.PI*2);ctx.fill();}function update(){if(!going)return;var head={x:snake[0].x+dx,y:snake[0].y+dy};if(head.x<0||head.x>=cols||head.y<0||head.y>=rows||snake.some(function(s){return s.x===head.x&&s.y===head.y;})){clearInterval(iv);going=false;alert("GAME OVER! Score: "+score);return;}snake.unshift(head);if(head.x===food.x&&head.y===food.y){score++;document.getElementById("score").textContent="SCORE: "+score;food=rnd();}else{snake.pop();}draw();}document.addEventListener("keydown",function(e){var map={"ArrowUp":[0,-1],"ArrowDown":[0,1],"ArrowLeft":[-1,0],"ArrowRight":[1,0],"w":[0,-1],"s":[0,1],"a":[-1,0],"d":[1,0]};if(map[e.key]){var nd=map[e.key];if(nd[0]!==-dx||nd[1]!==-dy){dx=nd[0];dy=nd[1];}}if(e.key===" "&&!going){going=true;iv=setInterval(update,120);}e.preventDefault();});draw();<\/script></body></html>',
-
-  clock: '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Clock</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white;gap:20px}canvas{filter:drop-shadow(0 0 30px rgba(109,90,239,.4))}#digital{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;color:#9b8bff;letter-spacing:4px}#date{font-size:14px;color:#4a5568}</style></head><body><canvas id="c" width="280" height="280"></canvas><div id="digital"></div><div id="date"></div><script>var c=document.getElementById("c"),ctx=c.getContext("2d"),cx=140,cy=140,r=120;function draw(){var now=new Date(),h=now.getHours(),m=now.getMinutes(),s=now.getSeconds(),ms=now.getMilliseconds();ctx.clearRect(0,0,280,280);ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle="#0f1117";ctx.fill();ctx.strokeStyle="#1e2330";ctx.lineWidth=3;ctx.stroke();for(var i=0;i<60;i++){var a=i*Math.PI/30,x1=cx+Math.sin(a)*(r-8),y1=cy-Math.cos(a)*(r-8),x2,y2;if(i%5===0){x2=cx+Math.sin(a)*(r-20);y2=cy-Math.cos(a)*(r-20);ctx.strokeStyle="#6d5aef";ctx.lineWidth=2;}else{x2=cx+Math.sin(a)*(r-14);y2=cy-Math.cos(a)*(r-14);ctx.strokeStyle="#2a3040";ctx.lineWidth=1;}ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}function hand(angle,len,w,col){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.sin(angle)*len,cy-Math.cos(angle)*len);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap="round";ctx.stroke();}hand((h%12+m/60)*Math.PI/6,r*0.55,5,"#f0f3f8");hand((m+s/60)*Math.PI/30,r*0.75,3,"#9b8bff");hand((s+ms/1000)*Math.PI/30,r*0.85,1.5,"#6d5aef");ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle="#6d5aef";ctx.fill();var days=["日","月","火","水","木","金","土"];document.getElementById("digital").textContent=(h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;document.getElementById("date").textContent=now.getFullYear()+"年"+(now.getMonth()+1)+"月"+now.getDate()+"日（"+days[now.getDay()]+"）";}setInterval(draw,50);draw();<\/script></body></html>'
-};
 
 function loadTemplate(name) {
-    var code = TEMPLATES[name];
+    var code = getTemplate(name);
     if (!code) return;
     document.getElementById('lp-code').value = code;
-    T('テンプレートを読み込みました');
+    startWS(code, name + ' テンプレート', 'original');
+    T(name + ' テンプレートを起動しました ✓');
 }
 
 // ════════════════════════════════════════════

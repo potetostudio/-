@@ -3,18 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Poteto Studio</title>
+<title>Poteto STUDIO</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#08090e;--s1:#0f1117;--s2:#171b24;--s3:#1e2330;--s4:#2a3040;
-  --br:rgba(255,255,255,0.08);--brh:rgba(255,255,255,0.16);
-  --ac:#6d5aef;--ac2:#9b8bff;--acg:rgba(109,90,239,0.3);
-  --gr:#2ea043;--rd:#da3633;
-  --t1:#f0f3f8;--t2:#9ba6b8;--t3:#4a5568;
+  --bg:#07080d;--s1:#0d1018;--s2:#141820;--s3:#1c2230;--s4:#252e3d;
+  --br:rgba(255,255,255,0.07);--brh:rgba(255,255,255,0.14);--brb:rgba(255,255,255,0.04);
+  --ac:#6d5aef;--ac2:#9b8bff;--acg:rgba(109,90,239,0.28);
+  --gr:#2ea043;--rd:#da3633;--am:#d29922;--tl:#0ea5e9;
+  --t1:#edf2f7;--t2:#8896a8;--t3:#3d4d61;
   --f:'Inter',sans-serif;--fm:'JetBrains Mono',monospace;
   --nav:52px;--r:12px;
 }
@@ -22,14 +23,23 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
-#app{display:flex;flex-direction:column;height:100%}
+
+/* noise */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.3;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");}
+
+#app{display:flex;flex-direction:column;height:100%;position:relative;z-index:1}
 .view{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
 .view.active{display:flex}
 
 /* ── Nav ── */
-#nav{height:var(--nav);background:var(--s1);border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;z-index:20}
-.logo{font-size:15px;font-weight:700;color:var(--ac2);letter-spacing:-0.02em;margin-right:auto;display:flex;align-items:center;gap:7px}
-.logo-tag{font-size:10px;background:var(--ac);color:white;padding:2px 6px;border-radius:4px;font-weight:600}
+#nav{height:var(--nav);background:rgba(13,16,24,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;z-index:20}
+.logo{font-size:14px;font-weight:700;letter-spacing:-.02em;margin-right:auto;display:flex;align-items:center;gap:7px;color:var(--t1)}
+.logo-icon{font-size:18px}
+.logo-tag{font-size:9px;background:var(--ac);color:white;padding:2px 6px;border-radius:4px;font-weight:700;letter-spacing:.06em}
+.ai-badge{display:flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(46,160,67,.12);border:1px solid rgba(46,160,67,.3);border-radius:20px;font-size:10px;font-weight:600;color:var(--gr)}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:var(--gr);animation:pulse-g 2s infinite}
+@keyframes pulse-g{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
 .nb{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1px solid var(--br);background:transparent;color:var(--t2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--f);transition:all .15s;white-space:nowrap}
 .nb:hover{border-color:var(--brh);color:var(--t1);background:var(--s2)}
 .nb.pri{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600;box-shadow:0 0 20px var(--acg)}
@@ -40,11 +50,11 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 .ni svg{width:14px;height:14px}
 
 /* ── Toast ── */
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:9px 18px;background:var(--s3);border:1px solid var(--brh);border-radius:20px;font-size:12px;color:var(--t1);opacity:0;transition:opacity .25s;pointer-events:none;z-index:999;white-space:nowrap}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:9px 18px;background:var(--s3);border:1px solid var(--brh);border-radius:20px;font-size:12px;color:var(--t1);opacity:0;transition:opacity .25s;pointer-events:none;z-index:999;white-space:nowrap;max-width:90vw;text-align:center}
 #toast.show{opacity:1}
 
 /* ══ GALLERY ══ */
-#g-search{padding:12px 16px;border-bottom:1px solid var(--br);background:var(--s1);display:flex;align-items:center;gap:8px;flex-shrink:0}
+#g-search{padding:12px 16px;border-bottom:1px solid var(--br);background:rgba(13,16,24,.9);display:flex;align-items:center;gap:8px;flex-shrink:0}
 .sw{position:relative;flex:1}
 .sw svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--t3);pointer-events:none}
 #skw{width:100%;background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:7px 10px 7px 30px;font-size:12px;color:var(--t1);outline:none;font-family:var(--f);transition:border-color .15s}
@@ -53,9 +63,9 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 #g-body{flex:1;overflow-y:auto;padding:20px}
 .gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
 .gc{background:var(--s1);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .2s;position:relative}
-.gc:hover{border-color:rgba(109,90,239,.5);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.gc:hover{border-color:rgba(109,90,239,.5);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.5)}
 .gc-thumb{height:130px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:34px;position:relative;overflow:hidden}
-.gc-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 50%,rgba(109,90,239,.08))}
+.gc-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 60%,rgba(109,90,239,.08))}
 .gc-body{padding:11px 12px}
 .gc-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
 .gc-meta{display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--br)}
@@ -64,23 +74,23 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 .gc-av img{width:100%;height:100%;object-fit:cover}
 .gc-name{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gc-likes{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--rd);flex-shrink:0}
-.gc-del{position:absolute;top:6px;right:6px;width:24px;height:24px;background:rgba(0,0,0,.55);border:none;border-radius:6px;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .15s}
+.gc-del{position:absolute;top:6px;right:6px;width:24px;height:24px;background:rgba(0,0,0,.6);border:none;border-radius:6px;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .15s}
 .gc:hover .gc-del{opacity:1}
 .gc-del:hover{background:var(--rd);color:white}
 .gc-del svg{width:11px;height:11px}
 #g-empty{display:none;text-align:center;padding:80px 20px;color:var(--t3)}
 #g-empty svg{margin:0 auto 16px;opacity:.3;display:block}
+#g-login-banner{display:none;margin:12px 0;padding:10px 16px;background:rgba(109,90,239,.1);border:1px solid rgba(109,90,239,.25);border-radius:10px;font-size:12px;color:var(--ac2);text-align:center}
 
 /* ══ LAUNCHPAD ══ */
-#launchpad{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;gap:22px;background:radial-gradient(ellipse at 50% 0%,rgba(109,90,239,.08) 0%,transparent 70%);overflow-y:auto}
+#launchpad{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:28px 20px 20px;gap:18px;overflow-y:auto;background:radial-gradient(ellipse at 50% -10%,rgba(109,90,239,.1) 0%,transparent 60%)}
 .lp-head{text-align:center}
-.lp-head h1{font-size:26px;font-weight:700;background:linear-gradient(135deg,#f0f3f8,var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:5px}
-.lp-head p{font-size:13px;color:var(--t2)}
-.lp-ai{width:100%;max-width:600px;background:rgba(109,90,239,.08);border:1px solid rgba(109,90,239,.25);border-radius:var(--r);padding:16px}
-.lp-ai-lbl{font-size:11px;font-weight:600;color:var(--ac2);margin-bottom:10px;display:flex;align-items:center;gap:5px}
-.lp-ai-lbl svg{width:13px;height:13px}
+.lp-head h1{font-size:24px;font-weight:700;background:linear-gradient(135deg,#edf2f7,var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:5px}
+.lp-head p{font-size:12px;color:var(--t2)}
+.lp-ai{width:100%;max-width:600px;background:rgba(109,90,239,.08);border:1px solid rgba(109,90,239,.22);border-radius:var(--r);padding:16px}
+.lp-ai-lbl{font-size:11px;font-weight:700;color:var(--ac2);margin-bottom:10px;display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.04em}
 .lp-row{display:flex;gap:8px}
-#agi{flex:1;background:var(--bg);border:1px solid var(--brh);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--t1);outline:none;font-family:var(--f);transition:border-color .15s}
+#agi{flex:1;background:rgba(0,0,0,.3);border:1px solid var(--brh);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--t1);outline:none;font-family:var(--f);transition:border-color .15s}
 #agi:focus{border-color:var(--ac)}
 #agi::placeholder{color:var(--t3)}
 #agb{padding:10px 18px;border-radius:8px;border:none;cursor:pointer;font-family:var(--f);font-size:13px;font-weight:600;color:white;white-space:nowrap;background:linear-gradient(135deg,var(--ac),var(--ac2));box-shadow:0 4px 16px var(--acg);transition:opacity .15s}
@@ -92,11 +102,27 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 .lp-div{width:100%;max-width:600px;display:flex;align-items:center;gap:12px}
 .lp-div::before,.lp-div::after{content:'';flex:1;height:1px;background:var(--br)}
 .lp-div span{font-size:11px;color:var(--t3)}
-#lp-code{width:100%;max-width:600px;height:140px;background:var(--s1);border:1px solid var(--br);border-radius:var(--r);padding:12px;font-family:var(--fm);font-size:11px;line-height:1.6;color:#9b8bff;outline:none;resize:none;tab-size:2;transition:border-color .15s}
+
+/* Image to Code zone */
+.i2c-zone{width:100%;max-width:600px;border:2px dashed var(--br);border-radius:var(--r);padding:18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s1);position:relative}
+.i2c-zone:hover,.i2c-zone.drag{border-color:var(--tl);background:rgba(14,165,233,.05)}
+.i2c-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+#i2c-preview{width:100%;max-height:160px;object-fit:contain;border-radius:8px;margin-top:10px;display:none;border:1px solid var(--br)}
+.i2c-gen-btn{margin-top:12px;width:100%;padding:9px;border-radius:8px;border:none;cursor:pointer;font-family:var(--f);font-size:12px;font-weight:600;color:white;background:linear-gradient(135deg,#0ea5e9,#38bdf8);box-shadow:0 4px 14px rgba(14,165,233,.3);transition:opacity .15s;display:none}
+.i2c-gen-btn:hover{opacity:.88}
+.i2c-gen-btn:disabled{opacity:.45;cursor:not-allowed}
+#i2c-status{display:none;margin-top:8px;font-size:11px;color:var(--tl);align-items:center;gap:6px}
+
+/* Template buttons */
+.tpl-btn{padding:6px 12px;background:var(--s2);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t1);cursor:pointer;font-family:var(--f);transition:all .15s;white-space:nowrap}
+.tpl-btn:hover{border-color:var(--ac);color:var(--ac2);background:rgba(109,90,239,.1)}
+
+/* Paste area */
+#lp-code{width:100%;max-width:600px;height:130px;background:var(--s1);border:1px solid var(--br);border-radius:var(--r);padding:12px;font-family:var(--fm);font-size:11px;line-height:1.6;color:#9b8bff;outline:none;resize:none;tab-size:2;transition:border-color .15s}
 #lp-code:focus{border-color:var(--ac)}
 #lp-code::placeholder{color:var(--t3)}
 .lp-btns{display:flex;gap:10px}
-.lb{padding:10px 28px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--f);border:none;transition:all .15s}
+.lb{padding:10px 28px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--f);border:none;transition:all .15s}
 .lb.main{background:linear-gradient(135deg,var(--ac),var(--ac2));color:white;box-shadow:0 4px 20px var(--acg)}
 .lb.main:hover{opacity:.88}
 .lb.sub{background:var(--s2);border:1px solid var(--br);color:var(--t2)}
@@ -104,21 +130,21 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 
 /* ══ WORKSPACE ══ */
 #workspace{flex:1;display:none;flex-direction:column;min-height:0;position:relative;overflow:hidden}
-#wsbar{height:46px;background:var(--s1);border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0}
+#wsbar{height:46px;background:rgba(13,16,24,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0}
 .sep{width:1px;height:20px;background:var(--br);margin:0 2px;flex-shrink:0}
 .dev-group{display:flex;gap:2px;padding:3px;background:var(--s2);border:1px solid var(--br);border-radius:8px}
 .dev-btn{padding:4px 8px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
 .dev-btn svg{width:13px;height:13px}
 #ws-main{flex:1;display:flex;min-height:0;overflow:hidden}
-#pw{flex:1;display:flex;align-items:center;justify-content:center;background:#080810;min-width:0;overflow:hidden;padding:0}
+#pw{flex:1;display:flex;align-items:center;justify-content:center;background:#080812;min-width:0;overflow:hidden}
 #dc{transition:all .3s cubic-bezier(.16,1,.3,1)}
 #dc.device-desktop{width:100%;height:100%}
-#dc.device-tablet{width:1024px;height:680px;max-width:95%;max-height:95%;border-radius:16px;border:8px solid var(--s3);box-shadow:0 16px 48px rgba(0,0,0,.6)}
-#dc.device-mobile{width:780px;height:380px;max-width:95%;max-height:95%;border-radius:28px;border:8px solid var(--s3);box-shadow:0 16px 48px rgba(0,0,0,.6)}
+#dc.device-tablet{width:1024px;height:680px;max-width:95%;max-height:95%;border-radius:16px;border:8px solid var(--s3);box-shadow:0 16px 48px rgba(0,0,0,.7)}
+#dc.device-mobile{width:780px;height:380px;max-width:95%;max-height:95%;border-radius:28px;border:8px solid var(--s3);box-shadow:0 16px 48px rgba(0,0,0,.7)}
 #dc iframe{width:100%;height:100%;border:none;background:white;display:block}
 #dc.device-tablet iframe,#dc.device-mobile iframe{border-radius:inherit}
 
-/* コードパネル — display:none で完全に非表示 */
+/* Code Panel */
 #cp{width:400px;min-width:400px;display:none;flex-direction:column;background:var(--s1);border-left:1px solid var(--br);flex-shrink:0}
 #cp-hdr{padding:8px 12px;background:var(--s2);border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px;flex-shrink:0}
 #cp-hdr span{font-size:11px;font-weight:600;color:var(--t2)}
@@ -131,14 +157,14 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 .ln{display:block;padding-right:7px;font-size:10px;line-height:15px;color:var(--t3);font-family:var(--fm)}
 #ch{position:absolute;inset:0;padding:12px 12px 12px 50px;white-space:pre;overflow:hidden;pointer-events:none;background:var(--bg);z-index:1;margin:0}
 #ch code{background:none!important;padding:0!important;font-size:10px!important;line-height:15px!important;font-family:var(--fm)!important}
-#ct{position:absolute;inset:0;padding:12px 12px 12px 50px;background:transparent;color:transparent;caret-color:#e6edf3;font-family:var(--fm);font-size:10px;line-height:15px;border:none;outline:none;resize:none;tab-size:2;z-index:3}
+#ct{position:absolute;inset:0;padding:12px 12px 12px 50px;background:transparent;color:transparent;caret-color:#edf2f7;font-family:var(--fm);font-size:10px;line-height:15px;border:none;outline:none;resize:none;tab-size:2;z-index:3}
 #cp-foot{padding:8px;border-top:1px solid var(--br);flex-shrink:0}
 #cp-foot button{width:100%;padding:7px;background:var(--ac);color:white;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);transition:opacity .15s}
 #cp-foot button:hover{opacity:.88}
 
-/* AI バー */
+/* AI Bar */
 #aibar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:520px;z-index:30}
-#aibar-in{background:rgba(12,13,20,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--brh);border-radius:14px;padding:7px;display:flex;align-items:center;gap:7px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+#aibar-in{background:rgba(7,8,13,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--brh);border-radius:14px;padding:7px;display:flex;align-items:center;gap:7px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
 #aibar-in>svg{color:var(--ac2);flex-shrink:0;width:15px;height:15px;margin:0 4px}
 #ai-inp{flex:1;background:transparent;border:none;outline:none;font-size:12px;color:var(--t1);font-family:var(--f)}
 #ai-inp::placeholder{color:var(--t3)}
@@ -146,8 +172,19 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 #ai-snd:hover{opacity:.88}
 #ai-snd:disabled{opacity:.4;cursor:not-allowed}
 
-/* AI Thinking */
-#thinking{display:none;position:absolute;inset:0;z-index:50;background:rgba(8,9,14,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;flex-direction:column;gap:16px}
+/* Streaming indicator */
+#stream-bar{position:absolute;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--ac),var(--ac2),var(--tl));width:0;transition:width .2s;z-index:50;border-radius:0 2px 2px 0}
+#stream-bar.active{animation:stream-pulse 1.5s ease infinite}
+@keyframes stream-pulse{0%{opacity:1}50%{opacity:.6}100%{opacity:1}}
+
+/* Auto-Fix */
+#autofix-btn{position:absolute;bottom:80px;right:16px;z-index:35;display:none;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;border:none;cursor:pointer;background:rgba(218,54,51,.9);backdrop-filter:blur(10px);color:white;font-size:12px;font-weight:700;font-family:var(--f);box-shadow:0 4px 20px rgba(218,54,51,.5);animation:pulse-r 2s infinite}
+@keyframes pulse-r{0%,100%{box-shadow:0 4px 20px rgba(218,54,51,.5)}50%{box-shadow:0 4px 32px rgba(218,54,51,.8)}}
+#autofix-btn svg{width:14px;height:14px}
+#err-badge{position:absolute;bottom:80px;left:16px;z-index:35;display:none;padding:5px 10px;border-radius:7px;background:rgba(218,54,51,.12);border:1px solid rgba(218,54,51,.35);color:#f87171;font-size:10px;font-family:var(--fm);max-width:calc(100% - 180px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+
+/* Thinking */
+#thinking{display:none;position:absolute;inset:0;z-index:50;background:rgba(7,8,13,.9);backdrop-filter:blur(10px);align-items:center;justify-content:center;flex-direction:column;gap:16px}
 #thinking.on{display:flex}
 .tr{width:56px;height:56px;border-radius:50%;border:2px solid var(--br);position:relative}
 .tr::before{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid transparent;border-top-color:var(--ac);border-right-color:var(--ac2);animation:spin 1s linear infinite}
@@ -155,7 +192,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 .tc{display:inline-block;width:2px;height:14px;background:var(--ac);animation:blink .9s step-end infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
-/* 履歴パネル */
+/* History Panel */
 #hp{position:absolute;top:0;right:0;width:280px;height:100%;background:var(--s1);border-left:1px solid var(--br);z-index:40;display:none;flex-direction:column}
 #hp.on{display:flex}
 .hh{padding:12px 14px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
@@ -170,54 +207,58 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 .vb{padding:2px 7px;background:var(--s3);border:1px solid var(--br);border-radius:4px;font-size:10px;color:var(--t2);cursor:pointer;font-family:var(--f);transition:all .12s}
 .vb:hover{border-color:var(--ac);color:var(--ac2)}
 .vb.ok{background:var(--ac);border-color:var(--ac);color:white}
-.vb.ok:hover{opacity:.88}
 
 /* ══ APP VIEW ══ */
 #view-app{position:relative;background:#000}
 #app-pv{position:absolute;inset:0;width:100%;height:100%;border:none;background:white}
 #hud{position:absolute;top:12px;right:12px;z-index:10;display:flex;align-items:center;gap:6px}
-.hp2{display:flex;align-items:center;gap:5px;padding:5px 11px;background:rgba(10,10,18,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:20px;font-size:12px;font-weight:500;color:#f0f3f8;cursor:pointer;transition:all .15s;white-space:nowrap}
-.hp2:hover{background:rgba(20,20,36,.95)}
+.hp2{display:flex;align-items:center;gap:5px;padding:5px 11px;background:rgba(7,8,13,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);border-radius:20px;font-size:12px;font-weight:500;color:#edf2f7;cursor:pointer;transition:all .15s;white-space:nowrap}
+.hp2:hover{background:rgba(20,24,36,.95)}
 .hp2 svg{width:13px;height:13px;flex-shrink:0}
-.hi{width:32px;height:32px;border-radius:50%;background:rgba(10,10,18,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#f0f3f8;cursor:pointer;transition:all .15s}
-.hi:hover{background:rgba(20,20,36,.95)}
+.hi{width:32px;height:32px;border-radius:50%;background:rgba(7,8,13,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:#edf2f7;cursor:pointer;transition:all .15s}
+.hi:hover{background:rgba(20,24,36,.95)}
 .hi svg{width:14px;height:14px}
 
 /* ══ MODALS ══ */
-.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center;padding:16px}
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:200;align-items:center;justify-content:center;padding:16px}
 .mo.on{display:flex}
-.mb{background:var(--s2);border:1px solid var(--brh);border-radius:16px;width:100%;max-width:400px;padding:24px;box-shadow:0 24px 64px rgba(0,0,0,.6);animation:fu .2s ease both}
+.mb{background:var(--s2);border:1px solid var(--brh);border-radius:16px;width:100%;max-width:420px;padding:24px;box-shadow:0 24px 64px rgba(0,0,0,.7);animation:fu .2s ease both}
 @keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .mt{font-size:15px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between}
 .mc{background:none;border:none;color:var(--t3);cursor:pointer;font-size:20px;line-height:1}
 .mc:hover{color:var(--t1)}
 .fl{font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:6px}
-.fi{width:100%;background:var(--bg);border:1px solid var(--br);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--t1);outline:none;font-family:var(--f);transition:border-color .15s;margin-bottom:14px}
+.fi{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--br);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--t1);outline:none;font-family:var(--f);transition:border-color .15s;margin-bottom:14px}
 .fi:focus{border-color:var(--ac)}
 .fi::placeholder{color:var(--t3)}
-.fi.mono{font-family:var(--fm);font-size:12px}
-.mnote{font-size:11px;color:var(--t2);background:rgba(109,90,239,.08);border:1px solid rgba(109,90,239,.2);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.7}
-.mnote a{color:var(--ac2);text-decoration:underline}
+.mnote{font-size:11px;color:var(--t2);background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.7}
+.mnote.warn{background:rgba(210,153,34,.08);border-color:rgba(210,153,34,.2);color:var(--am)}
 .mbs{display:flex;gap:8px;margin-top:4px}
 .mbb{flex:1;padding:10px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--f);transition:all .15s;border:none}
 .mbb.can{background:var(--s3);border:1px solid var(--br);color:var(--t2)}
 .mbb.can:hover{color:var(--t1)}
 .mbb.ok{background:linear-gradient(135deg,var(--ac),var(--ac2));color:white;box-shadow:0 4px 16px var(--acg)}
 .mbb.ok:hover{opacity:.88}
-.urlr{display:flex;gap:6px;margin-bottom:12px}
-.urld{flex:1;background:var(--bg);border:1px solid var(--br);border-radius:8px;padding:8px 10px;font-size:10px;font-family:var(--fm);color:var(--ac2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cpb{padding:7px 12px;background:var(--ac);color:white;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);transition:all .15s;white-space:nowrap}
-.cpb:hover{opacity:.88}
-.cpb.done{background:var(--gr)}
+.mbb.tl{background:var(--tl);color:white}
+.div1{height:1px;background:var(--br);margin-bottom:14px}
 .avr{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .avc{width:52px;height:52px;border-radius:50%;background:var(--s3);border:2px dashed var(--br);cursor:pointer;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s}
 .avc:hover{border-color:var(--ac)}
 .avc img{width:100%;height:100%;object-fit:cover;display:none}
 .ks{font-size:10px;color:var(--gr);margin-top:4px;height:14px}
-.div1{height:1px;background:var(--br);margin-bottom:14px}
+.ollama-status{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:7px;font-size:11px;font-weight:600;margin-bottom:12px}
+.ollama-status.ok{background:rgba(46,160,67,.12);color:var(--gr);border:1px solid rgba(46,160,67,.25)}
+.ollama-status.ng{background:rgba(218,54,51,.12);color:var(--rd);border:1px solid rgba(218,54,51,.25)}
+.share-url-row{display:flex;gap:6px;margin-bottom:12px}
+.share-url-d{flex:1;background:rgba(0,0,0,.3);border:1px solid var(--br);border-radius:8px;padding:8px 10px;font-size:10px;font-family:var(--fm);color:var(--ac2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cpb{padding:7px 12px;background:var(--ac);color:white;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);transition:all .15s;white-space:nowrap}
+.cpb:hover{opacity:.88}
+.cpb.done{background:var(--gr)}
 
-.tpl-btn{padding:6px 12px;background:var(--s2);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t1);cursor:pointer;font-family:var(--f);transition:all .15s;white-space:nowrap;}
-.tpl-btn:hover{border-color:var(--ac);color:var(--ac2);background:rgba(109,90,239,.1);}
+/* Ollama error overlay */
+#ollama-err{display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:100;padding:12px 20px;background:rgba(210,153,34,.15);border:1px solid rgba(210,153,34,.4);border-radius:10px;font-size:12px;color:var(--am);text-align:center;pointer-events:none;backdrop-filter:blur(8px);white-space:nowrap}
+#ollama-err.show{display:block}
+
 @media(max-width:600px){
   .gg{grid-template-columns:1fr 1fr;gap:10px}
   #g-body{padding:12px}
@@ -227,7 +268,6 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
   .lb{text-align:center}
   #cp{width:100%;min-width:0;position:absolute;inset:0;z-index:35}
   #aibar{width:calc(100% - 20px)}
-  .wslbl{display:none}
 }
 </style>
 </head>
@@ -235,7 +275,15 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 <div id="app">
   <!-- NAV -->
   <div id="nav">
-    <div class="logo">🚀 Poteto <span class="logo-tag">STUDIO</span></div>
+    <div class="logo">
+      <span class="logo-icon">🥔</span>
+      Poteto
+      <span class="logo-tag">STUDIO</span>
+    </div>
+    <div class="ai-badge">
+      <span class="ai-dot"></span>
+      Local AI Mode
+    </div>
     <div id="nbg" style="display:flex;align-items:center;gap:8px">
       <button class="nb" onclick="openSettings()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -249,7 +297,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
     <div id="nbs" style="display:none;align-items:center;gap:8px">
       <button class="nb" onclick="exitWorkspace()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-        <span class="wslbl">戻る</span>
+        戻る
       </button>
     </div>
   </div>
@@ -261,20 +309,12 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input id="skw" placeholder="アプリを検索..." oninput="renderGallery()" autocomplete="off">
       </div>
-      <button id="ai-search-btn" onclick="toggleAISearch()" style="display:flex;align-items:center;gap:5px;padding:6px 11px;background:var(--s2);border:1px solid var(--br);border-radius:8px;font-size:11px;font-weight:600;color:var(--t2);cursor:pointer;font-family:var(--f);transition:all .15s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--ac)';this.style.color='var(--ac2)'" onmouseout="this.style.borderColor='var(--br)';this.style.color='var(--t2)'">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-        AI検索
-      </button>
       <span id="gcnt" style="font-size:11px;color:var(--t3);white-space:nowrap"></span>
     </div>
-    <!-- AI検索バー（デフォルト非表示） -->
-    <div id="ai-search-bar" style="display:none;padding:10px 16px;background:var(--s2);border-bottom:1px solid var(--br);align-items:center;gap:8px;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ac2)" stroke-width="2" style="flex-shrink:0"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-      <input id="ai-search-input" placeholder="「物理演算のゲーム」「ダークでかっこいいUI」など自然言語で検索..." onkeydown="if(event.key==='Enter')runAISearch()" style="flex:1;background:transparent;border:none;outline:none;font-size:12px;color:var(--t1);font-family:var(--f);">
-      <button onclick="runAISearch()" style="padding:5px 12px;background:var(--ac);color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);">検索</button>
-      <button onclick="clearAISearch()" style="padding:5px 9px;background:var(--s3);border:1px solid var(--br);color:var(--t2);border:none;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--f);">クリア</button>
-    </div>
     <div id="g-body">
+      <div id="g-login-banner">
+        <a onclick="openAuthModal()" style="cursor:pointer;text-decoration:underline">ログイン</a>すると、作ったアプリが自動保存されます
+      </div>
       <div id="gg" class="gg"></div>
       <div id="g-empty">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -286,19 +326,20 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 
   <!-- STUDIO -->
   <div id="view-studio" class="view">
-    <!-- Launchpad -->
     <div id="launchpad">
       <div class="lp-head">
-        <h1>HTML Sandbox</h1>
-        <p>AIでコードを生成するか、HTMLを貼り付けて起動</p>
+        <h1>🥔 HTML Sandbox</h1>
+        <p>ローカルAI（Ollama）でコードを生成・編集</p>
       </div>
+
+      <!-- AI Generate -->
       <div class="lp-ai">
         <div class="lp-ai-lbl">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-          AIでコードを生成
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+          AI でコードを生成（qwen2.5-coder）
         </div>
         <div class="lp-row">
-          <input id="agi" placeholder="例: ブロック崩し / タイマーアプリ / カラフルな電卓" onkeydown="if(event.key==='Enter')genFromPrompt()">
+          <input id="agi" placeholder="例: ブロック崩し / カラフルな電卓 / タイマーアプリ" onkeydown="if(event.key==='Enter')genFromPrompt()">
           <button id="agb" onclick="genFromPrompt()">生成する</button>
         </div>
         <div id="ag-status">
@@ -306,11 +347,11 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
           <span id="ag-msg">AIがコードを生成中...</span>
         </div>
       </div>
-      <div class="lp-div"><span>または手動で貼り付け</span></div>
-      <!-- テンプレート選択 -->
+
+      <!-- テンプレート -->
       <div style="width:100%;max-width:600px;">
         <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:8px;display:flex;align-items:center;gap:5px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           テンプレートから始める
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:7px;">
@@ -318,10 +359,33 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
           <button onclick="loadTemplate('timer')" class="tpl-btn">⏱ タイマー</button>
           <button onclick="loadTemplate('paint')" class="tpl-btn">🎨 お絵かき</button>
           <button onclick="loadTemplate('calc')" class="tpl-btn">🧮 電卓</button>
-          <button onclick="loadTemplate('snake')" class="tpl-btn">🐍 スネーク</button>
           <button onclick="loadTemplate('clock')" class="tpl-btn">🕐 時計</button>
         </div>
       </div>
+
+      <!-- Image to Code -->
+      <div class="lp-div"><span>または画像からコードを生成（llava）</span></div>
+      <div class="i2c-zone" id="i2c-zone"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleImgDrop(event)">
+        <input type="file" accept="image/*" onchange="handleImgSelect(event)">
+        <div style="pointer-events:none">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" style="margin:0 auto 8px;display:block"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          <div style="font-size:13px;font-weight:600;color:var(--t2)">画像をドロップ、またはクリックして選択</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:3px">ワイヤーフレーム・スクリーンショット・手書きUI対応</div>
+        </div>
+        <img id="i2c-preview" class="i2c-preview" style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;margin-top:10px;display:none;border:1px solid var(--br)">
+        <div id="i2c-status" style="display:none;margin-top:8px;font-size:11px;color:var(--tl);align-items:center;gap:6px">
+          <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+          <span id="i2c-msg">画像を解析中...</span>
+        </div>
+        <button class="i2c-gen-btn" id="i2c-btn" onclick="generateFromImage(event)">
+          📸 この画像からアプリを生成（llava）
+        </button>
+      </div>
+
+      <div class="lp-div"><span>またはコードを貼り付け</span></div>
       <textarea id="lp-code" placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）"></textarea>
       <div class="lp-btns">
         <button class="lb main" onclick="launchStudio()">起動する</button>
@@ -331,41 +395,41 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 
     <!-- Workspace -->
     <div id="workspace">
-      <!-- ツールバー -->
+      <div id="stream-bar"></div>
       <div id="wsbar">
         <div class="dev-group">
-          <button class="dev-btn" id="dev-desktop" onclick="setDevice('desktop')" title="デスクトップ" style="background:rgba(109,90,239,.3);color:white">
+          <button class="dev-btn" id="dev-desktop" onclick="setDevice('desktop')" style="background:rgba(109,90,239,.3);color:white" title="デスクトップ">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
           </button>
-          <button class="dev-btn" id="dev-tablet" onclick="setDevice('tablet')" title="タブレット横向き" style="background:transparent;color:var(--t3)">
+          <button class="dev-btn" id="dev-tablet" onclick="setDevice('tablet')" style="background:transparent;color:var(--t3)" title="タブレット横向き">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="18" r="1" fill="currentColor"/></svg>
           </button>
-          <button class="dev-btn" id="dev-mobile" onclick="setDevice('mobile')" title="スマホ横向き" style="background:transparent;color:var(--t3)">
+          <button class="dev-btn" id="dev-mobile" onclick="setDevice('mobile')" style="background:transparent;color:var(--t3)" title="スマホ横向き">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1" fill="currentColor"/></svg>
           </button>
         </div>
         <span id="dlbl" style="font-size:10px;color:var(--t3);display:none"></span>
         <div class="sep"></div>
-        <button class="nb wslbl" id="ctbtn" onclick="toggleCodePanel()">
+        <button class="nb" id="ctbtn" onclick="toggleCodePanel()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
           コードを表示
         </button>
-        <button class="nb wslbl" onclick="dlCode()">
+        <button class="nb" onclick="dlCode()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           保存
         </button>
-        <button class="nb wslbl" onclick="toggleHistory()">
+        <button class="nb" onclick="toggleHistory()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
           履歴
           <span id="hbadge" style="display:none;background:var(--ac);color:white;font-size:9px;padding:1px 5px;border-radius:8px"></span>
+        </button>
+        <button class="nb" onclick="reloadPreview()" title="リロード">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
         </button>
         <div class="sep"></div>
         <button class="nb pri" onclick="openShareModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           公開・共有
-        </button>
-        <button class="ni" onclick="reloadPreview()" title="プレビューをリロード">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
         </button>
         <button class="ni" onclick="toggleFS()" title="全画面">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
@@ -373,13 +437,11 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
       </div>
 
       <div id="ws-main">
-        <!-- Preview -->
         <div id="pw">
           <div id="dc" class="device-desktop">
             <iframe id="sif" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
           </div>
         </div>
-        <!-- Code Panel: display:none で確実に非表示 -->
         <div id="cp" style="display:none">
           <div id="cp-hdr">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9b8bff" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
@@ -405,11 +467,18 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
         </div>
       </div>
 
+      <!-- Auto-Fix -->
+      <button id="autofix-btn" onclick="runAutoFix()" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        🤖 AIでエラーを修復
+      </button>
+      <div id="err-badge" style="display:none"></div>
+
       <!-- Thinking -->
       <div id="thinking">
         <div class="tr"></div>
         <div class="tm"><span id="tmsg">AIが考えています</span><span class="tc"></span></div>
-        <div style="font-size:11px;color:var(--t3)">Gemini 2.0 Flash</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Ollama Local AI</div>
       </div>
 
       <!-- History Panel -->
@@ -419,7 +488,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
       </div>
 
       <!-- FS exit -->
-      <button id="fsexit" onclick="toggleFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:60;padding:8px;background:rgba(10,10,18,.85);border:1px solid var(--brh);border-radius:10px;color:var(--t1);cursor:pointer">
+      <button id="fsexit" onclick="toggleFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:60;padding:8px;background:rgba(7,8,13,.88);border:1px solid var(--brh);border-radius:10px;color:var(--t1);cursor:pointer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
       </button>
     </div>
@@ -434,7 +503,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
         <svg viewBox="0 0 24 24" fill="none" stroke="#da3633" stroke-width="2" id="lico"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
         <span id="lcnt">0</span>
       </div>
-      <div class="hp2" onclick="forkApp()" title="このコードをスタジオで編集" id="fork-btn" style="display:none;">
+      <div class="hp2" onclick="forkApp()" id="fork-btn" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
         フォーク
       </div>
@@ -445,7 +514,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
       </div>
     </div>
-    <button id="afsexit" onclick="toggleAFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:20;padding:8px;background:rgba(10,10,18,.85);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#f0f3f8;cursor:pointer">
+    <button id="afsexit" onclick="toggleAFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:20;padding:8px;background:rgba(7,8,13,.88);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#edf2f7;cursor:pointer">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
     </button>
   </div>
@@ -456,31 +525,59 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
   <div class="mb">
     <div class="mt">設定<button class="mc" onclick="CM('sm')">✕</button></div>
     <div class="avr">
-      <div class="avc" onclick="document.getElementById('avf').click()" id="avc">
+      <div class="avc" onclick="document.getElementById('avf').click()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <img id="avimg" alt="">
       </div>
       <div>
         <div style="font-size:12px;color:var(--t2);margin-bottom:5px">アイコン画像</div>
-        <button onclick="document.getElementById('avf').click()" style="padding:5px 12px;background:var(--s3);border:1px solid var(--br);border-radius:7px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--f)">画像を選択</button>
+        <button onclick="document.getElementById('avf').click()" style="padding:5px 12px;background:var(--s3);border:1px solid var(--br);border-radius:7px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--f)">選択</button>
         <input type="file" id="avf" accept="image/*" style="display:none" onchange="handleAv(event)">
       </div>
     </div>
     <label class="fl">表示名</label>
     <input type="text" id="pname" class="fi" placeholder="あなたの名前...">
     <div class="div1"></div>
-    <label class="fl">Gemini APIキー</label>
-    <div class="mnote"><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a> からキーを取得して貼り付け。ページを閉じるとリセットされます。</div>
-    <div style="position:relative;margin-bottom:4px">
-      <input type="password" id="skey" class="fi mono" placeholder="AIzaSy..." style="margin-bottom:0;padding-right:40px">
-      <button onclick="toggleKV()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t3)">
-        <svg id="keye" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-      </button>
+    <!-- Ollama設定 -->
+    <label class="fl">Ollama サーバー URL</label>
+    <input type="text" id="ollama-url" class="fi" placeholder="http://localhost:11434" value="http://localhost:11434">
+    <div id="ollama-chk" class="ollama-status ok" style="display:none"></div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button onclick="checkOllama()" style="flex:1;padding:7px;background:var(--s3);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--f)">接続テスト</button>
     </div>
-    <div class="ks" id="kst"></div>
-    <div class="mbs" style="margin-top:16px">
-      <button class="mbb can" onclick="CM('sm')">キャンセル</button>
+    <div class="mnote">
+      Ollamaは<strong>APIキー不要</strong>でローカル動作します。<br>
+      起動: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">ollama serve</code><br>
+      コーダー: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">qwen2.5-coder:1.5b</code><br>
+      画像解析: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">llava</code>
+    </div>
+    <div class="div1"></div>
+    <!-- Firebase Auth -->
+    <label class="fl">アカウント</label>
+    <div id="auth-status" style="font-size:12px;color:var(--t2);margin-bottom:10px">未ログイン</div>
+    <div id="auth-btns" style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="mbb tl" onclick="openAuthModal();CM('sm')">ログイン / 新規登録</button>
+      <button id="logout-btn" class="mbb can" onclick="doLogout()" style="display:none">ログアウト</button>
+    </div>
+    <div class="mbs">
+      <button class="mbb can" onclick="CM('sm')">閉じる</button>
       <button class="mbb ok" onclick="saveSets()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div id="auth-modal" class="mo">
+  <div class="mb">
+    <div class="mt">ログイン / 新規登録<button class="mc" onclick="CM('auth-modal')">✕</button></div>
+    <label class="fl">メールアドレス</label>
+    <input type="email" id="auth-email" class="fi" placeholder="you@example.com">
+    <label class="fl">パスワード</label>
+    <input type="password" id="auth-pw" class="fi" placeholder="6文字以上">
+    <div id="auth-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
+    <div class="mbs">
+      <button class="mbb can" onclick="doLogin()">ログイン</button>
+      <button class="mbb ok" onclick="doSignup()">新規登録</button>
     </div>
   </div>
 </div>
@@ -493,8 +590,8 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
     <input type="text" id="shtitle" class="fi" placeholder="My Awesome App">
     <div id="surlbox" style="display:none;margin-bottom:12px">
       <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:6px">共有URL</div>
-      <div class="urlr">
-        <div id="surl" class="urld"></div>
+      <div class="share-url-row">
+        <div id="surl" class="share-url-d"></div>
         <button class="cpb" id="cpbtn" onclick="copyURL()">コピー</button>
       </div>
       <button id="mailbtn" onclick="shareEmail()" style="display:none;width:100%;padding:9px;background:var(--s3);border:1px solid var(--br);border-radius:9px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;font-family:var(--f);margin-bottom:8px">✉ メールで送信</button>
@@ -510,408 +607,762 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f);
 </div>
 
 <div id="toast"></div>
+<div id="ollama-err"></div>
 
 <script>
-// Firebase
-firebase.initializeApp({apiKey:'AIzaSyBSZNHnNcui0Q1VkRshaHEuiMt8wDV2zGk',authDomain:'poteto0107-78af7.firebaseapp.com',projectId:'poteto0107-78af7',storageBucket:'poteto0107-78af7.firebasestorage.app',appId:'1:208184037315:web:c220bbc24c600a011bf776'});
-var db=firebase.firestore();
+// ════════════════════════════════════════════
+//  Firebase
+// ════════════════════════════════════════════
+firebase.initializeApp({
+  apiKey:'AIzaSyBSZNHnNcui0Q1VkRshaHEuiMt8wDV2zGk',
+  authDomain:'poteto0107-78af7.firebaseapp.com',
+  projectId:'poteto0107-78af7',
+  storageBucket:'poteto0107-78af7.firebasestorage.app',
+  appId:'1:208184037315:web:c220bbc24c600a011bf776'
+});
+var db   = firebase.firestore();
+var auth = firebase.auth();
 
-// State
-var apps=JSON.parse(localStorage.getItem('b44_apps')||'[]');
-var prof=JSON.parse(localStorage.getItem('b44_prof')||'{"name":"","avatar":""}');
-var apiKey='';
-var vers=[],cur='',curAppId=null,cpOpen=false,isFsS=false,isFsA=false,curDev='desktop',surl='';
-var ICONS=['🎮','🎨','🌐','🧮','🎵','📊','✨','🛠','🌈','🔮','🚀','🎯'];
-var THINKS=['コードを解析中','構造を確認中','修正案を生成中','最適化中','仕上げ中'];
+// ════════════════════════════════════════════
+//  State
+// ════════════════════════════════════════════
+var apps      = JSON.parse(localStorage.getItem('pt_apps') || '[]');
+var prof      = JSON.parse(localStorage.getItem('pt_prof') || '{"name":"","avatar":""}');
+var ollamaURL = localStorage.getItem('pt_ollama') || 'http://localhost:11434';
+var codeModel = 'qwen2.5-coder:1.5b';
+var imgModel  = 'llava';
+var vers = [], cur = '', curAppId = null, cpOpen = false;
+var isFsS = false, isFsA = false, surl = '', forkCode = '';
+var imgBase64 = '', imgMime = '';
+var lastError = '';
+var curUser = null;
+var ICONS = ['🎮','🎨','🌐','🧮','🎵','📊','✨','🛠','🌈','🔮','🚀','🎯'];
+var THINKS = ['コードを考え中','構造を設計中','HTMLを書いています','CSSを調整中','仕上げ中'];
 var tkTimer;
 
-// Utils
+// ════════════════════════════════════════════
+//  Utils
+// ════════════════════════════════════════════
 var ttTimer;
-function T(msg,d){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(ttTimer);ttTimer=setTimeout(function(){t.classList.remove('show');},d||2600);}
-function E(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function CM(id){document.getElementById(id).classList.remove('on');}
-
-// Nav
-function nav(v){
-  document.querySelectorAll('.view').forEach(function(x){x.classList.remove('active');});
-  document.getElementById('view-'+v).classList.add('active');
-  document.getElementById('nbg').style.display=v==='gallery'?'flex':'none';
-  document.getElementById('nbs').style.display=v==='studio'?'flex':'none';
-  if(v==='gallery')renderGallery();
-  if(v==='studio')resetS();
+function T(msg, d) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(ttTimer);
+  ttTimer = setTimeout(function(){ t.classList.remove('show'); }, d || 2800);
+}
+function E(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function CM(id){ document.getElementById(id).classList.remove('on'); }
+function showOllamaErr(msg) {
+  var el = document.getElementById('ollama-err');
+  el.textContent = msg || 'Ollamaを起動してください: ollama serve';
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 5000);
 }
 
-
 // ════════════════════════════════════════════
-//  AI セマンティック検索
+//  Ollama API
 // ════════════════════════════════════════════
-var aiFilterIds = null; // null = フィルターなし
+async function callOllama(model, prompt, onChunk) {
+  var url = ollamaURL + '/api/generate';
+  try {
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: model, prompt: prompt, stream: true })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
 
-function toggleAISearch() {
-    var bar = document.getElementById('ai-search-bar');
-    var btn = document.getElementById('ai-search-btn');
-    var isOpen = bar.style.display === 'flex';
-    bar.style.display = isOpen ? 'none' : 'flex';
-    btn.style.background = isOpen ? 'var(--s2)' : 'rgba(109,90,239,0.15)';
-    btn.style.borderColor = isOpen ? 'var(--br)' : 'var(--ac)';
-    btn.style.color = isOpen ? 'var(--t2)' : 'var(--ac2)';
-    if (!isOpen) {
-        setTimeout(function(){ document.getElementById('ai-search-input').focus(); }, 50);
+    var reader = res.body.getReader();
+    var decoder = new TextDecoder();
+    var full = '';
+
+    while (true) {
+      var ref = await reader.read();
+      if (ref.done) break;
+      var lines = decoder.decode(ref.value).split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line) continue;
+        try {
+          var obj = JSON.parse(line);
+          if (obj.response) {
+            full += obj.response;
+            if (onChunk) onChunk(full);
+          }
+        } catch(e) {}
+      }
     }
+    return full;
+  } catch(e) {
+    if (e.name === 'TypeError' || e.message.includes('fetch')) {
+      showOllamaErr('⚠ Ollamaに接続できません。「ollama serve」で起動してください');
+    } else {
+      showOllamaErr('⚠ ' + e.message);
+    }
+    return null;
+  }
 }
 
-async function runAISearch() {
-    var query = document.getElementById('ai-search-input').value.trim();
-    if (!query) return;
-    if (apps.length === 0) { T('No apps'); return; }
-    if (!apiKey) { openSettings(); T('Set API key first'); return; }
-    T('AI searching...',6000);
-    var appList = apps.map(function(a,i){ return (i+1)+'. id='+a.id+' '+a.title+' '+a.code.slice(0,100); }).join(' | ');
-    var prompt = 'From this app list: ' + appList + ' --- find apps matching: ' + query + ' --- return ONLY a JSON array of matching IDs like [123,456]. No text, no markdown.';
-    var result = await callG(prompt);
-    if (!result) return;
-    try {
-        var ids = JSON.parse(result.replace(/```[\s\S]*?```/g,'').trim()).map(Number);
-        aiFilterIds = ids; renderGallery(); T('AI: '+ids.length+' found');
-    } catch(e) { T('Parse error'); }
+// マルチモーダル（画像付き）
+async function callOllamaWithImage(model, prompt, base64img) {
+  var url = ollamaURL + '/api/generate';
+  try {
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: model, prompt: prompt, images: [base64img], stream: true })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
 
+    var reader = res.body.getReader();
+    var decoder = new TextDecoder();
+    var full = '';
+    while (true) {
+      var ref = await reader.read();
+      if (ref.done) break;
+      decoder.decode(ref.value).split('\n').forEach(function(line) {
+        if (!line.trim()) return;
+        try { var o = JSON.parse(line); if (o.response) full += o.response; } catch(e) {}
+      });
+    }
+    return full;
+  } catch(e) {
+    showOllamaErr('⚠ Ollamaに接続できません。「ollama serve」で起動してください');
+    return null;
+  }
 }
 
-function clearAISearch() {
-    aiFilterIds = null;
-    document.getElementById('ai-search-input').value = '';
-    renderGallery();
-    T('フィルターをクリアしました');
+async function checkOllama() {
+  var el = document.getElementById('ollama-chk');
+  el.style.display = 'flex';
+  el.className = 'ollama-status ng';
+  el.textContent = '確認中...';
+  ollamaURL = document.getElementById('ollama-url').value.trim() || 'http://localhost:11434';
+  try {
+    var res = await fetch(ollamaURL + '/api/tags', { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      var data = await res.json();
+      var models = (data.models || []).map(function(m){ return m.name; }).join(', ');
+      el.className = 'ollama-status ok';
+      el.textContent = '✓ 接続OK  利用可能モデル: ' + (models || 'なし');
+    } else {
+      throw new Error('HTTP ' + res.status);
+    }
+  } catch(e) {
+    el.className = 'ollama-status ng';
+    el.textContent = '✕ 接続失敗 — ollama serve を実行してください';
+  }
 }
 
-// Gallery
-function renderGallery(){
-  var q=(document.getElementById('skw').value||'').toLowerCase();
-  var list=apps.filter(function(a){
-    if(aiFilterIds !== null && !aiFilterIds.includes(a.id)) return false;
-    return !q||a.title.toLowerCase().includes(q);
-  });
-  document.getElementById('gcnt').textContent=apps.length+'件';
-  var g=document.getElementById('gg'),em=document.getElementById('g-empty');
-  g.innerHTML='';
-  if(!list.length){em.style.display='block';return;}
-  em.style.display='none';
-  list.slice().reverse().forEach(function(a,i){
-    var el=document.createElement('div');el.className='gc';
-    el.onclick=function(){openApp(a.id);};
-    el.innerHTML='<div class="gc-thumb">'+ICONS[i%ICONS.length]+'</div>'+
-      '<div class="gc-body">'+
-        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">'+
-          '<div class="gc-title" style="flex:1">'+E(a.title)+'</div>'+
-          '<button class="gc-del" onclick="event.stopPropagation();delApp('+a.id+')" title="削除">'+
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>'+
-          '</button>'+
-        '</div>'+
-        '<div class="gc-meta">'+
-          '<div class="gc-author">'+
-            (a.avatar?'<div class="gc-av"><img src="'+a.avatar+'"></div>':'<div class="gc-av"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>')+
-            '<span class="gc-name">'+E(a.author||'匿名')+'</span>'+
-          '</div>'+
-          '<div class="gc-likes">'+
-            '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>'+
-            a.likes+
-          '</div>'+
-        '</div>'+
+// コードを綺麗に抽出
+function extractCode(raw) {
+  if (!raw) return '';
+  var m = raw.match(/```html[\s\S]*?```/i);
+  if (m) return m[0].replace(/```html\n?/i,'').replace(/```$/,'').trim();
+  m = raw.match(/```[\s\S]*?```/);
+  if (m) return m[0].replace(/```\w*\n?/,'').replace(/```$/,'').trim();
+  if (/<html/i.test(raw) || /<!DOCTYPE/i.test(raw)) return raw.trim();
+  return raw.trim();
+}
+
+// ストリーミングプログレスバー
+function startStreamBar() {
+  var bar = document.getElementById('stream-bar');
+  bar.style.width = '0';
+  bar.classList.add('active');
+  var w = 0;
+  var iv = setInterval(function(){
+    w = Math.min(w + Math.random() * 3, 85);
+    bar.style.width = w + '%';
+  }, 200);
+  return function(){ clearInterval(iv); bar.style.width = '100%'; setTimeout(function(){ bar.classList.remove('active'); bar.style.width = '0'; }, 400); };
+}
+
+// ════════════════════════════════════════════
+//  Navigation
+// ════════════════════════════════════════════
+function nav(v) {
+  document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
+  document.getElementById('view-' + v).classList.add('active');
+  document.getElementById('nbg').style.display = v === 'gallery' ? 'flex' : 'none';
+  document.getElementById('nbs').style.display = v === 'studio'  ? 'flex' : 'none';
+  if (v === 'gallery') renderGallery();
+  if (v === 'studio')  resetS();
+}
+
+// ════════════════════════════════════════════
+//  Gallery
+// ════════════════════════════════════════════
+function renderGallery() {
+  var q = (document.getElementById('skw').value || '').toLowerCase();
+  var list = apps.filter(function(a){ return !q || a.title.toLowerCase().includes(q); });
+  document.getElementById('gcnt').textContent = apps.length + '件';
+  var g = document.getElementById('gg'), em = document.getElementById('g-empty');
+  g.innerHTML = '';
+  var lb = document.getElementById('g-login-banner');
+  lb.style.display = curUser ? 'none' : 'block';
+  if (!list.length) { em.style.display = 'block'; return; }
+  em.style.display = 'none';
+  list.slice().reverse().forEach(function(a, i) {
+    var el = document.createElement('div');
+    el.className = 'gc';
+    el.onclick = function(){ openApp(a.id); };
+    el.innerHTML =
+      '<div class="gc-thumb">' + ICONS[i % ICONS.length] + '</div>' +
+      '<div class="gc-body">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">' +
+          '<div class="gc-title" style="flex:1">' + E(a.title) + '</div>' +
+          '<button class="gc-del" onclick="event.stopPropagation();delApp(' + a.id + ')" title="削除">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
+          '</button>' +
+        '</div>' +
+        '<div class="gc-meta">' +
+          '<div class="gc-author">' +
+            (a.avatar ? '<div class="gc-av"><img src="' + a.avatar + '"></div>' : '<div class="gc-av"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>') +
+            '<span class="gc-name">' + E(a.author || '匿名') + '</span>' +
+          '</div>' +
+          '<div class="gc-likes"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' + a.likes + '</div>' +
+        '</div>' +
       '</div>';
     g.appendChild(el);
   });
 }
-function delApp(id){
-  if(!confirm('削除しますか？'))return;
-  apps=apps.filter(function(a){return a.id!==id;});
-  localStorage.setItem('b44_apps',JSON.stringify(apps));
-  renderGallery();T('削除しました');
+
+function delApp(id) {
+  if (!confirm('削除しますか？')) return;
+  apps = apps.filter(function(a){ return a.id !== id; });
+  localStorage.setItem('pt_apps', JSON.stringify(apps));
+  if (curUser) db.collection('users').doc(curUser.uid).collection('apps').doc(String(id)).delete().catch(function(){});
+  renderGallery(); T('削除しました');
 }
 
-// App View
-function openApp(id){
-  var a=apps.find(function(x){return x.id===id;});if(!a)return;
-  curAppId=id;
-  document.getElementById('app-ttl').textContent=a.title;
-  document.getElementById('lcnt').textContent=a.likes;
+// ════════════════════════════════════════════
+//  App View
+// ════════════════════════════════════════════
+function openApp(id) {
+  var a = apps.find(function(x){ return x.id === id; });
+  if (!a) return;
+  curAppId = id;
+  document.getElementById('app-ttl').textContent = a.title;
+  document.getElementById('lcnt').textContent = a.likes;
   document.getElementById('lico').setAttribute('fill','none');
-  document.getElementById('app-pv').srcdoc=a.code;
+  document.getElementById('fork-btn').style.display = 'none';
+  document.getElementById('app-pv').srcdoc = a.code;
   nav('app');
 }
-function likeApp(){
-  var a=apps.find(function(x){return x.id===curAppId;});if(!a)return;
-  a.likes++;localStorage.setItem('b44_apps',JSON.stringify(apps));
-  document.getElementById('lcnt').textContent=a.likes;
+function likeApp() {
+  var a = apps.find(function(x){ return x.id === curAppId; });
+  if (!a) return;
+  a.likes++;
+  localStorage.setItem('pt_apps', JSON.stringify(apps));
+  document.getElementById('lcnt').textContent = a.likes;
   document.getElementById('lico').setAttribute('fill','currentColor');
 }
-function toggleAFS(){
-  isFsA=!isFsA;
-  document.getElementById('hud').style.display=isFsA?'none':'flex';
-  document.getElementById('afsexit').style.display=isFsA?'block':'none';
+function forkApp() {
+  if (!forkCode) return;
+  nav('studio');
+  setTimeout(function(){ document.getElementById('lp-code').value = forkCode; T('フォークしました！コードを編集して起動してください'); }, 100);
+}
+function toggleAFS() {
+  isFsA = !isFsA;
+  document.getElementById('hud').style.display = isFsA ? 'none' : 'flex';
+  document.getElementById('afsexit').style.display = isFsA ? 'block' : 'none';
 }
 
-// Studio
-function resetS(){
-  document.getElementById('launchpad').style.display='flex';
-  document.getElementById('workspace').style.display='none';
-  document.getElementById('lp-code').value='';
-  document.getElementById('agi').value='';
-  document.getElementById('ag-status').style.display='none';
+// ════════════════════════════════════════════
+//  Studio
+// ════════════════════════════════════════════
+function resetS() {
+  document.getElementById('launchpad').style.display = 'flex';
+  document.getElementById('workspace').style.display = 'none';
+  document.getElementById('lp-code').value = '';
+  document.getElementById('agi').value = '';
+  document.getElementById('ag-status').style.display = 'none';
+  imgBase64 = ''; imgMime = '';
+  var pr = document.getElementById('i2c-preview'); if (pr) { pr.src = ''; pr.style.display = 'none'; }
+  var ib = document.getElementById('i2c-btn'); if (ib) ib.style.display = 'none';
   document.getElementById('hp').classList.remove('on');
-  hideCP();
-  vers=[];cur='';
-}
-function launchStudio(){
-  var c=document.getElementById('lp-code').value.trim();
-  if(!c){T('コードを入力してください');return;}
-  startWS(wrapCode(c),'貼り付けコード','original');
+  hideCP(); hideAutoFix();
+  vers = []; cur = '';
 }
 
-// コードの種類を自動判定してHTMLとして実行できる形に変換
+function launchStudio() {
+  var c = document.getElementById('lp-code').value.trim();
+  if (!c) { T('コードを入力してください'); return; }
+  startWS(wrapCode(c), '貼り付けコード', 'original');
+}
+
 function wrapCode(code) {
-  var trimmed = code.trim();
-  // すでにHTMLなら変換不要
-  if (/^<!DOCTYPE/i.test(trimmed) || /^<html/i.test(trimmed)) return trimmed;
-  // <body>や<head>タグがあればHTMLとして扱う
-  if (/<body[\s>]/i.test(trimmed) || /<head[\s>]/i.test(trimmed)) return trimmed;
-  // CSSのみ（セレクタや { } が含まれる）
-  if (/^[\s\S]*\{[\s\S]*\}/.test(trimmed) && !trimmed.includes('function') && !trimmed.includes('var ') && !trimmed.includes('const ') && !trimmed.includes('let ')) {
-    return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + trimmed + '</style></head><body><div class="demo">CSS Preview</div></body></html>';
+  var t = code.trim();
+  if (/^<!DOCTYPE/i.test(t) || /^<html/i.test(t)) return t;
+  if (/<body[\s>]/i.test(t) || /<head[\s>]/i.test(t)) return t;
+  if (/<[a-zA-Z]/.test(t) && !t.includes('function') && !t.includes('var ')) {
+    return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:sans-serif;padding:16px;background:#fff}</style></head><body>' + t + '</body></html>';
   }
-  // JSのみ（function/var/const/let/console が含まれる）
-  if (/^(function|var |const |let |\/\/|class |import |export )/.test(trimmed) || trimmed.includes('console.log') || trimmed.includes('=>')) {
-    return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>'
-      + '<pre id="out" style="background:#0d1117;color:#3fb950;padding:16px;margin:0;font-family:monospace;font-size:13px;min-height:100vh;white-space:pre-wrap;"></pre>'
-      + '<script>'
-      + 'var _log=console.log;console.log=function(){var a=Array.from(arguments).map(String).join(" ");document.getElementById("out").textContent+=a+"\n";_log.apply(console,arguments);};'
-      + 'try{' + trimmed.replace(/<\/script>/gi,'<\\/script>') + '}catch(e){document.getElementById("out").textContent+="Error: "+e.message;}'
-      + '<\/script></body></html>';
+  if (t.includes('function') || t.includes('const ') || t.includes('let ') || t.includes('var ') || t.includes('=>')) {
+    return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' +
+      '<pre id="out" style="background:#0d1117;color:#3fb950;padding:16px;font-family:monospace;font-size:13px;min-height:100vh;white-space:pre-wrap;margin:0"></pre>' +
+      '<script>var _l=console.log;console.log=function(){var a=Array.from(arguments).map(String).join(" ");document.getElementById("out").textContent+=a+"\\n";_l.apply(console,arguments);};try{' + t + '}catch(e){document.getElementById("out").textContent+="Error: "+e.message;}<\/script></body></html>';
   }
-  // HTMLの断片（タグが含まれる）→ bodyに包む
-  if (/<[a-zA-Z]/.test(trimmed)) {
-    return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:sans-serif;padding:16px;background:#fff}</style></head><body>' + trimmed + '</body></html>';
-  }
-  // それ以外はテキストとして表示
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><pre style="padding:16px;font-size:14px">' + trimmed + '</pre></body></html>';
-}
-function startWS(code,label,type){
-  cur=code;
-  document.getElementById('launchpad').style.display='none';
-  document.getElementById('workspace').style.display='flex';
-  document.getElementById('sif').srcdoc=cur;
-  vers=[{id:Date.now(),code:cur,label:label,type:type||'original'}];
-  renderHist();
-  hideCP(); // ← 確実にコードパネルを非表示
-}
-function exitWorkspace(){nav('studio');}
-
-// Code Panel
-function hideCP(){
-  cpOpen=false;
-  document.getElementById('cp').style.display='none';
-  var b=document.getElementById('ctbtn');
-  if(b)b.textContent='< > コードを表示';
-}
-function showCP(){
-  cpOpen=true;
-  document.getElementById('cp').style.display='flex';
-  document.getElementById('ct').value=cur;
-  onCI();
-  var b=document.getElementById('ctbtn');
-  if(b)b.textContent='< > コードを隠す';
-}
-function toggleCodePanel(){if(cpOpen)hideCP();else showCP();}
-function onCI(){
-  var ta=document.getElementById('ct');
-  var el=document.querySelector('#ch code');if(!el)return;
-  el.textContent=ta.value;
-  if(window.Prism)Prism.highlightElement(el);
-  var ls=ta.value.split('\n');
-  document.getElementById('cl').innerHTML=ls.map(function(_,i){return '<span class="ln">'+(i+1)+'</span>';}).join('');
-  document.getElementById('cp-meta').textContent=ls.length+' 行 / '+ta.value.length.toLocaleString()+' 文字';
-}
-function syncCS(){
-  var ta=document.getElementById('ct'),hl=document.getElementById('ch'),ln=document.getElementById('cl');
-  hl.scrollTop=ta.scrollTop;hl.scrollLeft=ta.scrollLeft;ln.scrollTop=ta.scrollTop;
-}
-function ck(e){
-  if(e.key==='Tab'){e.preventDefault();var ta=e.target,s=ta.selectionStart,en=ta.selectionEnd;ta.value=ta.value.slice(0,s)+'  '+ta.value.slice(en);ta.selectionStart=ta.selectionEnd=s+2;onCI();}
-}
-function applyCode(){
-  cur=document.getElementById('ct').value;
-  document.getElementById('sif').srcdoc=cur;
-  vers.unshift({id:Date.now(),code:cur,label:'コード編集',type:'manual'});
-  renderHist();T('✓ 適用しました');
+  return t;
 }
 
-// Device
-function setDevice(type){
-  curDev=type;
-  document.getElementById('dc').className='device-'+type;
-  var pw=document.getElementById('pw');
-  pw.style.padding=type==='desktop'?'0':'16px';
-  ['desktop','tablet','mobile'].forEach(function(d){
-    var b=document.getElementById('dev-'+d);
-    b.style.background=d===type?'rgba(109,90,239,.3)':'transparent';
-    b.style.color=d===type?'white':'var(--t3)';
+function startWS(code, label, type) {
+  cur = code;
+  document.getElementById('launchpad').style.display = 'none';
+  document.getElementById('workspace').style.display = 'flex';
+  document.getElementById('sif').srcdoc = cur;
+  vers = [{ id: Date.now(), code: cur, label: label, type: type || 'original' }];
+  renderHist(); hideCP(); hideAutoFix();
+  setTimeout(setupErrCapture, 800);
+  autoSaveToFirestore(label);
+}
+
+function exitWorkspace() { nav('studio'); }
+
+// ════════════════════════════════════════════
+//  AI Generate (Ollama)
+// ════════════════════════════════════════════
+var THINKMSGS = ['コードを設計中','HTMLを書いています','CSSを調整中','JSを実装中','仕上げ中'];
+function startThinking() {
+  var i = 0; tkTimer = setInterval(function(){ document.getElementById('tmsg').textContent = THINKMSGS[i % THINKMSGS.length]; i++; }, 1200);
+  document.getElementById('thinking').classList.add('on');
+}
+function stopThinking() { clearInterval(tkTimer); document.getElementById('thinking').classList.remove('on'); }
+
+async function genFromPrompt() {
+  var p = document.getElementById('agi').value.trim();
+  if (!p) return;
+  var btn = document.getElementById('agb'), st = document.getElementById('ag-status');
+  btn.disabled = true; st.style.display = 'flex';
+  document.getElementById('ag-msg').textContent = 'qwen2.5-coder が生成中...';
+
+  var prompt =
+    'Create a complete single-file HTML/CSS/JavaScript web application for: ' + p + '\n' +
+    'Requirements:\n' +
+    '- Single HTML file with embedded CSS and JS\n' +
+    '- No external dependencies except CDN if needed\n' +
+    '- Functional and visually appealing\n' +
+    '- Output HTML code only, no explanation\n' +
+    '- Start with <!DOCTYPE html>';
+
+  var stopBar = startStreamBar();
+  var raw = await callOllama(codeModel, prompt, function(chunk) {
+    document.getElementById('ag-msg').textContent = 'ストリーミング中... ' + chunk.length + ' 文字';
   });
-  var labels={desktop:'',tablet:'タブレット横向き 1024×680',mobile:'スマホ横向き 780×380'};
-  var l=document.getElementById('dlbl');l.textContent=labels[type];l.style.display=type==='desktop'?'none':'block';
+  stopBar();
+  btn.disabled = false; st.style.display = 'none';
+
+  if (raw) {
+    var code = extractCode(raw);
+    if (code) { startWS(code, p + '（AI生成）', 'ai'); T('生成完了！'); }
+    else { T('コードの抽出に失敗しました'); }
+  }
 }
 
-// Fullscreen
-function toggleFS(){
-  isFsS=!isFsS;
-  document.getElementById('wsbar').style.display=isFsS?'none':'flex';
-  document.getElementById('aibar').style.display=isFsS?'none':'block';
-  document.getElementById('fsexit').style.display=isFsS?'block':'none';
-  if(isFsS)hideCP();
+async function runAI() {
+  var p = document.getElementById('ai-inp').value.trim();
+  if (!p || !cur) return;
+  document.getElementById('ai-snd').disabled = true;
+  startThinking();
+
+  var prompt =
+    'Modify this HTML/CSS/JavaScript code according to the instruction.\n' +
+    'Instruction: ' + p + '\n' +
+    'Output the complete modified HTML code only, no explanation.\n\n' +
+    'Current code:\n' + cur;
+
+  var stopBar = startStreamBar();
+  var raw = await callOllama(codeModel, prompt, null);
+  stopBar(); stopThinking();
+  document.getElementById('ai-snd').disabled = false;
+
+  if (raw) {
+    var code = extractCode(raw);
+    if (code) {
+      cur = code;
+      document.getElementById('sif').srcdoc = cur;
+      if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
+      vers.unshift({ id: Date.now(), code: cur, label: p, type: 'ai' });
+      renderHist();
+      document.getElementById('ai-inp').value = '';
+      T('AI修正完了！');
+      setTimeout(setupErrCapture, 800);
+    } else { T('コードの抽出に失敗しました'); }
+  }
 }
 
-// History
-function toggleHistory(){document.getElementById('hp').classList.toggle('on');}
-function renderHist(){
-  var b=document.getElementById('hbadge');b.textContent=vers.length;b.style.display=vers.length>1?'inline':'none';
-  var tl={ai:'✦',original:'📄',manual:'✏️'};
-  document.getElementById('hl').innerHTML=vers.map(function(v,i){
+// ════════════════════════════════════════════
+//  Image to Code (llava)
+// ════════════════════════════════════════════
+function handleImgSelect(e) { var f = e.target.files[0]; if (f) loadImgFile(f); }
+function handleImgDrop(e) {
+  e.preventDefault();
+  document.getElementById('i2c-zone').classList.remove('drag');
+  var f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadImgFile(f);
+}
+function loadImgFile(file) {
+  imgMime = file.type || 'image/png';
+  var r = new FileReader();
+  r.onload = function(ev) {
+    var data = ev.target.result;
+    imgBase64 = data.split(',')[1];
+    var pr = document.getElementById('i2c-preview');
+    pr.src = data; pr.style.display = 'block';
+    document.getElementById('i2c-btn').style.display = 'block';
+    T('画像を読み込みました。生成ボタンを押してください');
+  };
+  r.readAsDataURL(file);
+}
+
+async function generateFromImage(e) {
+  e.stopPropagation();
+  if (!imgBase64) return;
+  var btn = document.getElementById('i2c-btn'), st = document.getElementById('i2c-status');
+  btn.disabled = true; st.style.display = 'flex';
+  document.getElementById('i2c-msg').textContent = 'llavaで画像を解析中...';
+
+  var prompt =
+    'Look at this image and create a complete HTML/CSS/JavaScript web application that replicates or is inspired by the UI shown. ' +
+    'Output a single HTML file with embedded CSS and JS. ' +
+    'Output HTML code only, no explanation. Start with <!DOCTYPE html>.';
+
+  var stopBar = startStreamBar();
+  var raw = await callOllamaWithImage(imgModel, prompt, imgBase64);
+  stopBar();
+  btn.disabled = false; st.style.display = 'none';
+
+  if (raw) {
+    var code = extractCode(raw);
+    if (code) { startWS(code, '画像から生成', 'ai'); T('画像からアプリを生成しました！'); }
+    else { T('コードの抽出に失敗しました'); }
+  }
+}
+
+// ════════════════════════════════════════════
+//  Auto-Fix
+// ════════════════════════════════════════════
+function setupErrCapture() {
+  var iframe = document.getElementById('sif');
+  if (!iframe || !iframe.contentWindow) return;
+  try {
+    iframe.contentWindow.onerror = function(msg, src, line) {
+      showAutoFix(msg + (line ? ' (line ' + line + ')' : ''));
+      return true;
+    };
+    iframe.contentWindow.addEventListener('unhandledrejection', function(e) {
+      showAutoFix('Promise: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
+    });
+  } catch(e) {}
+}
+function showAutoFix(msg) {
+  lastError = msg;
+  var b = document.getElementById('autofix-btn'), bd = document.getElementById('err-badge');
+  if (b) b.style.display = 'flex';
+  if (bd) { bd.style.display = 'block'; bd.textContent = '⚠ ' + msg; }
+}
+function hideAutoFix() {
+  var b = document.getElementById('autofix-btn'), bd = document.getElementById('err-badge');
+  if (b) b.style.display = 'none';
+  if (bd) bd.style.display = 'none';
+  lastError = '';
+}
+async function runAutoFix() {
+  if (!lastError || !cur) return;
+  var btn = document.getElementById('autofix-btn');
+  btn.textContent = '🔧 修復中...'; btn.disabled = true;
+  startThinking();
+
+  var prompt =
+    'Fix the JavaScript error in this HTML code.\n' +
+    'Error: ' + lastError + '\n' +
+    'Output the complete fixed HTML code only, no explanation.\n\n' +
+    'Code:\n' + cur;
+
+  var stopBar = startStreamBar();
+  var raw = await callOllama(codeModel, prompt, null);
+  stopBar(); stopThinking();
+  btn.disabled = false;
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg> \uD83E\uDD16 AIでエラーを修復';
+
+  if (raw) {
+    var code = extractCode(raw);
+    if (code) {
+      cur = code;
+      document.getElementById('sif').srcdoc = cur;
+      if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
+      vers.unshift({ id: Date.now(), code: cur, label: 'Auto-Fix: ' + lastError.slice(0,40), type: 'ai' });
+      renderHist(); hideAutoFix();
+      T('✓ エラーを自動修復しました！');
+      setTimeout(setupErrCapture, 800);
+    } else { T('修復に失敗しました'); }
+  }
+}
+
+// ════════════════════════════════════════════
+//  Code Panel
+// ════════════════════════════════════════════
+function hideCP() {
+  cpOpen = false;
+  document.getElementById('cp').style.display = 'none';
+  var b = document.getElementById('ctbtn'); if (b) b.textContent = '< > コードを表示';
+}
+function showCP() {
+  cpOpen = true;
+  document.getElementById('cp').style.display = 'flex';
+  document.getElementById('ct').value = cur; onCI();
+  var b = document.getElementById('ctbtn'); if (b) b.textContent = '< > コードを隠す';
+}
+function toggleCodePanel() { if (cpOpen) hideCP(); else showCP(); }
+function onCI() {
+  var ta = document.getElementById('ct'), el = document.querySelector('#ch code');
+  if (!el) return;
+  el.textContent = ta.value;
+  if (window.Prism) Prism.highlightElement(el);
+  var ls = ta.value.split('\n');
+  document.getElementById('cl').innerHTML = ls.map(function(_,i){ return '<span class="ln">'+(i+1)+'</span>'; }).join('');
+  document.getElementById('cp-meta').textContent = ls.length + ' 行 / ' + ta.value.length.toLocaleString() + ' 文字';
+}
+function syncCS() {
+  var ta = document.getElementById('ct'), hl = document.getElementById('ch'), ln = document.getElementById('cl');
+  hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft; ln.scrollTop = ta.scrollTop;
+}
+function ck(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    var ta = e.target, s = ta.selectionStart, en = ta.selectionEnd;
+    ta.value = ta.value.slice(0,s)+'  '+ta.value.slice(en);
+    ta.selectionStart = ta.selectionEnd = s+2; onCI();
+  }
+}
+function applyCode() {
+  cur = document.getElementById('ct').value;
+  document.getElementById('sif').srcdoc = cur;
+  vers.unshift({ id: Date.now(), code: cur, label: 'コード編集', type: 'manual' });
+  renderHist(); T('✓ 適用しました');
+}
+
+// ════════════════════════════════════════════
+//  Device / Fullscreen
+// ════════════════════════════════════════════
+function setDevice(type) {
+  document.getElementById('dc').className = 'device-' + type;
+  document.getElementById('pw').style.padding = type === 'desktop' ? '0' : '16px';
+  ['desktop','tablet','mobile'].forEach(function(d) {
+    var b = document.getElementById('dev-'+d);
+    b.style.background = d===type ? 'rgba(109,90,239,.3)' : 'transparent';
+    b.style.color = d===type ? 'white' : 'var(--t3)';
+  });
+  var labels = {desktop:'',tablet:'タブレット横向き 1024×680',mobile:'スマホ横向き 780×380'};
+  var l = document.getElementById('dlbl'); l.textContent = labels[type]; l.style.display = type==='desktop'?'none':'block';
+}
+function toggleFS() {
+  isFsS = !isFsS;
+  document.getElementById('wsbar').style.display = isFsS ? 'none' : 'flex';
+  document.getElementById('aibar').style.display = isFsS ? 'none' : 'block';
+  document.getElementById('fsexit').style.display = isFsS ? 'block' : 'none';
+  if (isFsS) hideCP();
+}
+function reloadPreview() {
+  if (!cur) return;
+  document.getElementById('sif').srcdoc = '';
+  setTimeout(function(){ document.getElementById('sif').srcdoc = cur; T('リロードしました'); }, 50);
+}
+
+// ════════════════════════════════════════════
+//  History
+// ════════════════════════════════════════════
+function toggleHistory() { document.getElementById('hp').classList.toggle('on'); }
+function renderHist() {
+  var b = document.getElementById('hbadge'); b.textContent = vers.length; b.style.display = vers.length>1?'inline':'none';
+  var tl = {ai:'✦',original:'📄',manual:'✏️'};
+  document.getElementById('hl').innerHTML = vers.map(function(v,i) {
     return '<div class="vc'+(i===0?' cur':'')+'">'+
-      '<div class="vt">'+(tl[v.type]||'')+'  '+E(v.label)+'</div>'+
+      '<div class="vt">'+(tl[v.type]||'')+' '+E(v.label)+'</div>'+
       '<div class="vm"><span class="vtime">'+new Date(v.id).toLocaleTimeString('ja-JP')+'</span>'+
-        '<div class="vbs">'+
-          '<button class="vb" onclick="restoreV('+i+')">戻す</button>'+
-        '</div>'+
-      '</div>'+
-    '</div>';
+        '<div class="vbs"><button class="vb ok" onclick="restoreV('+i+')">戻す</button></div>'+
+      '</div></div>';
   }).join('');
 }
-function restoreV(i){
-  cur=vers[i].code;document.getElementById('sif').srcdoc=cur;
-  if(cpOpen){document.getElementById('ct').value=cur;onCI();}
+function restoreV(i) {
+  cur = vers[i].code;
+  document.getElementById('sif').srcdoc = cur;
+  if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
   T('「'+vers[i].label+'」に戻しました');
 }
 
-// Download
-function dlCode(){
-  var title=(document.getElementById('shtitle')&&document.getElementById('shtitle').value.trim())||'my-app';
-  var b=new Blob([cur],{type:'text/html'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=title.replace(/[^\w\-]/g,'_')+'.html';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
+// ════════════════════════════════════════════
+//  Download
+// ════════════════════════════════════════════
+function dlCode() {
+  var title = (document.getElementById('shtitle') && document.getElementById('shtitle').value.trim()) || 'my-app';
+  var b = new Blob([cur], {type:'text/html'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(b);
+  a.download = title.replace(/[^\w\-]/g,'_')+'.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
   T('ダウンロードしました');
 }
 
-// Share
-function openShareModal(){
-  surl='';
-  document.getElementById('surlbox').style.display='none';
-  document.getElementById('mailbtn').style.display='none';
-  document.getElementById('curlbtn').textContent='🔗 URLを作成してコピー';
-  document.getElementById('curlbtn').disabled=false;
+// ════════════════════════════════════════════
+//  Share / Publish
+// ════════════════════════════════════════════
+function openShareModal() {
+  surl = '';
+  document.getElementById('surlbox').style.display = 'none';
+  document.getElementById('mailbtn').style.display = 'none';
+  document.getElementById('curlbtn').textContent = '🔗 URLを作成してコピー';
+  document.getElementById('curlbtn').disabled = false;
   document.getElementById('shm').classList.add('on');
 }
-async function createShareURL(){
-  var btn=document.getElementById('curlbtn');btn.disabled=true;btn.textContent='⏳ 生成中...';
-  try{
-    var title=document.getElementById('shtitle').value.trim()||'無題';
-    var ref=await db.collection('apps').add({title:title,code:cur,createdAt:new Date()});
-    surl=location.origin+location.pathname+'?id='+ref.id;
-    document.getElementById('surl').textContent=surl;
-    document.getElementById('surlbox').style.display='block';
-    document.getElementById('mailbtn').style.display='block';
+async function createShareURL() {
+  var btn = document.getElementById('curlbtn'); btn.disabled = true; btn.textContent = '⏳ 生成中...';
+  try {
+    var title = document.getElementById('shtitle').value.trim() || '無題';
+    var ref = await db.collection('apps').add({ title: title, code: cur, createdAt: new Date() });
+    surl = location.origin + location.pathname + '?id=' + ref.id;
+    document.getElementById('surl').textContent = surl;
+    document.getElementById('surlbox').style.display = 'block';
+    document.getElementById('mailbtn').style.display = 'block';
     await navigator.clipboard.writeText(surl);
-    btn.textContent='✓ コピー済み';T('URLをコピーしました！');
-  }catch(e){T('URL作成に失敗しました');btn.disabled=false;btn.textContent='🔗 URLを作成してコピー';}
+    btn.textContent = '✓ コピー済み'; T('URLをコピーしました！');
+  } catch(e) { T('URL作成に失敗しました'); btn.disabled=false; btn.textContent='🔗 URLを作成してコピー'; }
 }
-function copyURL(){
-  if(!surl)return;
+function copyURL() {
+  if (!surl) return;
   navigator.clipboard.writeText(surl).then(function(){
-    var b=document.getElementById('cpbtn');b.textContent='✓';b.classList.add('done');
-    setTimeout(function(){b.textContent='コピー';b.classList.remove('done');},2000);T('コピーしました');
+    var b = document.getElementById('cpbtn'); b.textContent='✓'; b.classList.add('done');
+    setTimeout(function(){ b.textContent='コピー'; b.classList.remove('done'); }, 2000);
+    T('コピーしました');
   });
 }
-function shareEmail(){
-  if(!surl)return;
-  var t=document.getElementById('shtitle').value.trim()||'無題';
-  location.href='mailto:?subject='+encodeURIComponent('[Poteto] '+t)+'&body='+encodeURIComponent(t+'\n\n'+surl);
+function shareEmail() {
+  if (!surl) return;
+  var t = document.getElementById('shtitle').value.trim() || '無題';
+  location.href = 'mailto:?subject=' + encodeURIComponent('[Poteto] '+t) + '&body=' + encodeURIComponent(t+'\n\n'+surl);
 }
-function pubGallery(){
-  var title=document.getElementById('shtitle').value.trim()||'無題のアプリ';
-  var ex=apps.find(function(a){return a.code===cur;});
-  if(ex){ex.title=title;ex.author=prof.name||'';ex.avatar=prof.avatar||'';localStorage.setItem('b44_apps',JSON.stringify(apps));CM('shm');T('上書き保存しました');return;}
-  apps.push({id:Date.now(),title:title,code:cur,likes:0,createdAt:Date.now(),author:prof.name||'',avatar:prof.avatar||''});
-  localStorage.setItem('b44_apps',JSON.stringify(apps));CM('shm');exitWorkspace();nav('gallery');T('ギャラリーに公開しました！');
-}
-
-// Settings
-function openSettings(){
-  document.getElementById('pname').value=prof.name||'';
-  document.getElementById('skey').value=apiKey||'';
-  var ks=document.getElementById('kst');ks.textContent=apiKey?('設定済み: '+apiKey.slice(0,8)+'••••••••'):'未設定';
-  var img=document.getElementById('avimg');if(prof.avatar){img.src=prof.avatar;img.style.display='block';}else{img.style.display='none';}
-  document.getElementById('sm').classList.add('on');
-}
-function saveSets(){
-  prof.name=document.getElementById('pname').value.trim();
-  localStorage.setItem('b44_prof',JSON.stringify(prof));
-  var val=document.getElementById('skey').value.trim();
-  if(val&&!val.startsWith('AIza')){document.getElementById('kst').textContent='形式が正しくありません（AIzaSy...）';document.getElementById('kst').style.color='var(--rd)';return;}
-  if(val)apiKey=val;
-  CM('sm');T('設定を保存しました');
-}
-function handleAv(e){
-  var f=e.target.files[0];if(!f)return;
-  var r=new FileReader();r.onload=function(ev){prof.avatar=ev.target.result;localStorage.setItem('b44_prof',JSON.stringify(prof));var i=document.getElementById('avimg');i.src=prof.avatar;i.style.display='block';};r.readAsDataURL(f);
-}
-function toggleKV(){
-  var i=document.getElementById('skey'),ic=document.getElementById('keye');
-  if(i.type==='password'){i.type='text';ic.innerHTML='<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';}
-  else{i.type='password';ic.innerHTML='<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';}
-}
-
-// AI
-var THINKS=['コードを解析中','構造を確認中','修正案を生成中','最適化中','仕上げ中'];
-async function callG(prompt){
-  if(!apiKey){openSettings();T('先にAPIキーを設定してください');return null;}
-  var mi=0;tkTimer=setInterval(function(){document.getElementById('tmsg').textContent=THINKS[mi%THINKS.length];mi++;},1200);
-  document.getElementById('thinking').classList.add('on');
-  var cfgs=[{v:'v1beta',m:'gemini-2.0-flash'},{v:'v1beta',m:'gemini-1.5-flash'}];
-  for(var i=0;i<cfgs.length;i++){
-    try{
-      var res=await fetch('https://generativelanguage.googleapis.com/'+cfgs[i].v+'/models/'+cfgs[i].m+':generateContent?key='+apiKey,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
-      var d=await res.json();
-      if(res.ok){var c=d.candidates[0].content.parts[0].text.replace(/```html\n?/gi,'').replace(/```\n?/g,'').trim();clearInterval(tkTimer);document.getElementById('thinking').classList.remove('on');return c;}
-      if(res.status===400||res.status===403){clearInterval(tkTimer);document.getElementById('thinking').classList.remove('on');T('APIキーエラー: '+((d.error&&d.error.message)||'認証失敗'));return null;}
-    }catch(e){console.error(e);}
+function pubGallery() {
+  var title = document.getElementById('shtitle').value.trim() || '無題のアプリ';
+  var ex = apps.find(function(a){ return a.code === cur; });
+  if (ex) {
+    ex.title = title; ex.author = prof.name||''; ex.avatar = prof.avatar||'';
+    localStorage.setItem('pt_apps', JSON.stringify(apps));
+    CM('shm'); T('上書き保存しました'); return;
   }
-  clearInterval(tkTimer);document.getElementById('thinking').classList.remove('on');T('生成に失敗しました');return null;
+  var newApp = { id: Date.now(), title: title, code: cur, likes: 0, createdAt: Date.now(), author: prof.name||'', avatar: prof.avatar||'' };
+  apps.push(newApp);
+  localStorage.setItem('pt_apps', JSON.stringify(apps));
+  autoSaveToFirestore(title, newApp.id);
+  CM('shm'); exitWorkspace(); nav('gallery'); T('ギャラリーに公開しました！');
 }
-async function genFromPrompt(){
-  var p=document.getElementById('agi').value.trim();if(!p)return;
-  if(!apiKey){openSettings();T('先にAPIキーを設定してください');return;}
-  var btn=document.getElementById('agb'),st=document.getElementById('ag-status');
-  btn.disabled=true;st.style.display='flex';
-  var c=await callG('HTML/CSS/JSを1ファイルにまとめて作成。Markdownのコードブロック記号は不要。HTMLコードのみ出力。\n作るもの: '+p);
-  btn.disabled=false;st.style.display='none';
-  if(c){startWS(c,p+'（AI生成）','ai');T('生成完了！');}
-}
-async function runAI(){
-  var p=document.getElementById('ai-inp').value.trim();if(!p||!cur)return;
-  document.getElementById('ai-snd').disabled=true;
-  var c=await callG('以下のHTMLコードを修正。Markdownのコードブロック記号は不要。HTMLコードのみ出力。\n指示: '+p+'\n\nコード:\n'+cur);
-  document.getElementById('ai-snd').disabled=false;
-  if(c){cur=c;document.getElementById('sif').srcdoc=cur;if(cpOpen){document.getElementById('ct').value=cur;onCI();}vers.unshift({id:Date.now(),code:cur,label:p,type:'ai'});renderHist();document.getElementById('ai-inp').value='';T('AI修正完了！');}
-}
-
-// Prism
-function loadPrism(){
-  if(window.Prism)return;
-  var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css';document.head.appendChild(l);
-  var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js';document.head.appendChild(s);
-  var s2=document.createElement('script');s2.src='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js';s.onload=function(){document.head.appendChild(s2);};
-}
-
 
 // ════════════════════════════════════════════
-//  テンプレート
+//  Firebase: Firestore Auto-Save
+// ════════════════════════════════════════════
+function autoSaveToFirestore(label, appId) {
+  if (!curUser) return;
+  var id = String(appId || Date.now());
+  db.collection('users').doc(curUser.uid).collection('apps').doc(id).set({
+    code: cur, label: label, updatedAt: new Date(), uid: curUser.uid
+  }).catch(function(e){ console.warn('Firestore save failed:', e); });
+}
+
+async function loadUserApps() {
+  if (!curUser) return;
+  try {
+    var snap = await db.collection('users').doc(curUser.uid).collection('apps').orderBy('updatedAt','desc').limit(30).get();
+    snap.forEach(function(doc) {
+      var d = doc.data();
+      var id = parseInt(doc.id) || Date.now();
+      if (!apps.find(function(a){ return a.code === d.code; })) {
+        apps.push({ id: id, title: d.label||'保存済みアプリ', code: d.code, likes: 0, createdAt: id, author: prof.name||'', avatar: prof.avatar||'' });
+      }
+    });
+    localStorage.setItem('pt_apps', JSON.stringify(apps));
+    renderGallery();
+    T('クラウドからアプリを読み込みました');
+  } catch(e) { console.warn('Firestore load failed:', e); }
+}
+
+// ════════════════════════════════════════════
+//  Firebase Auth
+// ════════════════════════════════════════════
+function openAuthModal() { document.getElementById('auth-modal').classList.add('on'); }
+async function doLogin() {
+  var email = document.getElementById('auth-email').value.trim();
+  var pw = document.getElementById('auth-pw').value;
+  var err = document.getElementById('auth-err');
+  err.style.display = 'none';
+  try {
+    await auth.signInWithEmailAndPassword(email, pw);
+    CM('auth-modal'); T('ログインしました');
+  } catch(e) {
+    err.textContent = e.message; err.style.display = 'block';
+  }
+}
+async function doSignup() {
+  var email = document.getElementById('auth-email').value.trim();
+  var pw = document.getElementById('auth-pw').value;
+  var err = document.getElementById('auth-err');
+  err.style.display = 'none';
+  try {
+    await auth.createUserWithEmailAndPassword(email, pw);
+    CM('auth-modal'); T('アカウントを作成しました');
+  } catch(e) {
+    err.textContent = e.message; err.style.display = 'block';
+  }
+}
+async function doLogout() {
+  await auth.signOut(); T('ログアウトしました');
+}
+
+auth.onAuthStateChanged(function(user) {
+  curUser = user;
+  var as = document.getElementById('auth-status');
+  var lb = document.getElementById('logout-btn');
+  if (user) {
+    as.textContent = '✓ ' + (user.email || user.uid);
+    as.style.color = 'var(--gr)';
+    lb.style.display = 'block';
+    loadUserApps();
+  } else {
+    as.textContent = '未ログイン';
+    as.style.color = 'var(--t2)';
+    lb.style.display = 'none';
+  }
+  renderGallery();
+});
+
+// ════════════════════════════════════════════
+//  Settings
+// ════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('pname').value = prof.name || '';
+  document.getElementById('ollama-url').value = ollamaURL;
+  var img = document.getElementById('avimg');
+  if (prof.avatar) { img.src = prof.avatar; img.style.display = 'block'; } else { img.style.display = 'none'; }
+  document.getElementById('sm').classList.add('on');
+}
+function saveSets() {
+  prof.name = document.getElementById('pname').value.trim();
+  localStorage.setItem('pt_prof', JSON.stringify(prof));
+  ollamaURL = document.getElementById('ollama-url').value.trim() || 'http://localhost:11434';
+  localStorage.setItem('pt_ollama', ollamaURL);
+  CM('sm'); T('設定を保存しました');
+}
+function handleAv(e) {
+  var f = e.target.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function(ev) {
+    prof.avatar = ev.target.result;
+    localStorage.setItem('pt_prof', JSON.stringify(prof));
+    var i = document.getElementById('avimg'); i.src = prof.avatar; i.style.display = 'block';
+  };
+  r.readAsDataURL(f);
+}
+
+// ════════════════════════════════════════════
+//  Templates
 // ════════════════════════════════════════════
 function getTemplate(name) {
   var t = {
@@ -921,25 +1372,12 @@ function getTemplate(name) {
         + '</head><body><div id="msg"></div><canvas id="c" width="480" height="320"></canvas><div id="info">← → キーまたはマウスで操作 / SPACEでスタート</div>'
         + '<script>'
         + 'var c=document.getElementById("c"),ctx=c.getContext("2d");'
-        + 'var pw=80,ph=10,px=200,py=300,pv=0;'
-        + 'var bx=240,by=160,bdx=4,bdy=-4,br=8;'
-        + 'var cols=8,rows=4,bw=50,bh=18,bp=4;'
-        + 'var blocks=[],score=0,lives=3,going=false;'
+        + 'var pw=80,ph=10,px=200,py=300,pv=0,bx=240,by=160,bdx=4,bdy=-4,br=8;'
+        + 'var cols=8,rows=4,bw=50,bh=18,bp=4,blocks=[],score=0,lives=3,going=false;'
         + 'var colors=["#f85149","#f0b429","#2ea043","#6d5aef","#e36209","#0075ca","#da3633","#8b5cf6"];'
         + 'for(var r=0;r<rows;r++)for(var col=0;col<cols;col++)blocks.push({x:col*(bw+bp)+10,y:r*(bh+bp)+30,alive:true,c:colors[r]});'
-        + 'function draw(){ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,480,320);'
-        + 'ctx.fillStyle="#6d5aef";ctx.beginPath();ctx.roundRect(px,py,pw,ph,5);ctx.fill();'
-        + 'ctx.fillStyle="#f0b429";ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);ctx.fill();'
-        + 'blocks.forEach(function(b){if(!b.alive)return;ctx.fillStyle=b.c;ctx.beginPath();ctx.roundRect(b.x,b.y,bw,bh,3);ctx.fill();});'
-        + 'ctx.fillStyle="#9b8bff";ctx.font="14px sans-serif";ctx.fillText("SCORE:"+score,10,18);ctx.fillText("LIVES:"+lives,400,18);}'
-        + 'function update(){if(!going)return;px+=pv;if(px<0)px=0;if(px+pw>480)px=480-pw;'
-        + 'bx+=bdx;by+=bdy;'
-        + 'if(bx-br<0){bx=br;bdx=Math.abs(bdx);}if(bx+br>480){bx=480-br;bdx=-Math.abs(bdx);}'
-        + 'if(by-br<0){by=br;bdy=Math.abs(bdy);}'
-        + 'if(by+br>py&&by-br<py+ph&&bx>px&&bx<px+pw){bdy=-Math.abs(bdy);var rel=(bx-(px+pw/2))/(pw/2);bdx=rel*6;}'
-        + 'if(by>340){lives--;if(lives<=0){showMsg("GAME OVER");going=false;}else{bx=240;by=160;bdx=4;bdy=-4;}}'
-        + 'blocks.forEach(function(b){if(!b.alive)return;if(bx>b.x&&bx<b.x+bw&&by>b.y&&by<b.y+bh){b.alive=false;score+=10;bdy=-bdy;}});'
-        + 'if(blocks.every(function(b){return !b.alive;})){showMsg("CLEAR! "+score+"pts");going=false;}}'
+        + 'function draw(){ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,480,320);ctx.fillStyle="#6d5aef";ctx.beginPath();ctx.roundRect(px,py,pw,ph,5);ctx.fill();ctx.fillStyle="#f0b429";ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);ctx.fill();blocks.forEach(function(b){if(!b.alive)return;ctx.fillStyle=b.c;ctx.beginPath();ctx.roundRect(b.x,b.y,bw,bh,3);ctx.fill();});ctx.fillStyle="#9b8bff";ctx.font="14px sans-serif";ctx.fillText("SCORE:"+score,10,18);ctx.fillText("LIVES:"+lives,400,18);}'
+        + 'function update(){if(!going)return;px+=pv;if(px<0)px=0;if(px+pw>480)px=480-pw;bx+=bdx;by+=bdy;if(bx-br<0){bx=br;bdx=Math.abs(bdx);}if(bx+br>480){bx=480-br;bdx=-Math.abs(bdx);}if(by-br<0){by=br;bdy=Math.abs(bdy);}if(by+br>py&&by-br<py+ph&&bx>px&&bx<px+pw){bdy=-Math.abs(bdy);var rel=(bx-(px+pw/2))/(pw/2);bdx=rel*6;}if(by>340){lives--;if(lives<=0){showMsg("GAME OVER");going=false;}else{bx=240;by=160;bdx=4;bdy=-4;}}blocks.forEach(function(b){if(!b.alive)return;if(bx>b.x&&bx<b.x+bw&&by>b.y&&by<b.y+bh){b.alive=false;score+=10;bdy=-bdy;}});if(blocks.every(function(b){return !b.alive;})){showMsg("CLEAR! "+score+"pts");going=false;}}'
         + 'function showMsg(txt){var m=document.getElementById("msg");m.textContent=txt;m.style.display="block";setTimeout(function(){m.style.display="none";},2500);}'
         + 'document.addEventListener("keydown",function(e){if(e.key==="ArrowLeft")pv=-7;if(e.key==="ArrowRight")pv=7;if(e.key===" "&&!going){going=true;}e.preventDefault();});'
         + 'document.addEventListener("keyup",function(){pv=0;});'
@@ -949,240 +1387,95 @@ function getTemplate(name) {
     },
     timer: function() {
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Timer</title>'
-        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white;gap:24px}'
-        + '.disp{font-size:72px;font-weight:700;font-variant-numeric:tabular-nums;color:#f0f3f8;text-shadow:0 0 40px rgba(109,90,239,.5);letter-spacing:4px}'
-        + '.btns{display:flex;gap:12px}'
-        + 'button{padding:12px 28px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:all .15s}'
-        + '#sb{background:#6d5aef;color:white}#sb:hover{opacity:.85}'
-        + '#rb{background:#1e2330;color:#9ba6b8;border:1px solid rgba(255,255,255,.1)}#rb:hover{background:#2a3040}'
-        + '#lb{background:#2ea043;color:white}#lb:hover{opacity:.85}'
-        + '.laps{max-height:180px;overflow-y:auto;width:240px;display:flex;flex-direction:column;gap:6px}'
-        + '.lap{display:flex;justify-content:space-between;font-size:13px;color:#9ba6b8;padding:6px 10px;background:#0f1117;border-radius:6px}'
-        + '</style></head><body>'
-        + '<div class="disp" id="d">00:00.00</div>'
-        + '<div class="btns"><button id="sb" onclick="toggle()">スタート</button><button id="lb" onclick="addLap()">ラップ</button><button id="rb" onclick="reset()">リセット</button></div>'
-        + '<div class="laps" id="laps"></div>'
-        + '<script>'
-        + 'var t=0,iv=null,lc=0;'
-        + 'function fmt(ms){var m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),cs=Math.floor((ms%1000)/10);return (m<10?"0":"")+m+":"+(s<10?"0":"")+s+"."+(cs<10?"0":"")+cs;}'
-        + 'function toggle(){if(iv){clearInterval(iv);iv=null;document.getElementById("sb").textContent="スタート";}else{var st=Date.now()-t;iv=setInterval(function(){t=Date.now()-st;document.getElementById("d").textContent=fmt(t);},10);document.getElementById("sb").textContent="ストップ";}}'
-        + 'function reset(){clearInterval(iv);iv=null;t=0;lc=0;document.getElementById("d").textContent="00:00.00";document.getElementById("sb").textContent="スタート";document.getElementById("laps").innerHTML="";}'
-        + 'function addLap(){if(!iv)return;lc++;var l=document.createElement("div");l.className="lap";l.innerHTML="<span>Lap "+lc+"<\/span><span>"+fmt(t)+"<\/span>";document.getElementById("laps").prepend(l);}'
-        + '<\/script></body></html>';
+        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white;gap:24px}.disp{font-size:72px;font-weight:700;font-variant-numeric:tabular-nums;color:#f0f3f8;text-shadow:0 0 40px rgba(109,90,239,.5);letter-spacing:4px}.btns{display:flex;gap:12px}button{padding:12px 28px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:all .15s}#sb{background:#6d5aef;color:white}#sb:hover{opacity:.85}#lb{background:#2ea043;color:white}#lb:hover{opacity:.85}#rb{background:#1e2330;color:#9ba6b8;border:1px solid rgba(255,255,255,.1)}.laps{max-height:180px;overflow-y:auto;width:240px;display:flex;flex-direction:column;gap:6px}.lap{display:flex;justify-content:space-between;font-size:13px;color:#9ba6b8;padding:6px 10px;background:#0f1117;border-radius:6px}</style>'
+        + '</head><body><div class="disp" id="d">00:00.00</div><div class="btns"><button id="sb" onclick="toggle()">スタート</button><button id="lb" onclick="addLap()">ラップ</button><button id="rb" onclick="reset()">リセット</button></div><div class="laps" id="laps"></div>'
+        + '<script>var t=0,iv=null,lc=0;function fmt(ms){var m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),cs=Math.floor((ms%1000)/10);return (m<10?"0":"")+m+":"+(s<10?"0":"")+s+"."+(cs<10?"0":"")+cs;}function toggle(){if(iv){clearInterval(iv);iv=null;document.getElementById("sb").textContent="スタート";}else{var st=Date.now()-t;iv=setInterval(function(){t=Date.now()-st;document.getElementById("d").textContent=fmt(t);},10);document.getElementById("sb").textContent="ストップ";}}function reset(){clearInterval(iv);iv=null;t=0;lc=0;document.getElementById("d").textContent="00:00.00";document.getElementById("sb").textContent="スタート";document.getElementById("laps").innerHTML="";}function addLap(){if(!iv)return;lc++;var l=document.createElement("div");l.className="lap";l.innerHTML="<span>Lap "+lc+"<\/span><span>"+fmt(t)+"<\/span>";document.getElementById("laps").prepend(l);}<\/script></body></html>';
     },
     paint: function() {
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Paint</title>'
-        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f1117;display:flex;flex-direction:column;height:100vh;font-family:sans-serif}'
-        + '#bar{height:52px;background:#171b24;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;padding:0 12px;gap:8px;flex-wrap:wrap}'
-        + '.cb{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0}'
-        + '.cb.on{border-color:white;transform:scale(1.25)}'
-        + 'label{font-size:11px;color:#9ba6b8}'
-        + 'input[type=range]{width:70px;accent-color:#6d5aef}'
-        + '#clr{padding:5px 10px;background:#da3633;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}'
-        + 'canvas{flex:1;cursor:crosshair;display:block}'
-        + '</style></head><body>'
-        + '<div id="bar">'
-        + '<span id="prev" style="width:20px;height:20px;border-radius:50%;background:#6d5aef;flex-shrink:0;border:2px solid white"></span>'
-        + '<label>太さ<input type="range" id="sz" min="2" max="40" value="8" oninput="sz=this.value"></label>'
+        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f1117;display:flex;flex-direction:column;height:100vh}#bar{height:52px;background:#171b24;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;padding:0 12px;gap:8px}.cb{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0}.cb.on{border-color:white;transform:scale(1.25)}label{font-size:11px;color:#9ba6b8}input[type=range]{width:70px;accent-color:#6d5aef}#clr{padding:5px 10px;background:#da3633;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}canvas{flex:1;cursor:crosshair;display:block}</style>'
+        + '</head><body><div id="bar"><span id="prev" style="width:20px;height:20px;border-radius:50%;background:#6d5aef;flex-shrink:0;border:2px solid white"></span><label>太さ<input type="range" id="sz" min="2" max="40" value="8" oninput="sz=this.value"></label>'
         + '<div class="cb on" style="background:#6d5aef" onclick="setCol(this,\'#6d5aef\')"></div>'
         + '<div class="cb" style="background:#f85149" onclick="setCol(this,\'#f85149\')"></div>'
         + '<div class="cb" style="background:#f0b429" onclick="setCol(this,\'#f0b429\')"></div>'
         + '<div class="cb" style="background:#2ea043" onclick="setCol(this,\'#2ea043\')"></div>'
         + '<div class="cb" style="background:#0075ca" onclick="setCol(this,\'#0075ca\')"></div>'
-        + '<div class="cb" style="background:#ec4899" onclick="setCol(this,\'#ec4899\')"></div>'
         + '<div class="cb" style="background:#f0f3f8" onclick="setCol(this,\'#f0f3f8\')"></div>'
         + '<div class="cb" style="background:#000000" onclick="setCol(this,\'#000000\')"></div>'
-        + '<button id="clr" onclick="clearC()">クリア</button>'
-        + '</div>'
-        + '<canvas id="c"></canvas>'
-        + '<script>'
-        + 'var c=document.getElementById("c"),ctx=c.getContext("2d"),drawing=false,col="#6d5aef",sz=8;'
-        + 'function resize(){c.width=c.offsetWidth;c.height=c.offsetHeight;ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);}resize();window.addEventListener("resize",resize);'
-        + 'function setCol(el,color){col=color;document.getElementById("prev").style.background=color;document.querySelectorAll(".cb").forEach(function(b){b.classList.remove("on");});el.classList.add("on");}'
-        + 'function pos(e){var r=c.getBoundingClientRect(),touch=e.touches&&e.touches[0];return{x:(touch?touch.clientX:e.clientX)-r.left,y:(touch?touch.clientY:e.clientY)-r.top};}'
-        + 'c.addEventListener("mousedown",function(e){drawing=true;ctx.beginPath();var p=pos(e);ctx.moveTo(p.x,p.y);});'
-        + 'c.addEventListener("mousemove",function(e){if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle=col;ctx.lineWidth=sz;ctx.lineCap="round";ctx.lineJoin="round";ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);});'
-        + 'c.addEventListener("mouseup",function(){drawing=false;});c.addEventListener("mouseleave",function(){drawing=false;});'
-        + 'c.addEventListener("touchstart",function(e){e.preventDefault();drawing=true;ctx.beginPath();var p=pos(e);ctx.moveTo(p.x,p.y);},{passive:false});'
-        + 'c.addEventListener("touchmove",function(e){e.preventDefault();if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle=col;ctx.lineWidth=sz;ctx.lineCap="round";ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});'
-        + 'c.addEventListener("touchend",function(){drawing=false;});'
-        + 'function clearC(){ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);}'
-        + '<\/script></body></html>';
+        + '<button id="clr" onclick="clearC()">クリア</button></div><canvas id="c"></canvas>'
+        + '<script>var c=document.getElementById("c"),ctx=c.getContext("2d"),drawing=false,col="#6d5aef",sz=8;function resize(){c.width=c.offsetWidth;c.height=c.offsetHeight;ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);}resize();window.addEventListener("resize",resize);function setCol(el,color){col=color;document.getElementById("prev").style.background=color;document.querySelectorAll(".cb").forEach(function(b){b.classList.remove("on");});el.classList.add("on");}function pos(e){var r=c.getBoundingClientRect(),touch=e.touches&&e.touches[0];return{x:(touch?touch.clientX:e.clientX)-r.left,y:(touch?touch.clientY:e.clientY)-r.top};}c.addEventListener("mousedown",function(e){drawing=true;ctx.beginPath();var p=pos(e);ctx.moveTo(p.x,p.y);});c.addEventListener("mousemove",function(e){if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle=col;ctx.lineWidth=sz;ctx.lineCap="round";ctx.lineJoin="round";ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);});c.addEventListener("mouseup",function(){drawing=false;});c.addEventListener("mouseleave",function(){drawing=false;});function clearC(){ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);}<\/script></body></html>';
     },
     calc: function() {
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Calculator</title>'
-        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;align-items:center;justify-content:center;height:100vh}'
-        + '.calc{background:#171b24;border-radius:20px;padding:20px;width:280px;box-shadow:0 20px 60px rgba(0,0,0,.5)}'
-        + '.disp{background:#0f1117;border-radius:12px;padding:16px;margin-bottom:16px;text-align:right}'
-        + '.expr{font-size:13px;color:#4a5568;min-height:18px;margin-bottom:4px}'
-        + '.num{font-size:36px;font-weight:700;color:#f0f3f8;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}'
-        + '.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}'
-        + 'button{padding:16px;border-radius:10px;border:none;font-size:18px;font-weight:600;cursor:pointer;transition:all .12s}'
-        + 'button:active{transform:scale(.94)}'
-        + '.nb{background:#1e2330;color:#f0f3f8}.nb:hover{background:#2a3040}'
-        + '.ob{background:#6d5aef;color:white}.ob:hover{opacity:.85}'
-        + '.eb{background:#9b8bff;color:white}.eb:hover{opacity:.85}'
-        + '.cb{background:#da3633;color:white}.cb:hover{opacity:.85}'
-        + '.z{grid-column:span 2}'
-        + '</style></head><body>'
-        + '<div class="calc">'
-        + '<div class="disp"><div class="expr" id="expr"></div><div class="num" id="num">0</div></div>'
-        + '<div class="grid">'
-        + '<button class="cb" onclick="cl()">AC</button>'
-        + '<button class="ob" onclick="pm()">+/-</button>'
-        + '<button class="ob" onclick="pct()">%</button>'
-        + '<button class="ob" onclick="op(\'plus\')">+</button>'
-        + '<button class="nb" onclick="n(\'7\')">7</button>'
-        + '<button class="nb" onclick="n(\'8\')">8</button>'
-        + '<button class="nb" onclick="n(\'9\')">9</button>'
-        + '<button class="ob" onclick="op(\'minus\')">-</button>'
-        + '<button class="nb" onclick="n(\'4\')">4</button>'
-        + '<button class="nb" onclick="n(\'5\')">5</button>'
-        + '<button class="nb" onclick="n(\'6\')">6</button>'
-        + '<button class="ob" onclick="op(\'mul\')">×</button>'
-        + '<button class="nb" onclick="n(\'1\')">1</button>'
-        + '<button class="nb" onclick="n(\'2\')">2</button>'
-        + '<button class="nb" onclick="n(\'3\')">3</button>'
-        + '<button class="ob" onclick="op(\'div\')">÷</button>'
-        + '<button class="nb z" onclick="n(\'0\')">0</button>'
-        + '<button class="nb" onclick="dot()">.</button>'
-        + '<button class="eb" onclick="eq()">=</button>'
-        + '</div></div>'
-        + '<script>'
-        + 'var cur="0",prev="",oper="",fresh=false;'
-        + 'function upd(){document.getElementById("num").textContent=cur;document.getElementById("expr").textContent=prev+(oper?{plus:"+",minus:"-",mul:"×",div:"÷"}[oper]:"");}'
-        + 'function n(v){if(cur.length>12)return;cur=fresh||cur==="0"?v:cur+v;fresh=false;upd();}'
-        + 'function dot(){if(!cur.includes(".")){cur+=".";upd();}}'
-        + 'function pm(){cur=String(-parseFloat(cur));upd();}'
-        + 'function pct(){cur=String(parseFloat(cur)/100);upd();}'
-        + 'function op(o){prev=cur;oper=o;fresh=true;upd();}'
-        + 'function eq(){if(!oper)return;var a=parseFloat(prev),b=parseFloat(cur),r;if(oper==="plus")r=a+b;else if(oper==="minus")r=a-b;else if(oper==="mul")r=a*b;else if(oper==="div")r=b?a/b:0;cur=String(r);prev="";oper="";fresh=true;upd();}'
-        + 'function cl(){cur="0";prev="";oper="";fresh=false;upd();}'
-        + '<\/script></body></html>';
-    },
-    snake: function() {
-      return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Snake</title>'
-        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white;gap:12px}'
-        + 'canvas{border:2px solid #2a3040;border-radius:8px}'
-        + '#info{font-size:12px;color:#9ba6b8}'
-        + '#sc{font-size:20px;font-weight:700;color:#2ea043}'
-        + '</style></head><body>'
-        + '<div id="sc">SCORE: 0</div>'
-        + '<canvas id="c" width="400" height="400"></canvas>'
-        + '<div id="info">WASD / 矢印キーで操作 ／ SPACEでスタート</div>'
-        + '<script>'
-        + 'var c=document.getElementById("c"),ctx=c.getContext("2d"),gs=20,cols=20,rows=20;'
-        + 'var snake=[{x:10,y:10}],dx=0,dy=0,food={x:5,y:5},score=0,going=false,iv=null;'
-        + 'function rnd(){return{x:Math.floor(Math.random()*cols),y:Math.floor(Math.random()*rows)};}'
-        + 'function draw(){ctx.fillStyle="#0d1117";ctx.fillRect(0,0,400,400);'
-        + 'snake.forEach(function(s,i){ctx.fillStyle=i===0?"#2ea043":"#3fb950";ctx.beginPath();ctx.roundRect(s.x*gs+1,s.y*gs+1,gs-2,gs-2,4);ctx.fill();});'
-        + 'ctx.fillStyle="#f0b429";ctx.beginPath();ctx.arc(food.x*gs+gs/2,food.y*gs+gs/2,gs/2-2,0,Math.PI*2);ctx.fill();}'
-        + 'function update(){if(!going)return;'
-        + 'var head={x:snake[0].x+dx,y:snake[0].y+dy};'
-        + 'if(head.x<0||head.x>=cols||head.y<0||head.y>=rows||snake.some(function(s){return s.x===head.x&&s.y===head.y;})){clearInterval(iv);going=false;setTimeout(function(){alert("GAME OVER! Score: "+score);},100);return;}'
-        + 'snake.unshift(head);'
-        + 'if(head.x===food.x&&head.y===food.y){score++;document.getElementById("sc").textContent="SCORE: "+score;food=rnd();}else{snake.pop();}'
-        + 'draw();}'
-        + 'document.addEventListener("keydown",function(e){var m={"ArrowUp":[0,-1],"ArrowDown":[0,1],"ArrowLeft":[-1,0],"ArrowRight":[1,0],"w":[0,-1],"s":[0,1],"a":[-1,0],"d":[1,0]};'
-        + 'if(m[e.key]){var nd=m[e.key];if(nd[0]!==-dx||nd[1]!==-dy){dx=nd[0];dy=nd[1];}}'
-        + 'if(e.key===" "&&!going){going=true;dx=1;dy=0;iv=setInterval(update,120);}'
-        + 'if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))e.preventDefault();});'
-        + 'draw();'
-        + '<\/script></body></html>';
+        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;align-items:center;justify-content:center;height:100vh}.calc{background:#171b24;border-radius:20px;padding:20px;width:280px;box-shadow:0 20px 60px rgba(0,0,0,.5)}.disp{background:#0f1117;border-radius:12px;padding:16px;margin-bottom:16px;text-align:right}.expr{font-size:13px;color:#4a5568;min-height:18px;margin-bottom:4px}.num{font-size:36px;font-weight:700;color:#f0f3f8;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}button{padding:16px;border-radius:10px;border:none;font-size:18px;font-weight:600;cursor:pointer;transition:all .12s}button:active{transform:scale(.94)}.nb{background:#1e2330;color:#f0f3f8}.nb:hover{background:#2a3040}.ob{background:#6d5aef;color:white}.ob:hover{opacity:.85}.eb{background:#9b8bff;color:white}.eb:hover{opacity:.85}.cb2{background:#da3633;color:white}.cb2:hover{opacity:.85}.z{grid-column:span 2}</style>'
+        + '</head><body><div class="calc"><div class="disp"><div class="expr" id="expr"></div><div class="num" id="num">0</div></div><div class="grid">'
+        + '<button class="cb2" onclick="cl()">AC</button><button class="ob" onclick="pm()">+/-</button><button class="ob" onclick="pct()">%</button><button class="ob" onclick="op(\'plus\')">+</button>'
+        + '<button class="nb" onclick="n(\'7\')">7</button><button class="nb" onclick="n(\'8\')">8</button><button class="nb" onclick="n(\'9\')">9</button><button class="ob" onclick="op(\'minus\')">-</button>'
+        + '<button class="nb" onclick="n(\'4\')">4</button><button class="nb" onclick="n(\'5\')">5</button><button class="nb" onclick="n(\'6\')">6</button><button class="ob" onclick="op(\'mul\')">×</button>'
+        + '<button class="nb" onclick="n(\'1\')">1</button><button class="nb" onclick="n(\'2\')">2</button><button class="nb" onclick="n(\'3\')">3</button><button class="ob" onclick="op(\'div\')">÷</button>'
+        + '<button class="nb z" onclick="n(\'0\')">0</button><button class="nb" onclick="dot()">.</button><button class="eb" onclick="eq()">=</button></div></div>'
+        + '<script>var cur="0",prev="",oper="",fresh=false;function upd(){document.getElementById("num").textContent=cur;document.getElementById("expr").textContent=prev+(oper?{plus:"+",minus:"-",mul:"\xd7",div:"\xf7"}[oper]:"");}function n(v){if(cur.length>12)return;cur=fresh||cur==="0"?v:cur+v;fresh=false;upd();}function dot(){if(!cur.includes(".")){cur+=".";upd();}}function pm(){cur=String(-parseFloat(cur));upd();}function pct(){cur=String(parseFloat(cur)/100);upd();}function op(o){prev=cur;oper=o;fresh=true;upd();}function eq(){if(!oper)return;var a=parseFloat(prev),b=parseFloat(cur),r;if(oper==="plus")r=a+b;else if(oper==="minus")r=a-b;else if(oper==="mul")r=a*b;else if(oper==="div")r=b?a/b:0;cur=String(r);prev="";oper="";fresh=true;upd();}function cl(){cur="0";prev="";oper="";fresh=false;upd();}<\/script></body></html>';
     },
     clock: function() {
       return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Clock</title>'
-        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white;gap:16px}'
-        + 'canvas{filter:drop-shadow(0 0 30px rgba(109,90,239,.4))}'
-        + '#dig{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;color:#9b8bff;letter-spacing:4px}'
-        + '#date{font-size:13px;color:#4a5568}'
-        + '</style></head><body>'
-        + '<canvas id="c" width="280" height="280"></canvas>'
-        + '<div id="dig"></div><div id="date"></div>'
-        + '<script>'
-        + 'var c=document.getElementById("c"),ctx=c.getContext("2d"),cx=140,cy=140,r=120;'
-        + 'function draw(){var now=new Date(),h=now.getHours(),m=now.getMinutes(),s=now.getSeconds(),ms=now.getMilliseconds();'
-        + 'ctx.clearRect(0,0,280,280);'
-        + 'ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle="#0f1117";ctx.fill();ctx.strokeStyle="#1e2330";ctx.lineWidth=3;ctx.stroke();'
-        + 'for(var i=0;i<60;i++){var a=i*Math.PI/30,x1=cx+Math.sin(a)*(r-8),y1=cy-Math.cos(a)*(r-8),x2,y2;'
-        + 'if(i%5===0){x2=cx+Math.sin(a)*(r-22);y2=cy-Math.cos(a)*(r-22);ctx.strokeStyle="#6d5aef";ctx.lineWidth=2;}else{x2=cx+Math.sin(a)*(r-14);y2=cy-Math.cos(a)*(r-14);ctx.strokeStyle="#2a3040";ctx.lineWidth=1;}'
-        + 'ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}'
-        + 'function hand(angle,len,w,col){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.sin(angle)*len,cy-Math.cos(angle)*len);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap="round";ctx.stroke();}'
-        + 'hand((h%12+m/60)*Math.PI/6,r*.55,5,"#f0f3f8");'
-        + 'hand((m+s/60)*Math.PI/30,r*.75,3,"#9b8bff");'
-        + 'hand((s+ms/1000)*Math.PI/30,r*.85,1.5,"#6d5aef");'
-        + 'ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle="#6d5aef";ctx.fill();'
-        + 'var days=["日","月","火","水","木","金","土"];'
-        + 'document.getElementById("dig").textContent=(h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;'
-        + 'document.getElementById("date").textContent=now.getFullYear()+"年"+(now.getMonth()+1)+"月"+now.getDate()+"日（"+days[now.getDay()]+"）";}'
-        + 'setInterval(draw,50);draw();'
-        + '<\/script></body></html>';
+        + '<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:white;gap:16px}canvas{filter:drop-shadow(0 0 30px rgba(109,90,239,.4))}#dig{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;color:#9b8bff;letter-spacing:4px}#date{font-size:13px;color:#4a5568}</style>'
+        + '</head><body><canvas id="c" width="280" height="280"></canvas><div id="dig"></div><div id="date"></div>'
+        + '<script>var c=document.getElementById("c"),ctx=c.getContext("2d"),cx=140,cy=140,r=120;function draw(){var now=new Date(),h=now.getHours(),m=now.getMinutes(),s=now.getSeconds(),ms=now.getMilliseconds();ctx.clearRect(0,0,280,280);ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle="#0f1117";ctx.fill();ctx.strokeStyle="#1e2330";ctx.lineWidth=3;ctx.stroke();for(var i=0;i<60;i++){var a=i*Math.PI/30,x1=cx+Math.sin(a)*(r-8),y1=cy-Math.cos(a)*(r-8),x2,y2;if(i%5===0){x2=cx+Math.sin(a)*(r-22);y2=cy-Math.cos(a)*(r-22);ctx.strokeStyle="#6d5aef";ctx.lineWidth=2;}else{x2=cx+Math.sin(a)*(r-14);y2=cy-Math.cos(a)*(r-14);ctx.strokeStyle="#2a3040";ctx.lineWidth=1;}ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}function hand(angle,len,w,col){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.sin(angle)*len,cy-Math.cos(angle)*len);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap="round";ctx.stroke();}hand((h%12+m/60)*Math.PI/6,r*.55,5,"#f0f3f8");hand((m+s/60)*Math.PI/30,r*.75,3,"#9b8bff");hand((s+ms/1000)*Math.PI/30,r*.85,1.5,"#6d5aef");ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle="#6d5aef";ctx.fill();var days=["\u65e5","\u6708","\u706b","\u6c34","\u6728","\u91d1","\u571f"];document.getElementById("dig").textContent=(h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;document.getElementById("date").textContent=now.getFullYear()+"\u5e74"+(now.getMonth()+1)+"\u6708"+now.getDate()+"\u65e5\uff08"+days[now.getDay()]+"\uff09";}setInterval(draw,50);draw();<\/script></body></html>';
     }
   };
   return t[name] ? t[name]() : null;
 }
 
-
 function loadTemplate(name) {
-    var code = getTemplate(name);
-    if (!code) return;
-    document.getElementById('lp-code').value = code;
-    startWS(code, name + ' テンプレート', 'original');
-    T(name + ' テンプレートを起動しました ✓');
+  var code = getTemplate(name);
+  if (!code) return;
+  startWS(code, name + ' テンプレート', 'original');
+  T(name + ' テンプレートを起動しました ✓');
 }
 
 // ════════════════════════════════════════════
-//  プレビューリロード
+//  Shared URL load
 // ════════════════════════════════════════════
-function reloadPreview() {
-    if (!cur) return;
-    document.getElementById('sif').srcdoc = '';
-    setTimeout(function(){ document.getElementById('sif').srcdoc = cur; }, 50);
-    T('リロードしました');
-}
-
-// ════════════════════════════════════════════
-//  フォーク（共有アプリをスタジオで編集）
-// ════════════════════════════════════════════
-var forkCode = '';
-function forkApp() {
-    if (!forkCode) return;
-    nav('studio');
-    setTimeout(function(){
-        document.getElementById('lp-code').value = forkCode;
-        T('フォークしました！コードを編集して起動してください');
-    }, 100);
-}
-
-// Shared
-async function loadShared(){
-  var id=new URLSearchParams(location.search).get('id');if(!id)return false;
-  T('共有アプリを読み込み中...',4000);
-  try{
-    var snap=await db.collection('apps').doc(id).get();
-    if(snap.exists){
-      var d=snap.data();
-      forkCode=d.code;
-      document.getElementById('fork-btn').style.display='flex';
-      document.getElementById('app-ttl').textContent=d.title||'共有されたアプリ';
-      document.getElementById('lcnt').textContent='-';
-      document.getElementById('app-pv').srcdoc=d.code;
-      // navを直接呼ばずにviewを切り替えて確実にコード画面を出さない
-      document.querySelectorAll('.view').forEach(function(x){x.classList.remove('active');});
+async function loadShared() {
+  var id = new URLSearchParams(location.search).get('id');
+  if (!id) return false;
+  T('共有アプリを読み込み中...', 4000);
+  try {
+    var snap = await db.collection('apps').doc(id).get();
+    if (snap.exists) {
+      var d = snap.data();
+      forkCode = d.code;
+      document.getElementById('app-ttl').textContent = d.title || '共有されたアプリ';
+      document.getElementById('lcnt').textContent = '-';
+      document.getElementById('app-pv').srcdoc = d.code;
+      document.getElementById('fork-btn').style.display = 'flex';
+      document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
       document.getElementById('view-app').classList.add('active');
-      document.getElementById('nbg').style.display='none';
-      document.getElementById('nbs').style.display='none';
+      document.getElementById('nbg').style.display = 'none';
+      document.getElementById('nbs').style.display = 'none';
       return true;
     }
-  }catch(e){console.error(e);}
+  } catch(e) { console.error(e); }
   return false;
 }
 
-// Init
-window.addEventListener('DOMContentLoaded',async function(){
+// ════════════════════════════════════════════
+//  Prism (lazy)
+// ════════════════════════════════════════════
+function loadPrism() {
+  if (window.Prism) return;
+  var l = document.createElement('link'); l.rel='stylesheet'; l.href='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css'; document.head.appendChild(l);
+  var s = document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js'; document.head.appendChild(s);
+  var s2 = document.createElement('script'); s2.src='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js'; s.onload=function(){ document.head.appendChild(s2); };
+}
+
+// ════════════════════════════════════════════
+//  Init
+// ════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async function() {
   loadPrism();
-  var loaded=await loadShared();
-  if(!loaded)nav('gallery');
+  var loaded = await loadShared();
+  if (!loaded) nav('gallery');
 });
 </script>
 </body>

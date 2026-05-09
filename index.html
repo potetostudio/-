@@ -339,7 +339,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
           AI でコードを生成（qwen2.5-coder:7b）
         </div>
         <div class="lp-row">
-          <input id="agi" placeholder="例: ブロック崩し / カラフルな電卓 / タイマーアプリ" onkeydown="if(event.key==='Enter')genFromPrompt()">
+          <input id="agi" placeholder="例: ブロック崩し / カラフルな電卓 / タイマーアプリ">
           <button id="agb" onclick="genFromPrompt()">生成する</button>
         </div>
         <div id="ag-status">
@@ -462,7 +462,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div id="aibar">
         <div id="aibar-in">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-          <input id="ai-inp" placeholder="AIに変更を依頼... 例: 背景を黒に / スコアを追加" onkeydown="if(event.key==='Enter')runAI()">
+          <input id="ai-inp" placeholder="AIに変更を依頼... 例: 背景を黒に / スコアを追加">
           <button id="ai-snd" onclick="runAI()">送信</button>
         </div>
       </div>

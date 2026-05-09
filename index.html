@@ -282,7 +282,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     </div>
     <div class="ai-badge">
       <span class="ai-dot"></span>
-      Local AI Mode
+      Local AI Mode (Qwen 7B &amp; Llama)
     </div>
     <div id="nbg" style="display:flex;align-items:center;gap:8px">
       <button class="nb" onclick="openSettings()">
@@ -336,7 +336,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div class="lp-ai">
         <div class="lp-ai-lbl">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-          AI でコードを生成（qwen2.5-coder）
+          AI でコードを生成（qwen2.5-coder:7b）
         </div>
         <div class="lp-row">
           <input id="agi" placeholder="例: ブロック崩し / カラフルな電卓 / タイマーアプリ" onkeydown="if(event.key==='Enter')genFromPrompt()">
@@ -364,7 +364,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       </div>
 
       <!-- Image to Code -->
-      <div class="lp-div"><span>または画像からコードを生成（llava）</span></div>
+      <div class="lp-div"><span>または画像からコードを生成（llama3.2-vision）</span></div>
       <div class="i2c-zone" id="i2c-zone"
            ondragover="event.preventDefault();this.classList.add('drag')"
            ondragleave="this.classList.remove('drag')"
@@ -381,7 +381,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
           <span id="i2c-msg">画像を解析中...</span>
         </div>
         <button class="i2c-gen-btn" id="i2c-btn" onclick="generateFromImage(event)">
-          📸 この画像からアプリを生成（llava）
+          📸 この画像からアプリを生成（Llama 3.2-Vision）
         </button>
       </div>
 
@@ -470,7 +470,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <!-- Auto-Fix -->
       <button id="autofix-btn" onclick="runAutoFix()" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-        🤖 AIでエラーを修復
+        🤖 Qwen AIでエラーを修復
       </button>
       <div id="err-badge" style="display:none"></div>
 
@@ -548,8 +548,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div class="mnote">
       Ollamaは<strong>APIキー不要</strong>でローカル動作します。<br>
       起動: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">ollama serve</code><br>
-      コーダー: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">qwen2.5-coder:1.5b</code><br>
-      画像解析: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">llava</code>
+      コーダー: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">qwen2.5-coder:7b</code><br>
+      画像解析: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">llama3.2-vision</code>
     </div>
     <div class="div1"></div>
     <!-- Firebase Auth -->
@@ -629,8 +629,8 @@ var auth = firebase.auth();
 var apps      = JSON.parse(localStorage.getItem('pt_apps') || '[]');
 var prof      = JSON.parse(localStorage.getItem('pt_prof') || '{"name":"","avatar":""}');
 var ollamaURL = localStorage.getItem('pt_ollama') || 'http://localhost:11434';
-var codeModel = 'qwen2.5-coder:1.5b';
-var imgModel  = 'llava';
+var codeModel = 'qwen2.5-coder:7b';
+var imgModel  = 'llama3.2-vision';
 var vers = [], cur = '', curAppId = null, cpOpen = false;
 var isFsS = false, isFsA = false, surl = '', forkCode = '';
 var imgBase64 = '', imgMime = '';
@@ -661,6 +661,9 @@ function showOllamaErr(msg) {
 
 // ════════════════════════════════════════════
 //  Ollama API
+//  コード生成: qwen2.5-coder:7b（高精度7Bモデル）
+//  画像解析:   llama3.2-vision（マルチモーダル）
+//  動的モデル選択: 画像あり→llama3.2-vision / テキストのみ→qwen2.5-coder:7b
 // ════════════════════════════════════════════
 async function callOllama(model, prompt, onChunk) {
   var url = ollamaURL + '/api/generate';
@@ -695,7 +698,7 @@ async function callOllama(model, prompt, onChunk) {
     return full;
   } catch(e) {
     if (e.name === 'TypeError' || e.message.includes('fetch')) {
-      showOllamaErr('⚠ Ollamaに接続できません。「ollama serve」で起動してください');
+      showOllamaErr('⚠ CORS設定が必要です: launchctl setenv OLLAMA_ORIGINS "*" → Ollamaを再起動');
     } else {
       showOllamaErr('⚠ ' + e.message);
     }
@@ -935,7 +938,7 @@ async function genFromPrompt() {
   if (!p) return;
   var btn = document.getElementById('agb'), st = document.getElementById('ag-status');
   btn.disabled = true; st.style.display = 'flex';
-  document.getElementById('ag-msg').textContent = 'qwen2.5-coder が生成中...';
+  document.getElementById('ag-msg').textContent = 'qwen2.5-coder:7b が生成中...';
 
   var prompt =
     'Create a complete single-file HTML/CSS/JavaScript web application for: ' + p + '\n' +
@@ -947,8 +950,19 @@ async function genFromPrompt() {
     '- Start with <!DOCTYPE html>';
 
   var stopBar = startStreamBar();
+  var lastPreviewUpdate = 0;
   var raw = await callOllama(codeModel, prompt, function(chunk) {
+    var now = Date.now();
     document.getElementById('ag-msg').textContent = 'ストリーミング中... ' + chunk.length + ' 文字';
+    // 500msごとにプレビューをリアルタイム更新（コードが打ち込まれる演出）
+    if (now - lastPreviewUpdate > 500) {
+      lastPreviewUpdate = now;
+      var partial = extractCode(chunk);
+      if (partial && partial.length > 100) {
+        // ランチパッドのtextareaに現在のコードを表示
+        document.getElementById('lp-code').value = partial;
+      }
+    }
   });
   stopBar();
   btn.disabled = false; st.style.display = 'none';
@@ -973,7 +987,18 @@ async function runAI() {
     'Current code:\n' + cur;
 
   var stopBar = startStreamBar();
-  var raw = await callOllama(codeModel, prompt, null);
+  var lastAIUpdate = 0;
+  var raw = await callOllama(codeModel, prompt, function(chunk) {
+    var now = Date.now();
+    // 800msごとにプレビューをリアルタイム更新（コードが書き換わっていく演出）
+    if (now - lastAIUpdate > 800) {
+      lastAIUpdate = now;
+      var partial = extractCode(chunk);
+      if (partial && partial.length > 200 && /<html/i.test(partial)) {
+        document.getElementById('sif').srcdoc = partial;
+      }
+    }
+  });
   stopBar(); stopThinking();
   document.getElementById('ai-snd').disabled = false;
 
@@ -1021,7 +1046,7 @@ async function generateFromImage(e) {
   if (!imgBase64) return;
   var btn = document.getElementById('i2c-btn'), st = document.getElementById('i2c-status');
   btn.disabled = true; st.style.display = 'flex';
-  document.getElementById('i2c-msg').textContent = 'llavaで画像を解析中...';
+  document.getElementById('i2c-msg').textContent = 'Llama 3.2-Vision がデザインを分析中...';
 
   var prompt =
     'Look at this image and create a complete HTML/CSS/JavaScript web application that replicates or is inspired by the UI shown. ' +
@@ -1081,7 +1106,18 @@ async function runAutoFix() {
     'Code:\n' + cur;
 
   var stopBar = startStreamBar();
-  var raw = await callOllama(codeModel, prompt, null);
+  var lastAIUpdate = 0;
+  var raw = await callOllama(codeModel, prompt, function(chunk) {
+    var now = Date.now();
+    // 800msごとにプレビューをリアルタイム更新（コードが書き換わっていく演出）
+    if (now - lastAIUpdate > 800) {
+      lastAIUpdate = now;
+      var partial = extractCode(chunk);
+      if (partial && partial.length > 200 && /<html/i.test(partial)) {
+        document.getElementById('sif').srcdoc = partial;
+      }
+    }
+  });
   stopBar(); stopThinking();
   btn.disabled = false;
   btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg> \uD83E\uDD16 AIでエラーを修復';

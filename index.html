@@ -106,7 +106,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 /* Image to Code zone */
 .i2c-zone{width:100%;max-width:600px;border:2px dashed var(--br);border-radius:var(--r);padding:18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s1);position:relative}
 .i2c-zone:hover,.i2c-zone.drag{border-color:var(--tl);background:rgba(14,165,233,.05)}
-.i2c-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.i2c-zone input{display:none}
 #i2c-preview{width:100%;max-height:160px;object-fit:contain;border-radius:8px;margin-top:10px;display:none;border:1px solid var(--br)}
 .i2c-gen-btn{margin-top:12px;width:100%;padding:9px;border-radius:8px;border:none;cursor:pointer;font-family:var(--f);font-size:12px;font-weight:600;color:white;background:linear-gradient(135deg,#0ea5e9,#38bdf8);box-shadow:0 4px 14px rgba(14,165,233,.3);transition:opacity .15s;display:none}
 .i2c-gen-btn:hover{opacity:.88}
@@ -365,24 +365,42 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 
       <!-- Image to Code -->
       <div class="lp-div"><span>または画像からコードを生成（llama3.2-vision）</span></div>
-      <div class="i2c-zone" id="i2c-zone"
-           ondragover="event.preventDefault();this.classList.add('drag')"
-           ondragleave="this.classList.remove('drag')"
-           ondrop="handleImgDrop(event)">
-        <input type="file" accept="image/*" onchange="handleImgSelect(event)">
-        <div style="pointer-events:none">
+      <div style="width:100%;max-width:600px;display:flex;flex-direction:column;gap:10px;">
+        <!-- ドロップエリア（クリックでファイル選択） -->
+        <div id="i2c-zone"
+             onclick="document.getElementById('i2c-file').click()"
+             ondragover="event.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')"
+             ondrop="handleImgDrop(event)"
+             style="border:2px dashed var(--br);border-radius:var(--r);padding:18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s1);">
+          <input type="file" id="i2c-file" accept="image/*" style="display:none" onchange="handleImgSelect(event)">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" style="margin:0 auto 8px;display:block"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
           <div style="font-size:13px;font-weight:600;color:var(--t2)">画像をドロップ、またはクリックして選択</div>
           <div style="font-size:11px;color:var(--t3);margin-top:3px">ワイヤーフレーム・スクリーンショット・手書きUI対応</div>
+          <img id="i2c-preview" style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;margin-top:10px;display:none;border:1px solid var(--br)">
         </div>
-        <img id="i2c-preview" class="i2c-preview" style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;margin-top:10px;display:none;border:1px solid var(--br)">
-        <div id="i2c-status" style="display:none;margin-top:8px;font-size:11px;color:var(--tl);align-items:center;gap:6px">
+        <!-- 画像読み込み後に表示される追加指示エリア -->
+        <div id="i2c-extra" style="display:none;flex-direction:column;gap:8px;">
+          <textarea id="i2c-prompt" placeholder="追加の指示を入力（任意）&#10;例: ダークモードにして / ボタンを大きくして / スマホ対応にして"
+            style="width:100%;height:72px;background:rgba(0,0,0,.3);border:1px solid var(--brh);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--t1);outline:none;font-family:var(--f);resize:none;line-height:1.5;transition:border-color .15s;"
+            onfocus="this.style.borderColor='var(--tl)'" onblur="this.style.borderColor='var(--brh)'"></textarea>
+          <!-- ステータス表示 -->
+          <div id="i2c-status" style="display:none;font-size:11px;color:var(--tl);align-items:center;gap:6px">
+            <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            <span id="i2c-msg">画像を解析中...</span>
+          </div>
+          <!-- 生成ボタン（ゾーンの外に独立） -->
+          <button id="i2c-btn" onclick="generateFromImage()"
+            style="width:100%;padding:11px;border-radius:9px;border:none;cursor:pointer;font-family:var(--f);font-size:13px;font-weight:700;color:white;background:linear-gradient(135deg,#0ea5e9,#38bdf8);box-shadow:0 4px 14px rgba(14,165,233,.35);transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            この画像からアプリを生成（Vision AI）
+          </button>
+        </div>
+        <!-- 画像未選択時のステータス -->
+        <div id="i2c-status-pre" style="display:none;font-size:11px;color:var(--tl);align-items:center;gap:6px">
           <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
           <span id="i2c-msg">画像を解析中...</span>
         </div>
-        <button class="i2c-gen-btn" id="i2c-btn" onclick="generateFromImage(event)">
-          📸 この画像からアプリを生成（Llama 3.2-Vision）
-        </button>
       </div>
 
       <div class="lp-div"><span>またはコードを貼り付け</span></div>
@@ -539,17 +557,50 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <input type="text" id="pname" class="fi" placeholder="あなたの名前...">
     <div class="div1"></div>
     <!-- Ollama設定 -->
-    <label class="fl">Ollama サーバー URL</label>
-    <input type="text" id="ollama-url" class="fi" placeholder="http://localhost:11434" value="http://localhost:11434">
-    <div id="ollama-chk" class="ollama-status ok" style="display:none"></div>
+    <!-- モード切替 -->
+    <label class="fl">AI モード</label>
     <div style="display:flex;gap:8px;margin-bottom:14px">
-      <button onclick="checkOllama()" style="flex:1;padding:7px;background:var(--s3);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--f)">接続テスト</button>
+      <button id="mode-local-btn" onclick="switchMode('local')"
+        style="flex:1;padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--ac);color:white;border:none;transition:all .15s">
+        🖥 ローカル AI (Ollama)
+      </button>
+      <button id="mode-cloud-btn" onclick="switchMode('cloud')"
+        style="flex:1;padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--s3);color:var(--t2);border:1px solid var(--br);transition:all .15s">
+        ☁ クラウド AI (Gemini)
+      </button>
     </div>
-    <div class="mnote">
-      Ollamaは<strong>APIキー不要</strong>でローカル動作します。<br>
-      起動: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">ollama serve</code><br>
-      コーダー: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">qwen2.5-coder:7b</code><br>
-      画像解析: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">llama3.2-vision</code>
+
+    <!-- ローカルモード設定 -->
+    <div id="local-settings">
+      <label class="fl">Ollama サーバー URL</label>
+      <input type="text" id="ollama-url" class="fi" placeholder="http://localhost:11434" value="http://localhost:11434">
+      <div id="ollama-chk" class="ollama-status ok" style="display:none"></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button onclick="checkOllama()" style="flex:1;padding:7px;background:var(--s3);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--f)">接続テスト</button>
+      </div>
+      <div class="mnote">
+        Ollamaは<strong>APIキー不要</strong>でローカル動作します。<br>
+        起動: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">ollama serve</code><br>
+        コーダー: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">qwen2.5-coder:7b</code><br>
+        画像解析: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">llama3.2-vision</code>
+      </div>
+    </div>
+
+    <!-- クラウドモード設定 -->
+    <div id="cloud-settings" style="display:none">
+      <label class="fl">Gemini API キー</label>
+      <div style="position:relative;margin-bottom:6px">
+        <input type="password" id="gemini-key-input" class="fi" placeholder="AIzaSy..." style="margin-bottom:0;padding-right:40px">
+        <button onclick="toggleGeminiKeyVis()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t3)">
+          <svg id="gkey-eye" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div id="gemini-key-status" style="font-size:10px;color:var(--gr);margin-bottom:10px;height:14px"></div>
+      <div class="mnote">
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:var(--ac2);text-decoration:underline">Google AI Studio</a>
+        からAPIキーを取得してください。<br>
+        ログイン中はFirestoreに自動保存されます。
+      </div>
     </div>
     <div class="div1"></div>
     <!-- Firebase Auth -->
@@ -634,6 +685,8 @@ var imgModel  = 'llama3.2-vision';
 var vers = [], cur = '', curAppId = null, cpOpen = false;
 var isFsS = false, isFsA = false, surl = '', forkCode = '';
 var imgBase64 = '', imgMime = '';
+var aiMode = 'local'; // 'local' | 'cloud'
+var geminiKey = '';
 var lastError = '';
 var curUser = null;
 var ICONS = ['🎮','🎨','🌐','🧮','🎵','📊','✨','🛠','🌈','🔮','🚀','🎯'];
@@ -657,6 +710,46 @@ function showOllamaErr(msg) {
   el.textContent = msg || 'Ollamaを起動してください: ollama serve';
   el.classList.add('show');
   setTimeout(function(){ el.classList.remove('show'); }, 5000);
+}
+
+
+// ════════════════════════════════════════════
+//  Gemini API (クラウドモード)
+// ════════════════════════════════════════════
+async function callGemini(prompt, base64img, mimeType) {
+  if (!geminiKey) { openSettings(); T('Gemini APIキーを設定してください'); return null; }
+  var model = 'gemini-1.5-flash';
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + geminiKey;
+  var parts = [{ text: prompt }];
+  if (base64img) parts.push({ inline_data: { mime_type: mimeType || 'image/png', data: base64img } });
+  try {
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: parts }] })
+    });
+    var data = await res.json();
+    if (!res.ok) {
+      var msg = (data.error && data.error.message) || ('HTTP ' + res.status);
+      T('Gemini エラー: ' + msg); return null;
+    }
+    return data.candidates[0].content.parts[0].text;
+  } catch(e) {
+    T('Gemini 接続エラー: ' + e.message); return null;
+  }
+}
+
+// モードに応じてAIを呼び分ける共通関数
+async function callAI(prompt, base64img, mimeType, onChunk) {
+  if (aiMode === 'cloud') {
+    return await callGemini(prompt, base64img, mimeType);
+  } else {
+    if (base64img) {
+      return await callOllamaWithImage(imgModel, prompt, base64img);
+    } else {
+      return await callOllama(codeModel, prompt, onChunk);
+    }
+  }
 }
 
 // ════════════════════════════════════════════
@@ -883,7 +976,8 @@ function resetS() {
   document.getElementById('ag-status').style.display = 'none';
   imgBase64 = ''; imgMime = '';
   var pr = document.getElementById('i2c-preview'); if (pr) { pr.src = ''; pr.style.display = 'none'; }
-  var ib = document.getElementById('i2c-btn'); if (ib) ib.style.display = 'none';
+  var ix = document.getElementById('i2c-extra'); if (ix) ix.style.display = 'none';
+  var ip = document.getElementById('i2c-prompt'); if (ip) ip.value = '';
   document.getElementById('hp').classList.remove('on');
   hideCP(); hideAutoFix();
   vers = []; cur = '';
@@ -951,7 +1045,7 @@ async function genFromPrompt() {
 
   var stopBar = startStreamBar();
   var lastPreviewUpdate = 0;
-  var raw = await callOllama(codeModel, prompt, function(chunk) {
+  var raw = await callAI(prompt, null, null, function(chunk) {
     var now = Date.now();
     document.getElementById('ag-msg').textContent = 'ストリーミング中... ' + chunk.length + ' 文字';
     // 500msごとにプレビューをリアルタイム更新（コードが打ち込まれる演出）
@@ -988,7 +1082,7 @@ async function runAI() {
 
   var stopBar = startStreamBar();
   var lastAIUpdate = 0;
-  var raw = await callOllama(codeModel, prompt, function(chunk) {
+  var raw = await callAI(prompt, null, null, function(chunk) {
     var now = Date.now();
     // 800msごとにプレビューをリアルタイム更新（コードが書き換わっていく演出）
     if (now - lastAIUpdate > 800) {
@@ -1035,26 +1129,29 @@ function loadImgFile(file) {
     imgBase64 = data.split(',')[1];
     var pr = document.getElementById('i2c-preview');
     pr.src = data; pr.style.display = 'block';
-    document.getElementById('i2c-btn').style.display = 'block';
-    T('画像を読み込みました。生成ボタンを押してください');
+    // 追加指示エリアを表示
+    document.getElementById('i2c-extra').style.display = 'flex';
+    T('画像を読み込みました。指示を入力して生成ボタンを押してください');
   };
   r.readAsDataURL(file);
 }
 
-async function generateFromImage(e) {
-  e.stopPropagation();
+async function generateFromImage() {
   if (!imgBase64) return;
   var btn = document.getElementById('i2c-btn'), st = document.getElementById('i2c-status');
   btn.disabled = true; st.style.display = 'flex';
-  document.getElementById('i2c-msg').textContent = 'Llama 3.2-Vision がデザインを分析中...';
+  document.getElementById('i2c-msg').textContent = aiMode === 'cloud' ? 'Gemini Vision がデザインを分析中...' : 'Llama 3.2-Vision がデザインを分析中...';
 
+  // 追加指示があれば組み込む
+  var extraPrompt = (document.getElementById('i2c-prompt') && document.getElementById('i2c-prompt').value.trim()) || '';
   var prompt =
     'Look at this image and create a complete HTML/CSS/JavaScript web application that replicates or is inspired by the UI shown. ' +
     'Output a single HTML file with embedded CSS and JS. ' +
+    (extraPrompt ? 'Additional instructions: ' + extraPrompt + '. ' : '') +
     'Output HTML code only, no explanation. Start with <!DOCTYPE html>.';
 
   var stopBar = startStreamBar();
-  var raw = await callOllamaWithImage(imgModel, prompt, imgBase64);
+  var raw = await callAI(prompt, imgBase64, imgMime, null);
   stopBar();
   btn.disabled = false; st.style.display = 'none';
 
@@ -1107,7 +1204,7 @@ async function runAutoFix() {
 
   var stopBar = startStreamBar();
   var lastAIUpdate = 0;
-  var raw = await callOllama(codeModel, prompt, function(chunk) {
+  var raw = await callAI(prompt, null, null, function(chunk) {
     var now = Date.now();
     // 800msごとにプレビューをリアルタイム更新（コードが書き換わっていく演出）
     if (now - lastAIUpdate > 800) {
@@ -1361,6 +1458,7 @@ auth.onAuthStateChanged(function(user) {
     as.style.color = 'var(--gr)';
     lb.style.display = 'block';
     loadUserApps();
+    loadUserSettings();
   } else {
     as.textContent = '未ログイン';
     as.style.color = 'var(--t2)';
@@ -1369,12 +1467,94 @@ auth.onAuthStateChanged(function(user) {
   renderGallery();
 });
 
+
+// ════════════════════════════════════════════
+//  モード切替 & Gemini キー管理
+// ════════════════════════════════════════════
+function switchMode(mode) {
+  aiMode = mode;
+  document.getElementById('local-settings').style.display  = mode === 'local'  ? 'block' : 'none';
+  document.getElementById('cloud-settings').style.display  = mode === 'cloud' ? 'block' : 'none';
+  document.getElementById('mode-local-btn').style.background = mode === 'local'  ? 'var(--ac)' : 'var(--s3)';
+  document.getElementById('mode-local-btn').style.color    = mode === 'local'  ? 'white' : 'var(--t2)';
+  document.getElementById('mode-local-btn').style.border   = mode === 'local'  ? 'none' : '1px solid var(--br)';
+  document.getElementById('mode-cloud-btn').style.background = mode === 'cloud' ? 'var(--tl)' : 'var(--s3)';
+  document.getElementById('mode-cloud-btn').style.color    = mode === 'cloud' ? 'white' : 'var(--t2)';
+  document.getElementById('mode-cloud-btn').style.border   = mode === 'cloud' ? 'none' : '1px solid var(--br)';
+  updateNavBadge();
+}
+
+function updateNavBadge() {
+  var badge = document.querySelector('.ai-badge');
+  if (!badge) return;
+  if (aiMode === 'cloud') {
+    badge.innerHTML = '<span class="ai-dot" style="background:var(--tl)"></span> Cloud AI Mode (Gemini)';
+    badge.style.background = 'rgba(14,165,233,.12)';
+    badge.style.borderColor = 'rgba(14,165,233,.3)';
+    badge.style.color = 'var(--tl)';
+  } else {
+    badge.innerHTML = '<span class="ai-dot"></span> Local AI Mode (Qwen 7B &amp; Llama)';
+    badge.style.background = 'rgba(46,160,67,.12)';
+    badge.style.borderColor = 'rgba(46,160,67,.3)';
+    badge.style.color = 'var(--gr)';
+  }
+}
+
+function toggleGeminiKeyVis() {
+  var inp = document.getElementById('gemini-key-input');
+  var ico = document.getElementById('gkey-eye');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    ico.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    inp.type = 'password';
+    ico.innerHTML = '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+async function saveGeminiKeyToFirestore(key) {
+  if (!curUser) return;
+  try {
+    await db.collection('users').doc(curUser.uid).set({
+      geminiApiKey: key,
+      selectedMode: aiMode,
+      updatedAt: new Date()
+    }, { merge: true });
+  } catch(e) { console.warn('Firestore save failed:', e); }
+}
+
+async function loadUserSettings() {
+  if (!curUser) return;
+  try {
+    var snap = await db.collection('users').doc(curUser.uid).get();
+    if (snap.exists) {
+      var d = snap.data();
+      if (d.geminiApiKey) {
+        geminiKey = d.geminiApiKey;
+        var ks = document.getElementById('gemini-key-status');
+        if (ks) { ks.textContent = '✓ 保存済み: ' + geminiKey.slice(0,8) + '••••••••'; }
+      }
+      if (d.selectedMode) {
+        aiMode = d.selectedMode;
+        switchMode(aiMode);
+      }
+    }
+  } catch(e) { console.warn('Firestore load failed:', e); }
+}
+
 // ════════════════════════════════════════════
 //  Settings
 // ════════════════════════════════════════════
 function openSettings() {
   document.getElementById('pname').value = prof.name || '';
   document.getElementById('ollama-url').value = ollamaURL;
+  // モード切替UIを現在の状態に反映
+  switchMode(aiMode);
+  // Geminiキーを反映
+  var gki = document.getElementById('gemini-key-input');
+  if (gki) gki.value = geminiKey || '';
+  var gks = document.getElementById('gemini-key-status');
+  if (gks) gks.textContent = geminiKey ? ('✓ 設定済み: ' + geminiKey.slice(0,8) + '••••••••') : '';
   var img = document.getElementById('avimg');
   if (prof.avatar) { img.src = prof.avatar; img.style.display = 'block'; } else { img.style.display = 'none'; }
   document.getElementById('sm').classList.add('on');
@@ -1384,6 +1564,20 @@ function saveSets() {
   localStorage.setItem('pt_prof', JSON.stringify(prof));
   ollamaURL = document.getElementById('ollama-url').value.trim() || 'http://localhost:11434';
   localStorage.setItem('pt_ollama', ollamaURL);
+  // Geminiキーを保存
+  var gki = document.getElementById('gemini-key-input');
+  if (gki && gki.value.trim()) {
+    var newKey = gki.value.trim();
+    if (!newKey.startsWith('AIza')) { T('Gemini APIキーの形式が正しくありません'); return; }
+    geminiKey = newKey;
+    saveGeminiKeyToFirestore(geminiKey);
+  }
+  // モードをFirestoreに保存
+  if (curUser) {
+    db.collection('users').doc(curUser.uid).set({ selectedMode: aiMode }, { merge: true }).catch(function(){});
+  }
+  localStorage.setItem('pt_mode', aiMode);
+  updateNavBadge();
   CM('sm'); T('設定を保存しました');
 }
 function handleAv(e) {
@@ -1510,6 +1704,10 @@ function loadPrism() {
 // ════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', async function() {
   loadPrism();
+  // ローカルストレージからモードを復元
+  var savedMode = localStorage.getItem('pt_mode');
+  if (savedMode) aiMode = savedMode;
+  updateNavBadge();
   var loaded = await loadShared();
   if (!loaded) nav('gallery');
 });

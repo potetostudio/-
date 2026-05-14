@@ -141,7 +141,20 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .dev-btn{padding:4px 8px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
 .dev-btn svg{width:13px;height:13px}
 #ws-main{flex:1;display:flex;min-height:0;overflow:hidden}
-#pw{flex:1;display:flex;align-items:center;justify-content:center;background:#080812;min-width:0;overflow:hidden}
+#pw{flex:1;display:flex;align-items:center;justify-content:center;background:#080812;min-width:0;overflow:hidden;position:relative}
+/* DeepSeek 一発生成時のプレビュー上ローディング */
+#build-loading{display:none;position:absolute;inset:0;z-index:25;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(109,90,239,.25),rgba(7,8,18,.96));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);pointer-events:all}
+#build-loading.on{display:flex}
+.bl-grid{position:absolute;inset:0;opacity:.12;background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:32px 32px;animation:bl-shift 20s linear infinite}
+@keyframes bl-shift{to{background-position:32px 32px}}
+.bl-core{text-align:center;padding:32px;z-index:1;max-width:420px}
+.bl-icon{font-size:42px;margin-bottom:16px;filter:drop-shadow(0 0 24px rgba(109,90,239,.6));animation:bl-float 2.4s ease-in-out infinite}
+@keyframes bl-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.bl-title{font-size:17px;font-weight:700;background:linear-gradient(135deg,#edf2f7,#9b8bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px;line-height:1.5}
+.bl-sub{font-size:12px;color:var(--t2);line-height:1.7}
+.bl-bar{margin-top:22px;height:3px;border-radius:3px;background:var(--s4);overflow:hidden}
+.bl-bar>i{display:block;height:100%;width:40%;background:linear-gradient(90deg,var(--ac),var(--ac2),var(--tl));border-radius:3px;animation:bl-scan 1.4s ease-in-out infinite}
+@keyframes bl-scan{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
 #dc{transition:all .3s cubic-bezier(.16,1,.3,1)}
 #dc.device-desktop{width:100%;height:100%}
 #dc.device-tablet{width:1024px;height:680px;max-width:95%;max-height:95%;border-radius:16px;border:8px solid var(--s3);box-shadow:0 16px 48px rgba(0,0,0,.7)}
@@ -170,9 +183,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 /* ══ CHAT PANEL ══ */
 #chat-panel{width:340px;min-width:340px;display:none;flex-direction:column;background:var(--s1);border-right:1px solid var(--br);flex-shrink:0;position:relative}
 #chat-panel.open{display:flex}
-#chat-hdr{padding:10px 12px;background:var(--s2);border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px;flex-shrink:0}
-#chat-hdr-title{font-size:12px;font-weight:700;color:var(--t1);flex:1}
-#chat-clear{background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px;padding:3px 7px;border-radius:5px;font-family:var(--f);transition:all .15s}
+#chat-hdr{padding:10px 12px;background:var(--s2);border-bottom:1px solid var(--br);display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap}
+#chat-hdr-title{font-size:12px;font-weight:700;color:var(--t1);flex:1;min-width:120px}
+#chat-clear{background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px;padding:4px 8px;border-radius:5px;font-family:var(--f);transition:all .15s;white-space:nowrap;flex-shrink:0}
 #chat-clear:hover{background:var(--s4);color:var(--rd)}
 #chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
 .cm{display:flex;flex-direction:column;gap:3px;max-width:92%}
@@ -184,6 +197,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .cm.ai .cm-bubble{background:var(--s3);color:var(--t1);border-radius:12px 12px 12px 3px;border:1px solid var(--br)}
 .cm.ai .cm-bubble.thinking{color:var(--t3);font-style:italic}
 .cm-code-applied{font-size:10px;color:var(--gr);padding:2px 6px;background:rgba(46,160,67,.1);border-radius:4px;display:inline-flex;align-items:center;gap:4px}
+.cm-time{font-size:9px;color:var(--t3);padding:0 4px;margin-top:1px}
+.cvm-time{font-size:9px;color:var(--t3);padding:0 4px;margin-top:2px}
 #chat-inp-wrap{padding:10px;border-top:1px solid var(--br);display:flex;flex-direction:column;gap:7px;flex-shrink:0}
 #chat-inp{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--brh);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--t1);outline:none;font-family:var(--f);resize:none;line-height:1.5;max-height:100px;min-height:38px;transition:border-color .15s}
 #chat-inp:focus{border-color:var(--ac)}
@@ -352,7 +367,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     </div>
     <div class="ai-badge">
       <span class="ai-dot"></span>
-      Local AI Mode (Qwen 7B &amp; Llama)
+      Local AI Mode (Qwen 7B &amp; DeepSeek 16B)
     </div>
     <div id="nbg" style="display:flex;align-items:center;gap:8px">
       <button class="nb" onclick="openSettings()">
@@ -410,7 +425,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div class="lp-ai">
         <div class="lp-ai-lbl">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-          <span id="lp-ai-lbl-text">AI でコードを生成（qwen2.5-coder:7b）</span>
+          <span id="lp-ai-lbl-text">AI でコードを一発生成（deepseek-coder-v2:16b）</span>
         </div>
         <div class="lp-row">
           <input id="agi" placeholder="例: ブロック崩し / カラフルな電卓 / タイマーアプリ">
@@ -539,7 +554,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
           <div id="chat-hdr">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ac2)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span id="chat-hdr-title">AIチャット</span>
-            <button id="chat-clear" onclick="clearChat()" title="履歴をクリア">🗑 クリア</button>
+            <button id="chat-clear" onclick="clearChat()" title="会話ログをすべて削除">チャット履歴をクリア</button>
             <button class="xbtn" onclick="toggleChatPanel()" title="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
           </div>
           <div id="chat-msgs">
@@ -561,6 +576,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         </div>
 
         <div id="pw">
+          <div id="build-loading" aria-live="polite">
+            <div class="bl-grid"></div>
+            <div class="bl-core">
+              <div class="bl-icon">🏗</div>
+              <div class="bl-title">DeepSeek-16Bがコードを建築中…（しばらくお待ちください）</div>
+              <div class="bl-sub">大規模モデルが単一HTMLを仕上げています。プレビューは完成後に一発表示されます。</div>
+              <div class="bl-bar"><i></i></div>
+            </div>
+          </div>
           <div id="dc" class="device-desktop">
             <iframe id="sif" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
           </div>
@@ -624,7 +648,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div id="cv-hdr">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ac2)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span id="cv-hdr-title">AIチャット</span>
-        <button id="cv-clear" onclick="cvClear()">🗑 クリア</button>
+        <button id="cv-clear" onclick="cvClear()">チャット履歴をクリア</button>
       </div>
       <div id="cv-msgs">
         <div class="cvm ai">
@@ -740,7 +764,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div class="mnote">
         Ollamaは<strong>APIキー不要</strong>でローカル動作します。<br>
         起動: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">ollama serve</code><br>
-        コーダー: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">qwen2.5-coder:7b</code><br>
+        コーダー（チャット）: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">qwen2.5-coder:7b</code><br>
+        一発生成（作る）: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">deepseek-coder-v2:16b</code><br>
         画像解析: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">llama3.2-vision</code>
       </div>
     </div>
@@ -861,7 +886,9 @@ var auth = firebase.auth();
 var apps      = JSON.parse(localStorage.getItem('pt_apps') || '[]');
 var prof      = JSON.parse(localStorage.getItem('pt_prof') || '{"name":"","avatar":""}');
 var ollamaURL = localStorage.getItem('pt_ollama') || 'http://localhost:11434';
-var codeModel = 'qwen2.5-coder:7b';
+var ollamaChatModel = 'qwen2.5-coder:7b';
+var ollamaBuildModel = 'deepseek-coder-v2:16b';
+var codeModel = ollamaChatModel;
 var imgModel  = 'llama3.2-vision';
 var vers = [], cur = '', curAppId = null, cpOpen = false;
 var isFsS = false, isFsA = false, surl = '', forkCode = '';
@@ -1042,18 +1069,29 @@ async function callAI(prompt, base64img, mimeType, onChunk) {
 }
 
 // ════════════════════════════════════════════
-//  Ollama API
-//  コード生成: qwen2.5-coder:7b（高精度7Bモデル）
-//  画像解析:   llama3.2-vision（マルチモーダル）
-//  動的モデル選択: 画像あり→llama3.2-vision / テキストのみ→qwen2.5-coder:7b
+//  Ollama API（テキストは /api/chat、画像のみ /api/generate）
+//  チャット: ollamaChatModel / 一発生成: ollamaBuildModel / Vision: imgModel
 // ════════════════════════════════════════════
-async function callOllama(model, prompt, onChunk) {
-  var url = ollamaURL + '/api/generate';
+function trimOllamaTurns(msgs, maxPairs) {
+  var n = (maxPairs || 5) * 2;
+  if (!msgs || msgs.length <= n) return msgs ? msgs.slice() : [];
+  return msgs.slice(-n);
+}
+
+function showBuildLoading(on) {
+  var el = document.getElementById('build-loading');
+  if (!el) return;
+  if (on) el.classList.add('on');
+  else el.classList.remove('on');
+}
+
+async function callOllamaChatStream(model, messages, onToken) {
+  var url = ollamaURL + '/api/chat';
   try {
     var res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: model, prompt: prompt, stream: true })
+      body: JSON.stringify({ model: model, messages: messages, stream: true })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
 
@@ -1070,9 +1108,10 @@ async function callOllama(model, prompt, onChunk) {
         if (!line) continue;
         try {
           var obj = JSON.parse(line);
-          if (obj.response) {
-            full += obj.response;
-            if (onChunk) onChunk(full);
+          var token = (obj.message && obj.message.content) ? obj.message.content : '';
+          if (token) {
+            full += token;
+            if (onToken) onToken(full);
           }
         } catch(e) {}
       }
@@ -1086,6 +1125,10 @@ async function callOllama(model, prompt, onChunk) {
     }
     return null;
   }
+}
+
+async function callOllama(model, prompt, onChunk) {
+  return await callOllamaChatStream(model, [{ role: 'user', content: prompt }], onChunk || null);
 }
 
 // マルチモーダル（画像付き）
@@ -1332,7 +1375,8 @@ async function genFromPrompt() {
   var btn = document.getElementById('agb'), st = document.getElementById('ag-status');
   btn.disabled = true; st.style.display = 'flex';
 
-  var engineName = aiMode === 'cloud' ? 'Gemini' : aiMode === 'nano' ? 'Chrome Built-in AI (Gemini Nano)' : 'qwen2.5-coder:7b';
+  var useDeepBuild = (aiMode === 'local');
+  var engineName = aiMode === 'cloud' ? 'Gemini' : aiMode === 'nano' ? 'Chrome Built-in AI (Gemini Nano)' : 'deepseek-coder-v2:16b';
   document.getElementById('ag-msg').textContent = engineName + ' が生成中...';
 
   var prompt =
@@ -1341,31 +1385,54 @@ async function genFromPrompt() {
     '- Single HTML file with embedded CSS and JS\n' +
     '- No external dependencies except CDN if needed\n' +
     '- Functional and visually appealing\n' +
-    '- Output HTML code only, no explanation\n' +
-    '- Start with <!DOCTYPE html>';
+    '- Wrap the entire HTML source in a ```html ... ``` fenced code block\n' +
+    '- Start the HTML with <!DOCTYPE html>';
 
   var stopBar = startStreamBar();
   var lastPreviewUpdate = 0;
-  var raw = await callAI(prompt, null, null, function(chunk) {
-    var now = Date.now();
-    document.getElementById('ag-msg').textContent = 'ストリーミング中... ' + chunk.length + ' 文字';
-    // 500msごとにプレビューをリアルタイム更新（コードが打ち込まれる演出）
-    if (now - lastPreviewUpdate > 500) {
-      lastPreviewUpdate = now;
-      var partial = extractCode(chunk);
-      if (partial && partial.length > 100) {
-        // ランチパッドのtextareaに現在のコードを表示
-        document.getElementById('lp-code').value = partial;
+  var raw;
+
+  if (useDeepBuild) {
+    document.getElementById('launchpad').style.display = 'none';
+    document.getElementById('workspace').style.display = 'flex';
+    document.getElementById('sif').srcdoc = '';
+    showBuildLoading(true);
+    var buildSys =
+      'You are an expert HTML/CSS/JavaScript developer. You output one complete single-file web application. ' +
+      'The full HTML must appear inside a single ```html ... ``` fenced code block. After the closing fence you may add one short Japanese sentence.';
+    raw = await callOllamaChatStream(ollamaBuildModel, [
+      { role: 'system', content: buildSys },
+      { role: 'user', content: prompt }
+    ], function(full) {
+      document.getElementById('ag-msg').textContent = 'DeepSeek-16B … ' + full.length + ' 文字を処理中';
+    });
+    showBuildLoading(false);
+  } else {
+    raw = await callAI(prompt, null, null, function(chunk) {
+      var now = Date.now();
+      document.getElementById('ag-msg').textContent = 'ストリーミング中... ' + chunk.length + ' 文字';
+      if (now - lastPreviewUpdate > 500) {
+        lastPreviewUpdate = now;
+        var partial = extractCode(chunk);
+        if (partial && partial.length > 100) {
+          document.getElementById('lp-code').value = partial;
+        }
       }
-    }
-  });
+    });
+  }
+
   stopBar();
   btn.disabled = false; st.style.display = 'none';
 
   if (raw) {
     var code = extractCode(raw);
     if (code) { startWS(code, p + '（AI生成）', 'ai'); T('生成完了！'); }
-    else { T('コードの抽出に失敗しました'); }
+    else { T('コードの抽出に失敗しました'); if (useDeepBuild) { document.getElementById('launchpad').style.display = 'flex'; document.getElementById('workspace').style.display = 'none'; } }
+  } else {
+    if (useDeepBuild) {
+      document.getElementById('launchpad').style.display = 'flex';
+      document.getElementById('workspace').style.display = 'none';
+    }
   }
 }
 
@@ -1416,6 +1483,11 @@ async function runAI() {
 //  Chat Panel
 // ════════════════════════════════════════════
 var chatHistory = []; // {role:'user'|'ai', text:string}
+var wsOllamaMessages = []; // ワークスペースチャット用 Ollama messages（最大5往復は送信時にトリム）
+var WS_CHAT_SYSTEM =
+  'You are an expert HTML/CSS/JavaScript developer helping create or modify a single-file web app. ' +
+  'When you output code, include the COMPLETE HTML inside a ```html ... ``` fenced code block. ' +
+  'After the code block, reply briefly in Japanese (1–2 sentences).';
 var chatOpen = false;
 
 function toggleChatPanel() {
@@ -1445,11 +1517,12 @@ function updateChatModeLabel() {
   if (!lbl) return;
   if (aiMode === 'cloud') lbl.textContent = '☁ Gemini Cloud AI';
   else if (aiMode === 'nano') lbl.textContent = '🔷 Chrome Built-in AI';
-  else lbl.textContent = '🖥 Ollama Local AI (' + codeModel + ')';
+  else lbl.textContent = '🖥 チャット: ' + ollamaChatModel + ' ／ 一発作成: ' + ollamaBuildModel;
 }
 
 function clearChat() {
   chatHistory = [];
+  wsOllamaMessages = [];
   var msgs = document.getElementById('chat-msgs');
   msgs.innerHTML =
     '<div class="cm ai"><span class="cm-role">AI</span>' +
@@ -1476,6 +1549,11 @@ function addChatMsg(role, text, extra) {
     tag.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> ' + extra;
     wrap.appendChild(tag);
   }
+  var tim = document.createElement('span');
+  tim.className = 'cm-time';
+  var d = new Date();
+  tim.textContent = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  wrap.appendChild(tim);
   msgs.appendChild(wrap);
   msgs.scrollTop = msgs.scrollHeight;
   return bubble;
@@ -1531,8 +1609,9 @@ async function sendChat() {
   var thinkBubble = addThinkingBubble();
 
   var prompt;
+  var userTurn;
   if (isGenMode) {
-    prompt =
+    userTurn =
       'Create a complete single-file HTML/CSS/JavaScript web application for: ' + p + '\n' +
       'Requirements:\n' +
       '- Single HTML file with embedded CSS and JS\n' +
@@ -1540,11 +1619,14 @@ async function sendChat() {
       '- Functional and visually appealing\n' +
       '- Wrap the entire HTML inside a ```html ... ``` code block\n' +
       '- After the code block, write a brief 1-2 sentence Japanese description of what you made';
+    prompt = userTurn;
   } else {
-    // 会話履歴を含めたコンテキストを構築
     var histCtx = chatHistory.slice(-8).map(function(m) {
       return (m.role === 'user' ? 'User: ' : 'AI: ') + m.text;
     }).join('\n');
+    userTurn =
+      'User request: ' + p + '\n\n' +
+      'Current complete HTML (modify to fulfill the request; output the full updated file in ```html...```):\n' + cur;
     prompt =
       'You are an expert HTML developer helping to modify a web application through conversation.\n' +
       'Recent conversation:\n' + histCtx + '\n\n' +
@@ -1558,21 +1640,45 @@ async function sendChat() {
 
   var stopBar = startStreamBar();
   var lastUpdate = 0;
-  var raw = await callAI(prompt, null, null, function(chunk) {
-    var now = Date.now();
-    // チャットバブルにストリーミングテキストを流す
-    var txt = chunk.replace(/```html[\s\S]*?```/gi, '[コードを生成中...]');
-    thinkBubble.textContent = txt.slice(-120) || '生成中...';
-    thinkBubble.className = 'cm-bubble';
-    // プレビューのリアルタイム更新
-    if (now - lastUpdate > 800) {
-      lastUpdate = now;
-      var partial = extractCode(chunk);
-      if (partial && partial.length > 200 && /<html/i.test(partial)) {
-        document.getElementById('sif').srcdoc = partial;
+  var raw;
+
+  if (aiMode === 'local') {
+    var trimmedPast = trimOllamaTurns(wsOllamaMessages, 5);
+    var userMsgObj = { role: 'user', content: userTurn };
+    var apiMsgs = [{ role: 'system', content: WS_CHAT_SYSTEM }].concat(trimmedPast).concat([userMsgObj]);
+    raw = await callOllamaChatStream(ollamaChatModel, apiMsgs, function(full) {
+      var txt = full.replace(/```html[\s\S]*?```/gi, '[コードを生成中...]');
+      thinkBubble.textContent = txt.slice(-120) || '生成中...';
+      thinkBubble.className = 'cm-bubble';
+      var now = Date.now();
+      if (now - lastUpdate > 800) {
+        lastUpdate = now;
+        var partial = extractCode(full);
+        if (partial && partial.length > 200 && /<html/i.test(partial)) {
+          document.getElementById('sif').srcdoc = partial;
+        }
       }
+    });
+    if (raw) {
+      wsOllamaMessages.push(userMsgObj);
+      wsOllamaMessages.push({ role: 'assistant', content: raw });
+      wsOllamaMessages = trimOllamaTurns(wsOllamaMessages, 5);
     }
-  });
+  } else {
+    raw = await callAI(prompt, null, null, function(chunk) {
+      var now = Date.now();
+      var txt = chunk.replace(/```html[\s\S]*?```/gi, '[コードを生成中...]');
+      thinkBubble.textContent = txt.slice(-120) || '生成中...';
+      thinkBubble.className = 'cm-bubble';
+      if (now - lastUpdate > 800) {
+        lastUpdate = now;
+        var partial = extractCode(chunk);
+        if (partial && partial.length > 200 && /<html/i.test(partial)) {
+          document.getElementById('sif').srcdoc = partial;
+        }
+      }
+    });
+  }
   stopBar();
   removeThinkingBubble();
   sndBtn.disabled = false;
@@ -1622,7 +1728,7 @@ function cvUpdateEngine() {
   if (!el) return;
   if (aiMode === 'cloud')      el.textContent = '☁ Gemini Cloud AI';
   else if (aiMode === 'nano')  el.textContent = '🔷 Chrome Built-in AI';
-  else                         el.textContent = '🖥 Ollama Local AI (' + codeModel + ')';
+  else                         el.textContent = '🖥 チャット: ' + ollamaChatModel + ' ／ 一発作成: ' + ollamaBuildModel;
 }
 
 function cvClear() {
@@ -1671,6 +1777,11 @@ function cvAddMsg(role, text, tag, imgBase64) {
     tagEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>' + tag;
     wrap.appendChild(tagEl);
   }
+  var cvt = document.createElement('span');
+  cvt.className = 'cvm-time';
+  var d2 = new Date();
+  cvt.textContent = ('0' + d2.getHours()).slice(-2) + ':' + ('0' + d2.getMinutes()).slice(-2);
+  wrap.appendChild(cvt);
   msgs.appendChild(wrap);
   msgs.scrollTop = msgs.scrollHeight;
   return bubble;
@@ -1731,20 +1842,14 @@ async function cvSend() {
   var fullReply = '';
 
   try {
-    var model = sentImg ? imgModel : codeModel;
+    var model = sentImg ? imgModel : ollamaChatModel;
     var url = ollamaURL + '/api/chat';
 
-    // システムプロンプトを先頭に
-    var messages = cvOllamaMessages;
-    if (cvOllamaMessages.length === 1) {
-      messages = [
-        { role: 'system', content:
-          'You are an expert HTML/CSS/JavaScript developer. ' +
-          'When creating or modifying web apps, always output the COMPLETE single-file HTML wrapped in ```html ... ``` code blocks. ' +
-          'After any code block, reply in Japanese with a brief explanation.' },
-        userMsg
-      ];
-    }
+    var cvSys =
+      'You are an expert HTML/CSS/JavaScript developer. ' +
+      'When creating or modifying web apps, always output the COMPLETE single-file HTML wrapped in ```html ... ``` code blocks. ' +
+      'After any code block, reply in Japanese with a brief explanation.';
+    var messages = [{ role: 'system', content: cvSys }].concat(trimOllamaTurns(cvOllamaMessages, 5));
 
     var res = await fetch(url, {
       method: 'POST',
@@ -1787,8 +1892,9 @@ async function cvSend() {
       }
     }
 
-    // ── AIの返答をmessages配列に積む ──
+    // ── AIの返答をmessages配列に積む（最大5往復にトリム） ──
     cvOllamaMessages.push({ role: 'assistant', content: fullReply });
+    cvOllamaMessages = trimOllamaTurns(cvOllamaMessages, 5);
 
   } catch(e) {
     stopBar();

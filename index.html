@@ -2499,13 +2499,13 @@ function updateNavBadge() {
     if (lpLbl) lpLbl.textContent = 'AI でコードを生成（Chrome Built-in AI — Gemini Nano）';
   } else {
     if (badge) {
-      badge.innerHTML = '<span class="ai-dot"></span> Local AI Mode (Qwen 7B &amp; Llama)';
+      badge.innerHTML = '<span class="ai-dot"></span> Local AI Mode (Qwen 7B &amp; DeepSeek 16B)';
       badge.style.background = 'rgba(46,160,67,.12)';
       badge.style.borderColor = 'rgba(46,160,67,.3)';
       badge.style.color = 'var(--gr)';
     }
     if (lpSub) lpSub.textContent = 'ローカル AI（Ollama）でコードを生成・編集';
-    if (lpLbl) lpLbl.textContent = 'AI でコードを生成（qwen2.5-coder:7b）';
+    if (lpLbl) lpLbl.textContent = 'AI でコードを一発生成（' + ollamaBuildModel + '）';
   }
   // チャットビューのエンジン表示も更新
   cvUpdateEngine();

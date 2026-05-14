@@ -574,6 +574,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
                 送信
               </button>
             </div>
+            <button type="button" id="chat-copy-code" class="nb" style="width:100%;padding:7px 10px;font-size:11px;font-weight:600;justify-content:center" onclick="copyChatWorkspaceCode()" title="現在プレビュー中のHTMLをクリップボードにコピー">📋 コードをコピー</button>
             <div id="chat-mode-lbl"></div>
           </div>
         </div>
@@ -685,6 +686,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div id="cv-pv-bar">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         <span id="cv-pv-title" style="color:var(--t3);font-size:11px;flex:1">プレビュー — まだコードがありません</span>
+        <button type="button" id="cv-copy-code" onclick="copyCvChatCode()" title="プレビューのHTMLをコピー" style="font-size:10px;font-weight:600;color:var(--t2);background:var(--s3);border:1px solid var(--br);border-radius:6px;padding:4px 9px;cursor:pointer;font-family:var(--f);flex-shrink:0;transition:all .15s" onmouseover="this.style.borderColor='var(--ac)';this.style.color='var(--ac2)'" onmouseout="this.style.borderColor='var(--br)';this.style.color='var(--t2)'">コピー</button>
         <button id="cv-pv-reload" onclick="cvReload()" title="リロード">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
         </button>
@@ -938,6 +940,26 @@ function T(msg, d) {
   t.textContent = msg; t.classList.add('show');
   clearTimeout(ttTimer);
   ttTimer = setTimeout(function(){ t.classList.remove('show'); }, d || 2800);
+}
+function copyPlainText(text, okMsg) {
+  var msg = okMsg || 'クリップボードにコピーしました';
+  if (!text) { T('コピーできる内容がありません'); return; }
+  function legacy() {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-2000px;top:0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) T(msg); else T('コピーに失敗しました');
+    } catch (e) { T('コピーに失敗しました'); }
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ T(msg); }).catch(function(){ legacy(); });
+  } else legacy();
 }
 function E(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 async function sha256Hex(str) {
@@ -1634,6 +1656,12 @@ function chatKeydown(e) {
   }
 }
 
+function copyChatWorkspaceCode() {
+  var c = (typeof cur === 'string' && cur.trim()) ? cur.trim() : '';
+  if (!c) { T('コピーできるコードがありません'); return; }
+  copyPlainText(c, 'コードをクリップボードにコピーしました');
+}
+
 async function sendChat() {
   var inp = document.getElementById('chat-inp');
   var p = inp.value.trim();
@@ -2003,6 +2031,12 @@ function cvRemoveImg() {
   cvPendingImg = ''; cvPendingMime = '';
   var preview = document.getElementById('cv-img-preview');
   if (preview) preview.style.display = 'none';
+}
+
+function copyCvChatCode() {
+  var c = (typeof cvCode === 'string' && cvCode.trim()) ? cvCode.trim() : '';
+  if (!c) { T('コピーできるコードがありません'); return; }
+  copyPlainText(c, 'コードをクリップボードにコピーしました');
 }
 
 function cvReload() {

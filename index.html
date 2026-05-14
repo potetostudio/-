@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Poteto STUDIO</title>
+<title>Poteto STUDIO v6</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -40,6 +40,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .ai-badge{display:flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(46,160,67,.12);border:1px solid rgba(46,160,67,.3);border-radius:20px;font-size:10px;font-weight:600;color:var(--gr)}
 .ai-dot{width:6px;height:6px;border-radius:50%;background:var(--gr);animation:pulse-g 2s infinite}
 @keyframes pulse-g{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
+/* Chrome Built-in AI warning box */
+.nano-warn{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.35);border-radius:9px;font-size:11px;color:var(--am);line-height:1.55;margin-bottom:10px}
+.nano-warn svg{flex-shrink:0;margin-top:1px}
+.nano-ok{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(46,160,67,.1);border:1px solid rgba(46,160,67,.3);border-radius:9px;font-size:11px;color:var(--gr);margin-bottom:10px}
+.nano-ok svg{flex-shrink:0}
 .nb{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1px solid var(--br);background:transparent;color:var(--t2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--f);transition:all .15s;white-space:nowrap}
 .nb:hover{border-color:var(--brh);color:var(--t1);background:var(--s2)}
 .nb.pri{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600;box-shadow:0 0 20px var(--acg)}
@@ -329,14 +334,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div id="launchpad">
       <div class="lp-head">
         <h1>🥔 HTML Sandbox</h1>
-        <p>ローカルAI（Ollama）でコードを生成・編集</p>
+        <p id="lp-sub">ローカルAI（Ollama）でコードを生成・編集</p>
       </div>
 
       <!-- AI Generate -->
       <div class="lp-ai">
         <div class="lp-ai-lbl">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-          AI でコードを生成（qwen2.5-coder:7b）
+          <span id="lp-ai-lbl-text">AI でコードを生成（qwen2.5-coder:7b）</span>
         </div>
         <div class="lp-row">
           <input id="agi" placeholder="例: ブロック崩し / カラフルな電卓 / タイマーアプリ">
@@ -496,7 +501,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div id="thinking">
         <div class="tr"></div>
         <div class="tm"><span id="tmsg">AIが考えています</span><span class="tc"></span></div>
-        <div style="font-size:11px;color:var(--t3);margin-top:4px">Ollama Local AI</div>
+        <div id="thinking-sub" style="font-size:11px;color:var(--t3);margin-top:4px">Ollama Local AI</div>
       </div>
 
       <!-- History Panel -->
@@ -559,14 +564,18 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <!-- Ollama設定 -->
     <!-- モード切替 -->
     <label class="fl">AI モード</label>
-    <div style="display:flex;gap:8px;margin-bottom:14px">
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <button id="mode-local-btn" onclick="switchMode('local')"
-        style="flex:1;padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--ac);color:white;border:none;transition:all .15s">
+        style="flex:1;min-width:120px;padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--ac);color:white;border:none;transition:all .15s">
         🖥 ローカル AI (Ollama)
       </button>
       <button id="mode-cloud-btn" onclick="switchMode('cloud')"
-        style="flex:1;padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--s3);color:var(--t2);border:1px solid var(--br);transition:all .15s">
+        style="flex:1;min-width:120px;padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--s3);color:var(--t2);border:1px solid var(--br);transition:all .15s">
         ☁ クラウド AI (Gemini)
+      </button>
+      <button id="mode-nano-btn" onclick="switchMode('nano')"
+        style="flex:1;min-width:120px;padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--s3);color:var(--t2);border:1px solid var(--br);transition:all .15s">
+        🔷 Chrome 組み込み AI
       </button>
     </div>
 
@@ -601,6 +610,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         からAPIキーを取得してください。<br>
         ログイン中はFirestoreに自動保存されます。
       </div>
+    </div>
+
+    <!-- Chrome Built-in AI (Gemini Nano) 設定 -->
+    <div id="nano-settings" style="display:none">
+      <div id="nano-status-box"></div>
+      <div class="mnote">
+        <strong style="color:var(--t1)">Chrome 組み込み AI (Gemini Nano) について</strong><br><br>
+        APIキー不要でブラウザ内のAIを直接使用します。<br>
+        Function Callingは未対応のため、HTMLコードを正規表現で抽出します。<br><br>
+        <strong>有効化手順：</strong><br>
+        1. Chrome 127以上 (Dev / Canary推奨)<br>
+        2. <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">chrome://flags</code> を開く<br>
+        3. <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">Prompt API for Gemini Nano</code> → Enabled<br>
+        4. <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">Optimization Guide On Device Model</code> → Enabled BypassPerfRequirement<br>
+        5. Chromeを再起動してモデルをダウンロード<br><br>
+        <a href="https://developer.chrome.com/docs/ai/built-in" target="_blank" rel="noopener" style="color:var(--ac2);text-decoration:underline">詳細ドキュメント →</a>
+      </div>
+      <button onclick="checkNanoAvailability()" style="width:100%;padding:8px;background:var(--s3);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--f);margin-top:6px">🔷 Chrome AI の利用可否を確認</button>
     </div>
     <div class="div1"></div>
     <!-- Firebase Auth -->
@@ -718,7 +745,7 @@ function showOllamaErr(msg) {
 // ════════════════════════════════════════════
 async function callGemini(prompt, base64img, mimeType) {
   if (!geminiKey) { openSettings(); T('Gemini APIキーを設定してください'); return null; }
-  var model = 'gemini-1.5-flash';
+  var model = 'gemini-2.0-flash';
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + geminiKey;
   var parts = [{ text: prompt }];
   if (base64img) parts.push({ inline_data: { mime_type: mimeType || 'image/png', data: base64img } });
@@ -739,10 +766,118 @@ async function callGemini(prompt, base64img, mimeType) {
   }
 }
 
+// ════════════════════════════════════════════
+//  Chrome Built-in AI (Gemini Nano) — Prompt API
+// ════════════════════════════════════════════
+var nanoAvailable = null; // null=未確認, true=利用可, false=利用不可
+
+async function checkNanoAvailability() {
+  var box = document.getElementById('nano-status-box');
+  if (!box) return;
+
+  // window.ai.languageModel の存在確認
+  if (!window.ai || !window.ai.languageModel) {
+    nanoAvailable = false;
+    box.innerHTML =
+      '<div class="nano-warn">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+        '<span><strong>window.ai が見つかりません。</strong><br>' +
+        'Chrome の Flags を有効にしてください：<br>' +
+        '<code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">chrome://flags/#prompt-api-for-gemini-nano</code> → Enabled<br>' +
+        '<code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">chrome://flags/#optimization-guide-on-device-model</code> → Enabled BypassPerfRequirement<br>' +
+        'その後 Chrome を再起動してください。</span>' +
+      '</div>';
+    return false;
+  }
+
+  // availability チェック
+  try {
+    var cap = await window.ai.languageModel.capabilities();
+    if (cap.available === 'no') {
+      nanoAvailable = false;
+      box.innerHTML =
+        '<div class="nano-warn">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+          '<span><strong>Gemini Nano モデルが利用できません。</strong><br>' +
+          'chrome://components で「Optimization Guide On Device Model」をダウンロードしてください。</span>' +
+        '</div>';
+    } else if (cap.available === 'after-download') {
+      nanoAvailable = false;
+      box.innerHTML =
+        '<div class="nano-warn">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+          '<span><strong>モデルのダウンロード中です。</strong><br>' +
+          'しばらく待ってから再度確認してください。<br>' +
+          '(chrome://components でダウンロード状況を確認できます)</span>' +
+        '</div>';
+    } else {
+      nanoAvailable = true;
+      box.innerHTML =
+        '<div class="nano-ok">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>' +
+          '<span><strong>Chrome 組み込み AI 利用可能！</strong>（available: ' + cap.available + '）</span>' +
+        '</div>';
+    }
+  } catch(e) {
+    nanoAvailable = false;
+    box.innerHTML =
+      '<div class="nano-warn">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/></svg>' +
+        '<span><strong>確認エラー：</strong>' + e.message + '</span>' +
+      '</div>';
+  }
+  return nanoAvailable;
+}
+
+// Chrome Built-in AI での推論
+async function callNano(prompt, onChunk) {
+  // まず利用可否を確認
+  if (!window.ai || !window.ai.languageModel) {
+    T('⚠ Chrome 組み込み AI が利用できません。設定を確認してください');
+    openSettings(); switchMode('nano');
+    return null;
+  }
+  try {
+    var session = await window.ai.languageModel.create({
+      systemPrompt:
+        'You are an expert HTML/CSS/JavaScript developer. ' +
+        'When asked to create or modify a web app, you MUST output ONLY a complete single-file HTML document. ' +
+        'Wrap the entire output inside a ```html ... ``` code block. ' +
+        'Do not output any explanation, commentary, or text outside the code block.'
+    });
+    var result = '';
+    // Streaming サポートがある場合
+    if (session.promptStreaming) {
+      var stream = await session.promptStreaming(prompt);
+      var reader = stream.getReader();
+      while (true) {
+        var ref = await reader.read();
+        if (ref.done) break;
+        result = ref.value; // promptStreaming は累積テキストを返す
+        if (onChunk) onChunk(result);
+      }
+    } else {
+      result = await session.prompt(prompt);
+      if (onChunk) onChunk(result);
+    }
+    session.destroy();
+    return result;
+  } catch(e) {
+    T('Chrome AI エラー: ' + e.message);
+    console.error('Nano error:', e);
+    return null;
+  }
+}
+
 // モードに応じてAIを呼び分ける共通関数
 async function callAI(prompt, base64img, mimeType, onChunk) {
   if (aiMode === 'cloud') {
     return await callGemini(prompt, base64img, mimeType);
+  } else if (aiMode === 'nano') {
+    if (base64img) {
+      T('⚠ Chrome 組み込み AI は画像入力に未対応です。テキストのみで生成します');
+    }
+    return await callNano(prompt, onChunk);
   } else {
     if (base64img) {
       return await callOllamaWithImage(imgModel, prompt, base64img);
@@ -1023,6 +1158,12 @@ function exitWorkspace() { nav('studio'); }
 var THINKMSGS = ['コードを設計中','HTMLを書いています','CSSを調整中','JSを実装中','仕上げ中'];
 function startThinking() {
   var i = 0; tkTimer = setInterval(function(){ document.getElementById('tmsg').textContent = THINKMSGS[i % THINKMSGS.length]; i++; }, 1200);
+  var sub = document.getElementById('thinking-sub');
+  if (sub) {
+    if (aiMode === 'cloud') sub.textContent = 'Gemini Cloud AI';
+    else if (aiMode === 'nano') sub.textContent = 'Chrome Built-in AI (Gemini Nano)';
+    else sub.textContent = 'Ollama Local AI';
+  }
   document.getElementById('thinking').classList.add('on');
 }
 function stopThinking() { clearInterval(tkTimer); document.getElementById('thinking').classList.remove('on'); }
@@ -1032,7 +1173,9 @@ async function genFromPrompt() {
   if (!p) return;
   var btn = document.getElementById('agb'), st = document.getElementById('ag-status');
   btn.disabled = true; st.style.display = 'flex';
-  document.getElementById('ag-msg').textContent = 'qwen2.5-coder:7b が生成中...';
+
+  var engineName = aiMode === 'cloud' ? 'Gemini' : aiMode === 'nano' ? 'Chrome Built-in AI (Gemini Nano)' : 'qwen2.5-coder:7b';
+  document.getElementById('ag-msg').textContent = engineName + ' が生成中...';
 
   var prompt =
     'Create a complete single-file HTML/CSS/JavaScript web application for: ' + p + '\n' +
@@ -1140,7 +1283,7 @@ async function generateFromImage() {
   if (!imgBase64) return;
   var btn = document.getElementById('i2c-btn'), st = document.getElementById('i2c-status');
   btn.disabled = true; st.style.display = 'flex';
-  document.getElementById('i2c-msg').textContent = aiMode === 'cloud' ? 'Gemini Vision がデザインを分析中...' : 'Llama 3.2-Vision がデザインを分析中...';
+  document.getElementById('i2c-msg').textContent = aiMode === 'cloud' ? 'Gemini Vision がデザインを分析中...' : aiMode === 'nano' ? 'Chrome AI は画像未対応 — テキストで生成中...' : 'Llama 3.2-Vision がデザインを分析中...';
 
   // 追加指示があれば組み込む
   var extraPrompt = (document.getElementById('i2c-prompt') && document.getElementById('i2c-prompt').value.trim()) || '';
@@ -1181,7 +1324,11 @@ function setupErrCapture() {
 function showAutoFix(msg) {
   lastError = msg;
   var b = document.getElementById('autofix-btn'), bd = document.getElementById('err-badge');
-  if (b) b.style.display = 'flex';
+  if (b) {
+    var label = aiMode === 'nano' ? '🔷 Chrome AI でエラーを修復' : aiMode === 'cloud' ? '☁ Gemini でエラーを修復' : '🤖 Qwen AI でエラーを修復';
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg> ' + label;
+    b.style.display = 'flex';
+  }
   if (bd) { bd.style.display = 'block'; bd.textContent = '⚠ ' + msg; }
 }
 function hideAutoFix() {
@@ -1217,7 +1364,8 @@ async function runAutoFix() {
   });
   stopBar(); stopThinking();
   btn.disabled = false;
-  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg> \uD83E\uDD16 AIでエラーを修復';
+  var fixLabel = aiMode === 'nano' ? '🔷 Chrome AI でエラーを修復' : aiMode === 'cloud' ? '☁ Gemini でエラーを修復' : '🤖 Qwen AI でエラーを修復';
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg> ' + fixLabel;
 
   if (raw) {
     var code = extractCode(raw);
@@ -1475,28 +1623,61 @@ function switchMode(mode) {
   aiMode = mode;
   document.getElementById('local-settings').style.display  = mode === 'local'  ? 'block' : 'none';
   document.getElementById('cloud-settings').style.display  = mode === 'cloud' ? 'block' : 'none';
-  document.getElementById('mode-local-btn').style.background = mode === 'local'  ? 'var(--ac)' : 'var(--s3)';
-  document.getElementById('mode-local-btn').style.color    = mode === 'local'  ? 'white' : 'var(--t2)';
-  document.getElementById('mode-local-btn').style.border   = mode === 'local'  ? 'none' : '1px solid var(--br)';
-  document.getElementById('mode-cloud-btn').style.background = mode === 'cloud' ? 'var(--tl)' : 'var(--s3)';
-  document.getElementById('mode-cloud-btn').style.color    = mode === 'cloud' ? 'white' : 'var(--t2)';
-  document.getElementById('mode-cloud-btn').style.border   = mode === 'cloud' ? 'none' : '1px solid var(--br)';
+  document.getElementById('nano-settings').style.display   = mode === 'nano'  ? 'block' : 'none';
+
+  // ボタンスタイル リセット
+  ['local','cloud','nano'].forEach(function(m) {
+    var btn = document.getElementById('mode-' + m + '-btn');
+    if (!btn) return;
+    btn.style.background = 'var(--s3)';
+    btn.style.color = 'var(--t2)';
+    btn.style.border = '1px solid var(--br)';
+  });
+  // アクティブ
+  var activeColors = { local: 'var(--ac)', cloud: 'var(--tl)', nano: '#7c3aed' };
+  var activeBtn = document.getElementById('mode-' + mode + '-btn');
+  if (activeBtn) {
+    activeBtn.style.background = activeColors[mode] || 'var(--ac)';
+    activeBtn.style.color = 'white';
+    activeBtn.style.border = 'none';
+  }
+
+  // Nanoモード時は availability を自動確認
+  if (mode === 'nano') checkNanoAvailability();
   updateNavBadge();
 }
 
 function updateNavBadge() {
   var badge = document.querySelector('.ai-badge');
-  if (!badge) return;
+  var lpSub  = document.getElementById('lp-sub');
+  var lpLbl  = document.getElementById('lp-ai-lbl-text');
   if (aiMode === 'cloud') {
-    badge.innerHTML = '<span class="ai-dot" style="background:var(--tl)"></span> Cloud AI Mode (Gemini)';
-    badge.style.background = 'rgba(14,165,233,.12)';
-    badge.style.borderColor = 'rgba(14,165,233,.3)';
-    badge.style.color = 'var(--tl)';
+    if (badge) {
+      badge.innerHTML = '<span class="ai-dot" style="background:var(--tl)"></span> Cloud AI Mode (Gemini)';
+      badge.style.background = 'rgba(14,165,233,.12)';
+      badge.style.borderColor = 'rgba(14,165,233,.3)';
+      badge.style.color = 'var(--tl)';
+    }
+    if (lpSub) lpSub.textContent = 'クラウド AI（Gemini）でコードを生成・編集';
+    if (lpLbl) lpLbl.textContent = 'AI でコードを生成（Gemini 2.0 Flash）';
+  } else if (aiMode === 'nano') {
+    if (badge) {
+      badge.innerHTML = '<span class="ai-dot" style="background:#a78bfa"></span> Chrome Built-in AI (Nano)';
+      badge.style.background = 'rgba(124,58,237,.12)';
+      badge.style.borderColor = 'rgba(124,58,237,.35)';
+      badge.style.color = '#a78bfa';
+    }
+    if (lpSub) lpSub.textContent = 'Chrome 組み込み AI（Gemini Nano）でコードを生成・編集';
+    if (lpLbl) lpLbl.textContent = 'AI でコードを生成（Chrome Built-in AI — Gemini Nano）';
   } else {
-    badge.innerHTML = '<span class="ai-dot"></span> Local AI Mode (Qwen 7B &amp; Llama)';
-    badge.style.background = 'rgba(46,160,67,.12)';
-    badge.style.borderColor = 'rgba(46,160,67,.3)';
-    badge.style.color = 'var(--gr)';
+    if (badge) {
+      badge.innerHTML = '<span class="ai-dot"></span> Local AI Mode (Qwen 7B &amp; Llama)';
+      badge.style.background = 'rgba(46,160,67,.12)';
+      badge.style.borderColor = 'rgba(46,160,67,.3)';
+      badge.style.color = 'var(--gr)';
+    }
+    if (lpSub) lpSub.textContent = 'ローカル AI（Ollama）でコードを生成・編集';
+    if (lpLbl) lpLbl.textContent = 'AI でコードを生成（qwen2.5-coder:7b）';
   }
 }
 
@@ -1564,13 +1745,15 @@ function saveSets() {
   localStorage.setItem('pt_prof', JSON.stringify(prof));
   ollamaURL = document.getElementById('ollama-url').value.trim() || 'http://localhost:11434';
   localStorage.setItem('pt_ollama', ollamaURL);
-  // Geminiキーを保存
+  // Geminiキーを保存（cloud モードのときのみ必須チェック）
   var gki = document.getElementById('gemini-key-input');
   if (gki && gki.value.trim()) {
     var newKey = gki.value.trim();
     if (!newKey.startsWith('AIza')) { T('Gemini APIキーの形式が正しくありません'); return; }
     geminiKey = newKey;
     saveGeminiKeyToFirestore(geminiKey);
+  } else if (aiMode === 'cloud' && !geminiKey) {
+    T('クラウドモードにはGemini APIキーが必要です'); return;
   }
   // モードをFirestoreに保存
   if (curUser) {
@@ -1578,7 +1761,7 @@ function saveSets() {
   }
   localStorage.setItem('pt_mode', aiMode);
   updateNavBadge();
-  CM('sm'); T('設定を保存しました');
+  CM('sm'); T('設定を保存しました ✓');
 }
 function handleAv(e) {
   var f = e.target.files[0]; if (!f) return;

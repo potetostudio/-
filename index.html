@@ -142,16 +142,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .dev-btn svg{width:13px;height:13px}
 #ws-main{flex:1;display:flex;min-height:0;overflow:hidden}
 #pw{flex:1;display:flex;align-items:center;justify-content:center;background:#080812;min-width:0;overflow:hidden;position:relative}
-/* DeepSeek 一発生成時のプレビュー上ローディング */
-#build-loading{display:none;position:absolute;inset:0;z-index:25;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(109,90,239,.25),rgba(7,8,18,.96));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);pointer-events:all}
+/* DeepSeek 一発生成時のプレビュー上ローディング（中央は暗め・文字は高コントラスト） */
+#build-loading{display:none;position:absolute;inset:0;z-index:25;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse 70% 55% at 50% 45%,rgba(30,24,55,.75),rgba(4,5,10,.97));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);pointer-events:all}
 #build-loading.on{display:flex}
-.bl-grid{position:absolute;inset:0;opacity:.12;background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:32px 32px;animation:bl-shift 20s linear infinite}
+.bl-grid{position:absolute;inset:0;opacity:.08;background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:32px 32px;animation:bl-shift 20s linear infinite}
 @keyframes bl-shift{to{background-position:32px 32px}}
-.bl-core{text-align:center;padding:32px;z-index:1;max-width:420px}
-.bl-icon{font-size:42px;margin-bottom:16px;filter:drop-shadow(0 0 24px rgba(109,90,239,.6));animation:bl-float 2.4s ease-in-out infinite}
+.bl-core{text-align:center;padding:32px;z-index:1;max-width:440px;background:rgba(8,10,18,.75);border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 16px 48px rgba(0,0,0,.55)}
+.bl-icon{font-size:42px;margin-bottom:16px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5));animation:bl-float 2.4s ease-in-out infinite}
 @keyframes bl-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.bl-title{font-size:17px;font-weight:700;background:linear-gradient(135deg,#edf2f7,#9b8bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px;line-height:1.5}
-.bl-sub{font-size:12px;color:var(--t2);line-height:1.7}
+.bl-title{font-size:17px;font-weight:700;color:#f0f4ff;margin-bottom:10px;line-height:1.55;text-shadow:0 2px 12px rgba(0,0,0,.9),0 0 1px #000}
+.bl-sub{font-size:12px;color:#c5d0e6;line-height:1.75;text-shadow:0 1px 8px rgba(0,0,0,.85)}
 .bl-bar{margin-top:22px;height:3px;border-radius:3px;background:var(--s4);overflow:hidden}
 .bl-bar>i{display:block;height:100%;width:40%;background:linear-gradient(90deg,var(--ac),var(--ac2),var(--tl));border-radius:3px;animation:bl-scan 1.4s ease-in-out infinite}
 @keyframes bl-scan{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
@@ -296,6 +296,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 /* ══ APP VIEW ══ */
 #view-app{position:relative;background:#000}
 #app-pv{position:absolute;inset:0;width:100%;height:100%;border:none;background:white}
+#share-pw-gate{display:none;position:absolute;inset:0;z-index:25;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:rgba(4,5,10,.93);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+#share-pw-gate.on{display:flex}
+.spw-card{max-width:380px;width:100%;background:var(--s2);border:1px solid var(--brh);border-radius:14px;padding:20px;box-shadow:0 24px 56px rgba(0,0,0,.65)}
+.spw-card h3{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:8px}
+.spw-card p{font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:14px}
+.spw-share-opt{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.spw-share-opt label{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--t1);cursor:pointer;line-height:1.45}
+.spw-share-opt input{margin-top:3px;flex-shrink:0}
 #hud{position:absolute;top:12px;right:12px;z-index:10;display:flex;align-items:center;gap:6px}
 .hp2{display:flex;align-items:center;gap:5px;padding:5px 11px;background:rgba(7,8,13,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);border-radius:20px;font-size:12px;font-weight:500;color:#edf2f7;cursor:pointer;transition:all .15s;white-space:nowrap}
 .hp2:hover{background:rgba(20,24,36,.95)}
@@ -694,6 +702,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   <!-- APP VIEW -->
   <div id="view-app" class="view" style="position:relative">
     <iframe id="app-pv" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
+    <div id="share-pw-gate">
+      <div class="spw-card">
+        <h3>この共有リンクはパスワード保護されています</h3>
+        <p>共有者が設定したパスワードを入力すると、プレビューが表示され、<strong style="color:var(--t1)">フォーク</strong>（コードをスタジオに取り込む）ができるようになります。</p>
+        <input type="password" id="share-pw-verify" class="fi" placeholder="共有用パスワード" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')submitSharePassword()">
+        <button type="button" class="mbb ok" style="width:100%" onclick="submitSharePassword()">確認する</button>
+        <button type="button" class="mbb can" style="width:100%;margin-top:8px" onclick="closeShareGateNavGallery()">ギャラリーへ戻る</button>
+        <div id="share-pw-verify-err" style="display:none;margin-top:10px;font-size:11px;color:var(--rd)"></div>
+      </div>
+    </div>
     <div id="hud">
       <div class="hp2" id="app-ttl">無題のアプリ</div>
       <div class="hp2" onclick="likeApp()" id="lbtn">
@@ -845,6 +863,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div class="mt">公開・共有<button class="mc" onclick="CM('shm')">✕</button></div>
     <label class="fl">アプリのタイトル</label>
     <input type="text" id="shtitle" class="fi" placeholder="My Awesome App">
+    <label class="fl">共有URLのフォーク保護</label>
+    <div class="spw-share-opt" style="margin-bottom:4px">
+      <label><input type="radio" name="share-pw-mode" value="0" checked onchange="syncSharePwUI()"> パスワードなし（URLを開いた人がそのままプレビュー・フォーク可）</label>
+      <label><input type="radio" name="share-pw-mode" value="1" onchange="syncSharePwUI()"> パスワードあり（入力後にプレビュー表示・フォーク可）</label>
+    </div>
+    <div id="share-pw-row" style="display:none">
+      <label class="fl">共有用パスワード（4文字以上）</label>
+      <input type="password" id="share-pw-in" class="fi" placeholder="受け取った人に別途伝えるパスワード" autocomplete="new-password">
+    </div>
     <div id="surlbox" style="display:none;margin-bottom:12px">
       <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:6px">共有URL</div>
       <div class="share-url-row">
@@ -892,6 +919,7 @@ var codeModel = ollamaChatModel;
 var imgModel  = 'llama3.2-vision';
 var vers = [], cur = '', curAppId = null, cpOpen = false;
 var isFsS = false, isFsA = false, surl = '', forkCode = '';
+var sharedGatePayload = null;
 var imgBase64 = '', imgMime = '';
 var aiMode = 'local'; // 'local' | 'cloud'
 var geminiKey = '';
@@ -912,6 +940,14 @@ function T(msg, d) {
   ttTimer = setTimeout(function(){ t.classList.remove('show'); }, d || 2800);
 }
 function E(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+async function sha256Hex(str) {
+  var buf = new TextEncoder().encode(str);
+  var hash = await crypto.subtle.digest('SHA-256', buf);
+  var out = '';
+  var bytes = new Uint8Array(hash);
+  for (var i = 0; i < bytes.length; i++) out += ('0' + bytes[i].toString(16)).slice(-2);
+  return out;
+}
 function CM(id){ document.getElementById(id).classList.remove('on'); }
 function showOllamaErr(msg) {
   var el = document.getElementById('ollama-err');
@@ -2209,6 +2245,11 @@ function openShareModal() {
   surl = '';
   document.getElementById('surlbox').style.display = 'none';
   document.getElementById('mailbtn').style.display = 'none';
+  var pwIn = document.getElementById('share-pw-in');
+  if (pwIn) pwIn.value = '';
+  var r0 = document.querySelector('input[name="share-pw-mode"][value="0"]');
+  if (r0) r0.checked = true;
+  syncSharePwUI();
   document.getElementById('curlbtn').textContent = '🔗 URLを作成してコピー';
   document.getElementById('curlbtn').disabled = false;
   document.getElementById('shm').classList.add('on');
@@ -2217,7 +2258,35 @@ async function createShareURL() {
   var btn = document.getElementById('curlbtn'); btn.disabled = true; btn.textContent = '⏳ 生成中...';
   try {
     var title = document.getElementById('shtitle').value.trim() || '無題';
-    var ref = await db.collection('apps').add({ title: title, code: cur, createdAt: new Date() });
+    var pwMode = document.querySelector('input[name="share-pw-mode"]:checked');
+    var usePw = pwMode && pwMode.value === '1';
+    var payload = { title: title, code: cur, createdAt: new Date(), hasPassword: false, shareSalt: null, passwordHash: null };
+    if (usePw) {
+      var raw = (document.getElementById('share-pw-in') || {}).value || '';
+      if (raw.length < 4) {
+        T('共有パスワードは4文字以上にしてください');
+        btn.disabled = false;
+        btn.textContent = '🔗 URLを作成してコピー';
+        return;
+      }
+      var salt = '';
+      var arr = new Uint8Array(16);
+      crypto.getRandomValues(arr);
+      for (var i = 0; i < arr.length; i++) salt += ('0' + arr[i].toString(16)).slice(-2);
+      var hash;
+      try {
+        hash = await sha256Hex(salt + raw);
+      } catch (ex) {
+        T('この環境ではパスワード付き共有が使えません（HTTPSまたはlocalhostで開いてください）');
+        btn.disabled = false;
+        btn.textContent = '🔗 URLを作成してコピー';
+        return;
+      }
+      payload.hasPassword = true;
+      payload.shareSalt = salt;
+      payload.passwordHash = hash;
+    }
+    var ref = await db.collection('apps').add(payload);
     surl = location.origin + location.pathname + '?id=' + ref.id;
     document.getElementById('surl').textContent = surl;
     document.getElementById('surlbox').style.display = 'block';
@@ -2225,6 +2294,48 @@ async function createShareURL() {
     await navigator.clipboard.writeText(surl);
     btn.textContent = '✓ コピー済み'; T('URLをコピーしました！');
   } catch(e) { T('URL作成に失敗しました'); btn.disabled=false; btn.textContent='🔗 URLを作成してコピー'; }
+}
+function syncSharePwUI() {
+  var row = document.getElementById('share-pw-row');
+  if (!row) return;
+  var r = document.querySelector('input[name="share-pw-mode"]:checked');
+  row.style.display = r && r.value === '1' ? 'block' : 'none';
+}
+function closeShareGateNavGallery() {
+  var gate = document.getElementById('share-pw-gate');
+  if (gate) gate.classList.remove('on');
+  sharedGatePayload = null;
+  forkCode = '';
+  nav('gallery');
+}
+async function submitSharePassword() {
+  var err = document.getElementById('share-pw-verify-err');
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+  var inputEl = document.getElementById('share-pw-verify');
+  var input = inputEl ? inputEl.value : '';
+  if (!input) {
+    if (err) { err.textContent = 'パスワードを入力してください'; err.style.display = 'block'; }
+    return;
+  }
+  var p = sharedGatePayload;
+  if (!p) return;
+  try {
+    var h = await sha256Hex(p.salt + input);
+    if (h !== p.hash) {
+      if (err) { err.textContent = 'パスワードが正しくありません'; err.style.display = 'block'; }
+      return;
+    }
+    forkCode = p.code;
+    document.getElementById('app-pv').srcdoc = p.code;
+    document.getElementById('fork-btn').style.display = 'flex';
+    var gate = document.getElementById('share-pw-gate');
+    if (gate) gate.classList.remove('on');
+    if (inputEl) inputEl.value = '';
+    sharedGatePayload = null;
+    T('認証しました。フォークできます');
+  } catch (ex) {
+    if (err) { err.textContent = '認証処理に失敗しました'; err.style.display = 'block'; }
+  }
 }
 function copyURL() {
   if (!surl) return;
@@ -2576,11 +2687,33 @@ async function loadShared() {
     var snap = await db.collection('apps').doc(id).get();
     if (snap.exists) {
       var d = snap.data();
-      forkCode = d.code;
+      if (d.hasPassword && (!d.passwordHash || !d.shareSalt)) {
+        T('この共有リンクは開けません（再作成が必要な形式です）');
+        return false;
+      }
       document.getElementById('app-ttl').textContent = d.title || '共有されたアプリ';
       document.getElementById('lcnt').textContent = '-';
-      document.getElementById('app-pv').srcdoc = d.code;
-      document.getElementById('fork-btn').style.display = 'flex';
+
+      var gate = document.getElementById('share-pw-gate');
+      var verr = document.getElementById('share-pw-verify-err');
+      if (verr) { verr.style.display = 'none'; verr.textContent = ''; }
+      var vinp = document.getElementById('share-pw-verify');
+      if (vinp) vinp.value = '';
+
+      forkCode = '';
+      if (d.hasPassword && d.passwordHash && d.shareSalt) {
+        sharedGatePayload = { code: d.code, salt: d.shareSalt, hash: d.passwordHash };
+        document.getElementById('app-pv').srcdoc = '';
+        document.getElementById('fork-btn').style.display = 'none';
+        if (gate) gate.classList.add('on');
+      } else {
+        sharedGatePayload = null;
+        if (gate) gate.classList.remove('on');
+        forkCode = d.code;
+        document.getElementById('app-pv').srcdoc = d.code;
+        document.getElementById('fork-btn').style.display = 'flex';
+      }
+
       document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
       document.getElementById('view-app').classList.add('active');
       document.getElementById('nbg').style.display = 'none';

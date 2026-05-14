@@ -296,14 +296,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 /* ══ APP VIEW ══ */
 #view-app{position:relative;background:#000}
 #app-pv{position:absolute;inset:0;width:100%;height:100%;border:none;background:white}
-#share-pw-gate{display:none;position:absolute;inset:0;z-index:25;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:rgba(4,5,10,.93);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
-#share-pw-gate.on{display:flex}
-.spw-card{max-width:380px;width:100%;background:var(--s2);border:1px solid var(--brh);border-radius:14px;padding:20px;box-shadow:0 24px 56px rgba(0,0,0,.65)}
-.spw-card h3{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:8px}
-.spw-card p{font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:14px}
-.spw-share-opt{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
-.spw-share-opt label{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--t1);cursor:pointer;line-height:1.45}
-.spw-share-opt input{margin-top:3px;flex-shrink:0}
 #hud{position:absolute;top:12px;right:12px;z-index:10;display:flex;align-items:center;gap:6px}
 .hp2{display:flex;align-items:center;gap:5px;padding:5px 11px;background:rgba(7,8,13,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);border-radius:20px;font-size:12px;font-weight:500;color:#edf2f7;cursor:pointer;transition:all .15s;white-space:nowrap}
 .hp2:hover{background:rgba(20,24,36,.95)}
@@ -326,6 +318,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .fi::placeholder{color:var(--t3)}
 .mnote{font-size:11px;color:var(--t2);background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.7}
 .mnote.warn{background:rgba(210,153,34,.08);border-color:rgba(210,153,34,.2);color:var(--am)}
+.spw-share-opt{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.spw-share-opt label{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--t1);cursor:pointer;line-height:1.45}
+.spw-share-opt input{margin-top:3px;flex-shrink:0}
 .mbs{display:flex;gap:8px;margin-top:4px}
 .mbb{flex:1;padding:10px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--f);transition:all .15s;border:none}
 .mbb.can{background:var(--s3);border:1px solid var(--br);color:var(--t2)}
@@ -702,16 +697,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   <!-- APP VIEW -->
   <div id="view-app" class="view" style="position:relative">
     <iframe id="app-pv" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
-    <div id="share-pw-gate">
-      <div class="spw-card">
-        <h3>この共有リンクはパスワード保護されています</h3>
-        <p>共有者が設定したパスワードを入力すると、プレビューが表示され、<strong style="color:var(--t1)">フォーク</strong>（コードをスタジオに取り込む）ができるようになります。</p>
-        <input type="password" id="share-pw-verify" class="fi" placeholder="共有用パスワード" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')submitSharePassword()">
-        <button type="button" class="mbb ok" style="width:100%" onclick="submitSharePassword()">確認する</button>
-        <button type="button" class="mbb can" style="width:100%;margin-top:8px" onclick="closeShareGateNavGallery()">ギャラリーへ戻る</button>
-        <div id="share-pw-verify-err" style="display:none;margin-top:10px;font-size:11px;color:var(--rd)"></div>
-      </div>
-    </div>
     <div id="hud">
       <div class="hp2" id="app-ttl">無題のアプリ</div>
       <div class="hp2" onclick="likeApp()" id="lbtn">
@@ -866,7 +851,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <label class="fl">共有URLのフォーク保護</label>
     <div class="spw-share-opt" style="margin-bottom:4px">
       <label><input type="radio" name="share-pw-mode" value="0" checked onchange="syncSharePwUI()"> パスワードなし（URLを開いた人がそのままプレビュー・フォーク可）</label>
-      <label><input type="radio" name="share-pw-mode" value="1" onchange="syncSharePwUI()"> パスワードあり（入力後にプレビュー表示・フォーク可）</label>
+      <label><input type="radio" name="share-pw-mode" value="1" onchange="syncSharePwUI()"> パスワードあり（プレビューは誰でも可／<strong>フォーク</strong>時のみパスワード）</label>
     </div>
     <div id="share-pw-row" style="display:none">
       <label class="fl">共有用パスワード（4文字以上）</label>
@@ -886,6 +871,21 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <button class="mbb can" onclick="dlCode()">⬇ DL</button>
       </div>
       <button id="curlbtn" class="mbb ok" onclick="createShareURL()">🔗 URLを作成してコピー</button>
+    </div>
+  </div>
+</div>
+
+<!-- 共有アプリ：フォーク時のみパスワード -->
+<div id="fork-pw-modal" class="mo">
+  <div class="mb">
+    <div class="mt">フォーク用パスワード<button class="mc" onclick="CM('fork-pw-modal')">✕</button></div>
+    <p style="font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:14px">この共有は<strong style="color:var(--t1)">フォーク</strong>（コードをスタジオに取り込む）にパスワードがかかっています。ゲーム画面の閲覧には影響しません。</p>
+    <label class="fl">共有用パスワード</label>
+    <input type="password" id="fork-pw-verify" class="fi" placeholder="共有者から教えてもらったパスワード" autocomplete="off" onkeydown="if(event.key==='Enter')submitForkPassword()">
+    <div id="fork-pw-verify-err" style="display:none;margin-top:8px;font-size:11px;color:var(--rd)"></div>
+    <div class="mbs" style="margin-top:14px">
+      <button class="mbb can" onclick="CM('fork-pw-modal')">キャンセル</button>
+      <button class="mbb ok" onclick="submitForkPassword()">確認してフォーク</button>
     </div>
   </div>
 </div>
@@ -1324,6 +1324,15 @@ function likeApp() {
   document.getElementById('lico').setAttribute('fill','currentColor');
 }
 function forkApp() {
+  if (sharedGatePayload && !forkCode) {
+    var m = document.getElementById('fork-pw-modal');
+    var err = document.getElementById('fork-pw-verify-err');
+    var inp = document.getElementById('fork-pw-verify');
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+    if (inp) inp.value = '';
+    if (m) m.classList.add('on');
+    return;
+  }
   if (!forkCode) return;
   nav('studio');
   setTimeout(function(){ document.getElementById('lp-code').value = forkCode; T('フォークしました！コードを編集して起動してください'); }, 100);
@@ -2301,17 +2310,10 @@ function syncSharePwUI() {
   var r = document.querySelector('input[name="share-pw-mode"]:checked');
   row.style.display = r && r.value === '1' ? 'block' : 'none';
 }
-function closeShareGateNavGallery() {
-  var gate = document.getElementById('share-pw-gate');
-  if (gate) gate.classList.remove('on');
-  sharedGatePayload = null;
-  forkCode = '';
-  nav('gallery');
-}
-async function submitSharePassword() {
-  var err = document.getElementById('share-pw-verify-err');
+async function submitForkPassword() {
+  var err = document.getElementById('fork-pw-verify-err');
   if (err) { err.style.display = 'none'; err.textContent = ''; }
-  var inputEl = document.getElementById('share-pw-verify');
+  var inputEl = document.getElementById('fork-pw-verify');
   var input = inputEl ? inputEl.value : '';
   if (!input) {
     if (err) { err.textContent = 'パスワードを入力してください'; err.style.display = 'block'; }
@@ -2326,13 +2328,12 @@ async function submitSharePassword() {
       return;
     }
     forkCode = p.code;
-    document.getElementById('app-pv').srcdoc = p.code;
-    document.getElementById('fork-btn').style.display = 'flex';
-    var gate = document.getElementById('share-pw-gate');
-    if (gate) gate.classList.remove('on');
-    if (inputEl) inputEl.value = '';
     sharedGatePayload = null;
-    T('認証しました。フォークできます');
+    if (inputEl) inputEl.value = '';
+    CM('fork-pw-modal');
+    T('認証しました');
+    nav('studio');
+    setTimeout(function(){ document.getElementById('lp-code').value = forkCode; T('フォークしました！コードを編集して起動してください'); }, 100);
   } catch (ex) {
     if (err) { err.textContent = '認証処理に失敗しました'; err.style.display = 'block'; }
   }
@@ -2694,21 +2695,13 @@ async function loadShared() {
       document.getElementById('app-ttl').textContent = d.title || '共有されたアプリ';
       document.getElementById('lcnt').textContent = '-';
 
-      var gate = document.getElementById('share-pw-gate');
-      var verr = document.getElementById('share-pw-verify-err');
-      if (verr) { verr.style.display = 'none'; verr.textContent = ''; }
-      var vinp = document.getElementById('share-pw-verify');
-      if (vinp) vinp.value = '';
-
       forkCode = '';
       if (d.hasPassword && d.passwordHash && d.shareSalt) {
         sharedGatePayload = { code: d.code, salt: d.shareSalt, hash: d.passwordHash };
-        document.getElementById('app-pv').srcdoc = '';
-        document.getElementById('fork-btn').style.display = 'none';
-        if (gate) gate.classList.add('on');
+        document.getElementById('app-pv').srcdoc = d.code;
+        document.getElementById('fork-btn').style.display = 'flex';
       } else {
         sharedGatePayload = null;
-        if (gate) gate.classList.remove('on');
         forkCode = d.code;
         document.getElementById('app-pv').srcdoc = d.code;
         document.getElementById('fork-btn').style.display = 'flex';

@@ -167,8 +167,72 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 #cp-foot button{width:100%;padding:7px;background:var(--ac);color:white;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);transition:opacity .15s}
 #cp-foot button:hover{opacity:.88}
 
-/* AI Bar */
-#aibar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:520px;z-index:30}
+/* ══ CHAT PANEL ══ */
+#chat-panel{width:340px;min-width:340px;display:none;flex-direction:column;background:var(--s1);border-right:1px solid var(--br);flex-shrink:0;position:relative}
+#chat-panel.open{display:flex}
+#chat-hdr{padding:10px 12px;background:var(--s2);border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px;flex-shrink:0}
+#chat-hdr-title{font-size:12px;font-weight:700;color:var(--t1);flex:1}
+#chat-clear{background:none;border:none;color:var(--t3);cursor:pointer;font-size:10px;padding:3px 7px;border-radius:5px;font-family:var(--f);transition:all .15s}
+#chat-clear:hover{background:var(--s4);color:var(--rd)}
+#chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.cm{display:flex;flex-direction:column;gap:3px;max-width:92%}
+.cm.user{align-self:flex-end;align-items:flex-end}
+.cm.ai{align-self:flex-start;align-items:flex-start}
+.cm-role{font-size:9px;font-weight:700;letter-spacing:.05em;color:var(--t3);padding:0 4px}
+.cm-bubble{padding:9px 12px;border-radius:12px;font-size:12px;line-height:1.6;word-break:break-word;white-space:pre-wrap}
+.cm.user .cm-bubble{background:var(--ac);color:white;border-radius:12px 12px 3px 12px}
+.cm.ai .cm-bubble{background:var(--s3);color:var(--t1);border-radius:12px 12px 12px 3px;border:1px solid var(--br)}
+.cm.ai .cm-bubble.thinking{color:var(--t3);font-style:italic}
+.cm-code-applied{font-size:10px;color:var(--gr);padding:2px 6px;background:rgba(46,160,67,.1);border-radius:4px;display:inline-flex;align-items:center;gap:4px}
+#chat-inp-wrap{padding:10px;border-top:1px solid var(--br);display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+#chat-inp{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--brh);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--t1);outline:none;font-family:var(--f);resize:none;line-height:1.5;max-height:100px;min-height:38px;transition:border-color .15s}
+#chat-inp:focus{border-color:var(--ac)}
+#chat-inp::placeholder{color:var(--t3)}
+#chat-send-row{display:flex;gap:6px}
+#chat-snd{flex:1;padding:8px;border-radius:9px;border:none;cursor:pointer;font-family:var(--f);font-size:12px;font-weight:700;color:white;background:linear-gradient(135deg,var(--ac),var(--ac2));box-shadow:0 2px 12px var(--acg);transition:opacity .15s}
+#chat-snd:hover{opacity:.88}
+#chat-snd:disabled{opacity:.4;cursor:not-allowed}
+#chat-mode-lbl{font-size:10px;color:var(--t3);text-align:center}
+
+/* ══ CHAT VIEW ══ */
+#view-chat{flex:1;display:none;flex-direction:row;overflow:hidden;min-height:0}
+#view-chat.active{display:flex}
+#cv-left{width:360px;min-width:300px;max-width:480px;display:flex;flex-direction:column;background:var(--s1);border-right:1px solid var(--br);flex-shrink:0}
+#cv-hdr{padding:12px 16px;background:var(--s2);border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px;flex-shrink:0}
+#cv-hdr-title{font-size:13px;font-weight:700;color:var(--t1);flex:1}
+#cv-clear{background:none;border:none;color:var(--t3);cursor:pointer;font-size:11px;padding:4px 8px;border-radius:6px;font-family:var(--f);transition:all .15s}
+#cv-clear:hover{background:var(--s4);color:var(--rd)}
+#cv-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+#cv-msgs::-webkit-scrollbar{width:3px}
+.cvm{display:flex;flex-direction:column;gap:4px;max-width:88%}
+.cvm.user{align-self:flex-end;align-items:flex-end}
+.cvm.ai{align-self:flex-start;align-items:flex-start}
+.cvm-name{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);padding:0 4px}
+.cvm-bubble{padding:10px 14px;border-radius:14px;font-size:12.5px;line-height:1.65;word-break:break-word;white-space:pre-wrap;max-width:100%}
+.cvm.user .cvm-bubble{background:linear-gradient(135deg,var(--ac),var(--ac2));color:white;border-radius:14px 14px 4px 14px;box-shadow:0 2px 12px var(--acg)}
+.cvm.ai .cvm-bubble{background:var(--s3);color:var(--t1);border-radius:14px 14px 14px 4px;border:1px solid var(--br)}
+.cvm.ai .cvm-bubble.typing{color:var(--t3);font-style:italic;animation:fadein .3s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.cvm-tag{margin-top:3px;font-size:10px;color:var(--gr);padding:2px 8px;background:rgba(46,160,67,.1);border:1px solid rgba(46,160,67,.2);border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.cvm-tag svg{width:10px;height:10px}
+#cv-footer{padding:12px;border-top:1px solid var(--br);display:flex;flex-direction:column;gap:8px;flex-shrink:0;background:var(--s2)}
+#cv-inp{width:100%;background:var(--bg);border:1px solid var(--brh);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--t1);outline:none;font-family:var(--f);resize:none;line-height:1.5;min-height:44px;max-height:120px;transition:border-color .2s}
+#cv-inp:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--acg)}
+#cv-inp::placeholder{color:var(--t3)}
+#cv-btns{display:flex;gap:8px;align-items:center}
+#cv-send{flex:1;padding:9px 16px;border-radius:10px;border:none;cursor:pointer;font-family:var(--f);font-size:13px;font-weight:700;color:white;background:linear-gradient(135deg,var(--ac),var(--ac2));box-shadow:0 2px 14px var(--acg);transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+#cv-send:hover{opacity:.88}
+#cv-send:disabled{opacity:.4;cursor:not-allowed}
+#cv-engine{font-size:10px;color:var(--t3);text-align:center}
+/* 右プレビュー */
+#cv-right{flex:1;display:flex;flex-direction:column;background:#080812;min-width:0}
+#cv-pv-bar{height:36px;background:rgba(13,16,24,.95);border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0}
+#cv-pv-title{font-size:11px;color:var(--t3);flex:1}
+#cv-pv-reload{background:none;border:none;color:var(--t3);cursor:pointer;padding:4px;border-radius:5px;transition:all .15s;display:flex;align-items:center}
+#cv-pv-reload:hover{color:var(--t1);background:var(--s3)}
+#cv-pv-open{font-size:11px;font-weight:600;color:var(--ac2);background:rgba(109,90,239,.15);border:1px solid rgba(109,90,239,.3);border-radius:7px;padding:4px 10px;cursor:pointer;font-family:var(--f);transition:all .15s}
+#cv-pv-open:hover{background:rgba(109,90,239,.3)}
+#cv-iframe{flex:1;border:none;background:white}
 #aibar-in{background:rgba(7,8,13,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--brh);border-radius:14px;padding:7px;display:flex;align-items:center;gap:7px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
 #aibar-in>svg{color:var(--ac2);flex-shrink:0;width:15px;height:15px;margin:0 4px}
 #ai-inp{flex:1;background:transparent;border:none;outline:none;font-size:12px;color:var(--t1);font-family:var(--f)}
@@ -293,6 +357,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <button class="nb" onclick="openSettings()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         設定
+      </button>
+      <button class="nb" onclick="nav('chat')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        チャット
       </button>
       <button class="nb pri" onclick="nav('studio')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
@@ -437,6 +505,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
           コードを表示
         </button>
+        <button class="nb" id="chat-toggle-btn" onclick="toggleChatPanel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          チャット
+        </button>
         <button class="nb" onclick="dlCode()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           保存
@@ -460,6 +532,33 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       </div>
 
       <div id="ws-main">
+
+        <!-- ══ チャットパネル ══ -->
+        <div id="chat-panel">
+          <div id="chat-hdr">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ac2)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span id="chat-hdr-title">AIチャット</span>
+            <button id="chat-clear" onclick="clearChat()" title="履歴をクリア">🗑 クリア</button>
+            <button class="xbtn" onclick="toggleChatPanel()" title="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+          </div>
+          <div id="chat-msgs">
+            <div class="cm ai">
+              <span class="cm-role">AI</span>
+              <div class="cm-bubble">👋 こんにちは！アプリについて何でも聞いてください。<br>「背景を青にして」「スコアを追加して」など自由に話しかけると、コードを修正してプレビューに反映します。</div>
+            </div>
+          </div>
+          <div id="chat-inp-wrap">
+            <textarea id="chat-inp" rows="2" placeholder="AIに話しかける... （Shift+Enterで送信）" onkeydown="chatKeydown(event)"></textarea>
+            <div id="chat-send-row">
+              <button id="chat-snd" onclick="sendChat()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:middle"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                送信
+              </button>
+            </div>
+            <div id="chat-mode-lbl"></div>
+          </div>
+        </div>
+
         <div id="pw">
           <div id="dc" class="device-desktop">
             <iframe id="sif" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
@@ -514,6 +613,46 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <button id="fsexit" onclick="toggleFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:60;padding:8px;background:rgba(7,8,13,.88);border:1px solid var(--brh);border-radius:10px;color:var(--t1);cursor:pointer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
       </button>
+    </div>
+  </div>
+
+  <!-- ══ CHAT VIEW ══ -->
+  <div id="view-chat" class="view">
+    <!-- 左：チャット -->
+    <div id="cv-left">
+      <div id="cv-hdr">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ac2)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span id="cv-hdr-title">AIチャット</span>
+        <button id="cv-clear" onclick="cvClear()">🗑 クリア</button>
+      </div>
+      <div id="cv-msgs">
+        <div class="cvm ai">
+          <span class="cvm-name">AI</span>
+          <div class="cvm-bubble">👋 こんにちは！<br>アプリを作りたいことを自由に話しかけてください。会話しながら一緒に作っていきましょう。<br><br>例：「ブロック崩しゲームを作って」「シンプルなTodoリストが欲しい」</div>
+        </div>
+      </div>
+      <div id="cv-footer">
+        <textarea id="cv-inp" rows="2" placeholder="メッセージを入力... （Shift+Enter で送信）" onkeydown="cvKeydown(event)"></textarea>
+        <div id="cv-btns">
+          <button id="cv-send" onclick="cvSend()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            送信
+          </button>
+        </div>
+        <div id="cv-engine"></div>
+      </div>
+    </div>
+    <!-- 右：プレビュー -->
+    <div id="cv-right">
+      <div id="cv-pv-bar">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span id="cv-pv-title" style="color:var(--t3);font-size:11px;flex:1">プレビュー — まだコードがありません</span>
+        <button id="cv-pv-reload" onclick="cvReload()" title="リロード">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
+        </button>
+        <button id="cv-pv-open" onclick="cvOpenInStudio()">→ スタジオで開く</button>
+      </div>
+      <iframe id="cv-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
     </div>
   </div>
 
@@ -1019,10 +1158,11 @@ function startStreamBar() {
 function nav(v) {
   document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
   document.getElementById('view-' + v).classList.add('active');
-  document.getElementById('nbg').style.display = v === 'gallery' ? 'flex' : 'none';
-  document.getElementById('nbs').style.display = v === 'studio'  ? 'flex' : 'none';
+  document.getElementById('nbg').style.display = (v === 'gallery' || v === 'chat') ? 'flex' : 'none';
+  document.getElementById('nbs').style.display = v === 'studio' ? 'flex' : 'none';
   if (v === 'gallery') renderGallery();
   if (v === 'studio')  resetS();
+  if (v === 'chat')    cvUpdateEngine();
 }
 
 // ════════════════════════════════════════════
@@ -1118,6 +1258,9 @@ function resetS() {
   var ix = document.getElementById('i2c-extra'); if (ix) ix.style.display = 'none';
   var ip = document.getElementById('i2c-prompt'); if (ip) ip.value = '';
   document.getElementById('hp').classList.remove('on');
+  // チャットパネルを閉じる
+  if (chatOpen) toggleChatPanel();
+  clearChat();
   hideCP(); hideAutoFix();
   vers = []; cur = '';
 }
@@ -1259,8 +1402,366 @@ async function runAI() {
 }
 
 // ════════════════════════════════════════════
-//  Image to Code (llava)
+//  Chat Panel
 // ════════════════════════════════════════════
+var chatHistory = []; // {role:'user'|'ai', text:string}
+var chatOpen = false;
+
+function toggleChatPanel() {
+  chatOpen = !chatOpen;
+  var panel = document.getElementById('chat-panel');
+  var wsMain = document.getElementById('ws-main');
+  var btn = document.getElementById('chat-toggle-btn');
+  if (chatOpen) {
+    panel.classList.add('open');
+    wsMain.classList.add('chat-open');
+    btn.style.background = 'rgba(109,90,239,.25)';
+    btn.style.borderColor = 'var(--ac)';
+    btn.style.color = 'var(--ac2)';
+    updateChatModeLabel();
+    document.getElementById('chat-inp').focus();
+  } else {
+    panel.classList.remove('open');
+    wsMain.classList.remove('chat-open');
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  }
+}
+
+function updateChatModeLabel() {
+  var lbl = document.getElementById('chat-mode-lbl');
+  if (!lbl) return;
+  if (aiMode === 'cloud') lbl.textContent = '☁ Gemini Cloud AI';
+  else if (aiMode === 'nano') lbl.textContent = '🔷 Chrome Built-in AI';
+  else lbl.textContent = '🖥 Ollama Local AI (' + codeModel + ')';
+}
+
+function clearChat() {
+  chatHistory = [];
+  var msgs = document.getElementById('chat-msgs');
+  msgs.innerHTML =
+    '<div class="cm ai"><span class="cm-role">AI</span>' +
+    '<div class="cm-bubble">チャット履歴をクリアしました。新しい会話を始めましょう！</div></div>';
+}
+
+function addChatMsg(role, text, extra) {
+  chatHistory.push({ role: role, text: text });
+  var msgs = document.getElementById('chat-msgs');
+  var wrap = document.createElement('div');
+  wrap.className = 'cm ' + role;
+  var roleLabel = role === 'user' ? 'あなた' : 'AI';
+  var bubble = document.createElement('div');
+  bubble.className = 'cm-bubble';
+  bubble.textContent = text;
+  var roleEl = document.createElement('span');
+  roleEl.className = 'cm-role';
+  roleEl.textContent = roleLabel;
+  wrap.appendChild(roleEl);
+  wrap.appendChild(bubble);
+  if (extra) {
+    var tag = document.createElement('span');
+    tag.className = 'cm-code-applied';
+    tag.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> ' + extra;
+    wrap.appendChild(tag);
+  }
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+function addThinkingBubble() {
+  var msgs = document.getElementById('chat-msgs');
+  var wrap = document.createElement('div');
+  wrap.className = 'cm ai';
+  wrap.id = 'chat-thinking-bubble';
+  var roleEl = document.createElement('span');
+  roleEl.className = 'cm-role';
+  roleEl.textContent = 'AI';
+  var bubble = document.createElement('div');
+  bubble.className = 'cm-bubble thinking';
+  bubble.textContent = '考えています…';
+  wrap.appendChild(roleEl);
+  wrap.appendChild(bubble);
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+function removeThinkingBubble() {
+  var el = document.getElementById('chat-thinking-bubble');
+  if (el) el.remove();
+}
+
+function chatKeydown(e) {
+  if (e.key === 'Enter' && e.shiftKey) {
+    e.preventDefault();
+    sendChat();
+  }
+}
+
+async function sendChat() {
+  var inp = document.getElementById('chat-inp');
+  var p = inp.value.trim();
+  if (!p) return;
+  inp.value = '';
+  inp.style.height = '';
+
+  var sndBtn = document.getElementById('chat-snd');
+  sndBtn.disabled = true;
+
+  // ユーザーメッセージを表示
+  addChatMsg('user', p);
+
+  // コードがない場合は生成モード
+  var isGenMode = !cur;
+
+  // thinking表示
+  var thinkBubble = addThinkingBubble();
+
+  var prompt;
+  if (isGenMode) {
+    prompt =
+      'Create a complete single-file HTML/CSS/JavaScript web application for: ' + p + '\n' +
+      'Requirements:\n' +
+      '- Single HTML file with embedded CSS and JS\n' +
+      '- No external dependencies except CDN if needed\n' +
+      '- Functional and visually appealing\n' +
+      '- Wrap the entire HTML inside a ```html ... ``` code block\n' +
+      '- After the code block, write a brief 1-2 sentence Japanese description of what you made';
+  } else {
+    // 会話履歴を含めたコンテキストを構築
+    var histCtx = chatHistory.slice(-8).map(function(m) {
+      return (m.role === 'user' ? 'User: ' : 'AI: ') + m.text;
+    }).join('\n');
+    prompt =
+      'You are an expert HTML developer helping to modify a web application through conversation.\n' +
+      'Recent conversation:\n' + histCtx + '\n\n' +
+      'Current HTML code:\n' + cur + '\n\n' +
+      'User request: ' + p + '\n\n' +
+      'Instructions:\n' +
+      '1. Modify the code to fulfill the request\n' +
+      '2. Output the complete modified HTML wrapped in ```html ... ``` block\n' +
+      '3. After the code block, write a brief 1-2 sentence Japanese reply explaining what you changed';
+  }
+
+  var stopBar = startStreamBar();
+  var lastUpdate = 0;
+  var raw = await callAI(prompt, null, null, function(chunk) {
+    var now = Date.now();
+    // チャットバブルにストリーミングテキストを流す
+    var txt = chunk.replace(/```html[\s\S]*?```/gi, '[コードを生成中...]');
+    thinkBubble.textContent = txt.slice(-120) || '生成中...';
+    thinkBubble.className = 'cm-bubble';
+    // プレビューのリアルタイム更新
+    if (now - lastUpdate > 800) {
+      lastUpdate = now;
+      var partial = extractCode(chunk);
+      if (partial && partial.length > 200 && /<html/i.test(partial)) {
+        document.getElementById('sif').srcdoc = partial;
+      }
+    }
+  });
+  stopBar();
+  removeThinkingBubble();
+  sndBtn.disabled = false;
+
+  if (!raw) {
+    addChatMsg('ai', '⚠ エラーが発生しました。もう一度お試しください。');
+    return;
+  }
+
+  // コードと会話テキストを分離
+  var code = extractCode(raw);
+  var reply = raw.replace(/```html[\s\S]*?```/gi, '').replace(/```[\s\S]*?```/gi, '').trim();
+  if (!reply) reply = code ? '✓ コードを更新しました！' : raw.trim();
+
+  if (code) {
+    cur = code;
+    document.getElementById('sif').srcdoc = cur;
+    if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
+    if (isGenMode) {
+      // 初回生成ならワークスペースに遷移
+      document.getElementById('launchpad').style.display = 'none';
+      document.getElementById('workspace').style.display = 'flex';
+      vers = [{ id: Date.now(), code: cur, label: p + '（チャット生成）', type: 'ai' }];
+    } else {
+      vers.unshift({ id: Date.now(), code: cur, label: p, type: 'ai' });
+    }
+    renderHist();
+    addChatMsg('ai', reply, 'プレビュー更新済み');
+    setTimeout(setupErrCapture, 800);
+  } else {
+    // コードなし → 純粋な会話返答
+    addChatMsg('ai', reply || raw);
+  }
+}
+
+// ════════════════════════════════════════════
+//  Chat View (独立チャット画面)
+// ════════════════════════════════════════════
+var cvHistory  = []; // {role, text}
+var cvCode     = '';  // チャットビューで生成されたコード
+
+function cvUpdateEngine() {
+  var el = document.getElementById('cv-engine');
+  if (!el) return;
+  if (aiMode === 'cloud')      el.textContent = '☁ Gemini Cloud AI';
+  else if (aiMode === 'nano')  el.textContent = '🔷 Chrome Built-in AI';
+  else                         el.textContent = '🖥 Ollama Local AI (' + codeModel + ')';
+}
+
+function cvClear() {
+  cvHistory = []; cvCode = '';
+  document.getElementById('cv-msgs').innerHTML =
+    '<div class="cvm ai"><span class="cvm-name">AI</span>' +
+    '<div class="cvm-bubble">履歴をクリアしました。新しい会話を始めましょう！</div></div>';
+  document.getElementById('cv-iframe').srcdoc = '';
+  document.getElementById('cv-pv-title').textContent = 'プレビュー — まだコードがありません';
+}
+
+function cvKeydown(e) {
+  if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); cvSend(); }
+}
+
+function cvAddMsg(role, text, tag) {
+  cvHistory.push({ role: role, text: text });
+  var msgs = document.getElementById('cv-msgs');
+  var wrap = document.createElement('div');
+  wrap.className = 'cvm ' + role;
+  var nameEl = document.createElement('span');
+  nameEl.className = 'cvm-name';
+  nameEl.textContent = role === 'user' ? 'あなた' : 'AI';
+  var bubble = document.createElement('div');
+  bubble.className = 'cvm-bubble';
+  bubble.textContent = text;
+  wrap.appendChild(nameEl);
+  wrap.appendChild(bubble);
+  if (tag) {
+    var tagEl = document.createElement('span');
+    tagEl.className = 'cvm-tag';
+    tagEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>' + tag;
+    wrap.appendChild(tagEl);
+  }
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+function cvAddTyping() {
+  var msgs = document.getElementById('cv-msgs');
+  var wrap = document.createElement('div');
+  wrap.className = 'cvm ai'; wrap.id = 'cv-typing';
+  var nameEl = document.createElement('span');
+  nameEl.className = 'cvm-name'; nameEl.textContent = 'AI';
+  var bubble = document.createElement('div');
+  bubble.className = 'cvm-bubble typing'; bubble.textContent = '考えています…';
+  wrap.appendChild(nameEl); wrap.appendChild(bubble);
+  msgs.appendChild(wrap); msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+async function cvSend() {
+  var inp = document.getElementById('cv-inp');
+  var p = inp.value.trim();
+  if (!p) return;
+  inp.value = '';
+
+  var btn = document.getElementById('cv-send');
+  btn.disabled = true;
+
+  cvAddMsg('user', p);
+  var typingBubble = cvAddTyping();
+
+  // 会話履歴コンテキスト（直近10件）
+  var histCtx = cvHistory.slice(-10).map(function(m) {
+    return (m.role === 'user' ? 'User: ' : 'AI: ') + m.text;
+  }).join('\n');
+
+  var prompt;
+  if (!cvCode) {
+    // 初回生成
+    prompt =
+      'You are a helpful web app developer. The user wants to create a web app through conversation.\n' +
+      'User request: ' + p + '\n\n' +
+      'Create a complete, beautiful single-file HTML/CSS/JavaScript web application.\n' +
+      'Requirements:\n' +
+      '- Single HTML file with all CSS and JS embedded\n' +
+      '- Modern, visually appealing dark or colorful design\n' +
+      '- Fully functional\n' +
+      '- Wrap the ENTIRE HTML document in a ```html ... ``` code block\n' +
+      '- After the code block, write a friendly 1-2 sentence Japanese reply explaining what you built';
+  } else {
+    // 修正・会話継続
+    prompt =
+      'You are helping build a web app through conversation. Here is the conversation so far:\n' +
+      histCtx + '\n\n' +
+      'Current HTML code:\n' + cvCode + '\n\n' +
+      'Latest user request: ' + p + '\n\n' +
+      'Instructions:\n' +
+      '- If the user wants code changes, output the COMPLETE updated HTML wrapped in ```html ... ``` block\n' +
+      '- If the user is just chatting or asking questions, reply naturally in Japanese without a code block\n' +
+      '- After any code block, write a friendly 1-2 sentence Japanese reply about what you changed';
+  }
+
+  var stopBar = startStreamBar();
+  var lastPvUpdate = 0;
+
+  var raw = await callAI(prompt, null, null, function(chunk) {
+    // タイピングバブルに進捗を表示
+    var preview = chunk.replace(/```html[\s\S]*?```/gi, '').slice(-160).trim();
+    typingBubble.textContent = preview || '生成中...';
+    typingBubble.className = 'cvm-bubble typing';
+
+    // リアルタイムプレビュー更新
+    var now = Date.now();
+    if (now - lastPvUpdate > 700) {
+      lastPvUpdate = now;
+      var partial = extractCode(chunk);
+      if (partial && partial.length > 200 && /<html/i.test(partial)) {
+        document.getElementById('cv-iframe').srcdoc = partial;
+      }
+    }
+  });
+
+  stopBar();
+  var tyEl = document.getElementById('cv-typing');
+  if (tyEl) tyEl.remove();
+  btn.disabled = false;
+
+  if (!raw) {
+    cvAddMsg('ai', '⚠ エラーが発生しました。設定を確認してもう一度お試しください。');
+    return;
+  }
+
+  var code = extractCode(raw);
+  var reply = raw.replace(/```html[\s\S]*?```/gi, '').replace(/```[\s\S]*?```/gi, '').trim();
+  if (!reply) reply = code ? '✓ コードを更新しました！' : raw.trim();
+
+  if (code) {
+    cvCode = code;
+    document.getElementById('cv-iframe').srcdoc = cvCode;
+    document.getElementById('cv-pv-title').textContent = p.slice(0, 40) + (p.length > 40 ? '…' : '');
+    cvAddMsg('ai', reply, 'プレビューに反映済み');
+  } else {
+    cvAddMsg('ai', reply || raw.trim());
+  }
+}
+
+function cvReload() {
+  if (!cvCode) return;
+  var ifr = document.getElementById('cv-iframe');
+  ifr.srcdoc = ''; setTimeout(function(){ ifr.srcdoc = cvCode; }, 50);
+  T('リロードしました');
+}
+
+function cvOpenInStudio() {
+  if (!cvCode) { T('まだコードがありません'); return; }
+  startWS(cvCode, 'チャットから起動', 'ai');
+  nav('studio');
+  T('スタジオで開きました ✓');
+}
+
 function handleImgSelect(e) { var f = e.target.files[0]; if (f) loadImgFile(f); }
 function handleImgDrop(e) {
   e.preventDefault();
@@ -1683,6 +2184,8 @@ function updateNavBadge() {
     if (lpSub) lpSub.textContent = 'ローカル AI（Ollama）でコードを生成・編集';
     if (lpLbl) lpLbl.textContent = 'AI でコードを生成（qwen2.5-coder:7b）';
   }
+  // チャットビューのエンジン表示も更新
+  cvUpdateEngine();
 }
 
 function toggleGeminiKeyVis() {

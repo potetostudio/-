@@ -227,7 +227,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 /* ══ MODALS ══ */
 .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:200;align-items:center;justify-content:center;padding:16px}
 .mo.on{display:flex}
-.mb{background:var(--s2);border:1px solid var(--brh);border-radius:16px;width:100%;max-width:420px;padding:24px;box-shadow:0 24px 64px rgba(0,0,0,.7);animation:fu .2s ease both}
+.mb{background:var(--s2);border:1px solid var(--brh);border-radius:16px;width:100%;max-width:420px;max-height:calc(100vh - 40px);overflow-y:auto;padding:24px;box-shadow:0 24px 64px rgba(0,0,0,.7);animation:fu .2s ease both}
 @keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .mt{font-size:15px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between}
 .mc{background:none;border:none;color:var(--t3);cursor:pointer;font-size:20px;line-height:1}
@@ -564,18 +564,18 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <!-- Ollama設定 -->
     <!-- モード切替 -->
     <label class="fl">AI モード</label>
-    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
       <button id="mode-local-btn" onclick="switchMode('local')"
-        style="flex:1;min-width:120px;padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--ac);color:white;border:none;transition:all .15s">
-        🖥 ローカル AI (Ollama)
+        style="padding:8px 4px;border-radius:9px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--ac);color:white;border:none;transition:all .15s;line-height:1.4;text-align:center">
+        🖥<br>ローカル AI<br><span style="font-weight:400;opacity:.8">(Ollama)</span>
       </button>
       <button id="mode-cloud-btn" onclick="switchMode('cloud')"
-        style="flex:1;min-width:120px;padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--s3);color:var(--t2);border:1px solid var(--br);transition:all .15s">
-        ☁ クラウド AI (Gemini)
+        style="padding:8px 4px;border-radius:9px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--s3);color:var(--t2);border:1px solid var(--br);transition:all .15s;line-height:1.4;text-align:center">
+        ☁<br>クラウド AI<br><span style="font-weight:400;opacity:.8">(Gemini)</span>
       </button>
       <button id="mode-nano-btn" onclick="switchMode('nano')"
-        style="flex:1;min-width:120px;padding:9px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--s3);color:var(--t2);border:1px solid var(--br);transition:all .15s">
-        🔷 Chrome 組み込み AI
+        style="padding:8px 4px;border-radius:9px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--s3);color:var(--t2);border:1px solid var(--br);transition:all .15s;line-height:1.4;text-align:center">
+        🔷<br>Chrome AI<br><span style="font-weight:400;opacity:.8">(Built-in)</span>
       </button>
     </div>
 
@@ -615,19 +615,23 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <!-- Chrome Built-in AI (Gemini Nano) 設定 -->
     <div id="nano-settings" style="display:none">
       <div id="nano-status-box"></div>
-      <div class="mnote">
-        <strong style="color:var(--t1)">Chrome 組み込み AI (Gemini Nano) について</strong><br><br>
-        APIキー不要でブラウザ内のAIを直接使用します。<br>
-        Function Callingは未対応のため、HTMLコードを正規表現で抽出します。<br><br>
-        <strong>有効化手順：</strong><br>
-        1. Chrome 127以上 (Dev / Canary推奨)<br>
-        2. <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">chrome://flags</code> を開く<br>
-        3. <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">Prompt API for Gemini Nano</code> → Enabled<br>
-        4. <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">Optimization Guide On Device Model</code> → Enabled BypassPerfRequirement<br>
-        5. Chromeを再起動してモデルをダウンロード<br><br>
-        <a href="https://developer.chrome.com/docs/ai/built-in" target="_blank" rel="noopener" style="color:var(--ac2);text-decoration:underline">詳細ドキュメント →</a>
-      </div>
-      <button onclick="checkNanoAvailability()" style="width:100%;padding:8px;background:var(--s3);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--f);margin-top:6px">🔷 Chrome AI の利用可否を確認</button>
+      <details style="margin-bottom:10px">
+        <summary style="font-size:11px;font-weight:600;color:var(--ac2);cursor:pointer;padding:8px 12px;background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.18);border-radius:8px;list-style:none;display:flex;align-items:center;gap:6px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          Chrome 組み込み AI の有効化手順を見る
+        </summary>
+        <div class="mnote" style="margin-top:6px;margin-bottom:0">
+          APIキー不要・完全ローカル動作。Function Calling未対応のためHTMLを正規表現で抽出します。<br><br>
+          <strong>有効化手順：</strong><br>
+          1. Chrome 127以上 (Dev / Canary推奨)<br>
+          2. <code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">chrome://flags</code> を開く<br>
+          3. <code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">Prompt API for Gemini Nano</code> → Enabled<br>
+          4. <code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">Optimization Guide On Device Model</code> → Enabled BypassPerfRequirement<br>
+          5. Chromeを再起動 → モデルをダウンロード<br><br>
+          <a href="https://developer.chrome.com/docs/ai/built-in" target="_blank" rel="noopener" style="color:var(--ac2);text-decoration:underline">詳細ドキュメント →</a>
+        </div>
+      </details>
+      <button onclick="checkNanoAvailability()" style="width:100%;padding:8px;background:var(--s3);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--f);margin-bottom:4px">🔷 Chrome AI の利用可否を確認</button>
     </div>
     <div class="div1"></div>
     <!-- Firebase Auth -->

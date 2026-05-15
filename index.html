@@ -1333,7 +1333,10 @@ function openApp(id) {
   document.getElementById('app-ttl').textContent = a.title;
   document.getElementById('lcnt').textContent = a.likes;
   document.getElementById('lico').setAttribute('fill','none');
-  document.getElementById('fork-btn').style.display = 'none';
+  // ギャラリーのアプリはパスワードなしでフォーク可能
+  forkCode = a.code;
+  sharedGatePayload = null;
+  document.getElementById('fork-btn').style.display = 'flex';
   document.getElementById('app-pv').srcdoc = a.code;
   nav('app');
 }
@@ -1356,8 +1359,14 @@ function forkApp() {
     return;
   }
   if (!forkCode) return;
+  // ギャラリーのアプリをフォーク: スタジオのワークスペースを直接起動
+  var a = curAppId ? apps.find(function(x){ return x.id === curAppId; }) : null;
+  var label = (a ? a.title : 'フォーク') + ' のフォーク';
   nav('studio');
-  setTimeout(function(){ document.getElementById('lp-code').value = forkCode; T('フォークしました！コードを編集して起動してください'); }, 100);
+  setTimeout(function(){
+    startWS(forkCode, label, 'original');
+    T('フォークしました！コードを自由に編集できます ✓');
+  }, 80);
 }
 function toggleAFS() {
   isFsA = !isFsA;

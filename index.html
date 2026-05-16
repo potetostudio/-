@@ -883,15 +883,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div class="mt">公開・共有<button class="mc" onclick="CM('shm')">✕</button></div>
     <label class="fl">アプリのタイトル</label>
     <input type="text" id="shtitle" class="fi" placeholder="My Awesome App">
-    <!-- 公開設定トグル -->
-    <label class="fl">ギャラリー公開設定</label>
-    <div class="pub-toggle-row" onclick="togglePublic()">
-      <div class="pub-toggle-label">
-        みんなのギャラリーに公開する
-        <span class="pub-toggle-sub">ONにすると全ユーザーに作品が表示されます</span>
-      </div>
-      <div class="toggle-sw" id="pub-toggle"></div>
-    </div>
     <label class="fl">共有URLのフォーク保護</label>
     <div class="spw-share-opt" style="margin-bottom:4px">
       <label><input type="radio" name="share-pw-mode" value="0" checked onchange="syncSharePwUI()"> パスワードなし（URLを開いた人がそのままプレビュー・フォーク可）</label>
@@ -911,10 +902,36 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;gap:8px">
-        <button class="mbb can" onclick="pubGallery()">ギャラリーに保存</button>
+        <button class="mbb can" onclick="pubGallery()">📁 マイギャラリーに保存</button>
         <button class="mbb can" onclick="dlCode()">⬇ DL</button>
       </div>
+      <button class="mbb ok" style="background:linear-gradient(135deg,#0ea5e9,#6d5aef)" onclick="openPublishConfirm()">🌏 みんなのギャラリーに公開</button>
       <button id="curlbtn" class="mbb ok" onclick="createShareURL()">🔗 URLを作成してコピー</button>
+    </div>
+  </div>
+</div>
+
+<!-- 公開確認モーダル -->
+<div id="publish-confirm-modal" class="mo">
+  <div class="mb">
+    <div class="mt">
+      🌏 みんなのギャラリーに公開
+      <button class="mc" onclick="CM('publish-confirm-modal')">✕</button>
+    </div>
+    <div style="background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:6px" id="publish-confirm-title"></div>
+      <div style="font-size:11px;color:var(--t2);line-height:1.7">
+        この作品をすべてのユーザーが見られる<strong style="color:var(--t1)">みんなのギャラリー</strong>に公開します。<br>
+        公開後も、自分の投稿はいつでも削除できます。
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:16px;display:flex;align-items:center;gap:6px">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span id="publish-confirm-author"></span>
+    </div>
+    <div class="mbs">
+      <button class="mbb can" onclick="CM('publish-confirm-modal')">キャンセル</button>
+      <button class="mbb ok" style="background:linear-gradient(135deg,#0ea5e9,#6d5aef)" onclick="doPublishToGallery()">公開する</button>
     </div>
   </div>
 </div>
@@ -2474,9 +2491,6 @@ function dlCode() {
 // ════════════════════════════════════════════
 function openShareModal() {
   surl = '';
-  pubIsPublic = false;
-  var sw = document.getElementById('pub-toggle');
-  if (sw) sw.classList.remove('on');
   document.getElementById('surlbox').style.display = 'none';
   document.getElementById('mailbtn').style.display = 'none';
   var pwIn = document.getElementById('share-pw-in');
@@ -2576,12 +2590,42 @@ function shareEmail() {
   var t = document.getElementById('shtitle').value.trim() || '無題';
   location.href = 'mailto:?subject=' + encodeURIComponent('[Poteto] '+t) + '&body=' + encodeURIComponent(t+'\n\n'+surl);
 }
-// 公開トグルの状態管理
-var pubIsPublic = false;
-function togglePublic() {
-  pubIsPublic = !pubIsPublic;
-  var sw = document.getElementById('pub-toggle');
-  if (sw) sw.classList.toggle('on', pubIsPublic);
+// 公開確認モーダルを開く
+function openPublishConfirm() {
+  if (!curUser) {
+    CM('shm');
+    openAuthModal();
+    T('公開にはログインが必要です');
+    return;
+  }
+  var title = document.getElementById('shtitle').value.trim() || '無題のアプリ';
+  var authorName = (curUser.displayName) || (prof.name) || '名無しのポテト';
+  document.getElementById('publish-confirm-title').textContent = '「' + title + '」';
+  document.getElementById('publish-confirm-author').textContent = '作者名: ' + authorName + ' として表示されます';
+  document.getElementById('publish-confirm-modal').classList.add('on');
+}
+
+// 実際に公開実行
+async function doPublishToGallery() {
+  var title = document.getElementById('shtitle').value.trim() || '無題のアプリ';
+  CM('publish-confirm-modal');
+  // マイギャラリーにも保存
+  var ex = apps.find(function(a){ return a.code === cur; });
+  var appId;
+  if (ex) {
+    ex.title = title;
+    localStorage.setItem('pt_apps', JSON.stringify(apps));
+    appId = ex.id;
+  } else {
+    var newApp = { id: Date.now(), title: title, code: cur, likes: 0, createdAt: Date.now(), author: prof.name||'', avatar: prof.avatar||'' };
+    apps.push(newApp);
+    localStorage.setItem('pt_apps', JSON.stringify(apps));
+    appId = newApp.id;
+    autoSaveToFirestore(title, appId);
+  }
+  await saveGalleryToFirestore(title, appId, true);
+  CM('shm'); exitWorkspace(); nav('gallery');
+  T('🎉 みんなのギャラリーに公開しました！');
 }
 
 function pubGallery() {
@@ -2590,18 +2634,14 @@ function pubGallery() {
   if (ex) {
     ex.title = title; ex.author = prof.name||''; ex.avatar = prof.avatar||'';
     localStorage.setItem('pt_apps', JSON.stringify(apps));
-    // 既存の場合もisPublicを更新
-    if (curUser) saveGalleryToFirestore(title, ex.id, pubIsPublic);
-    CM('shm'); T('上書き保存しました'); return;
+    autoSaveToFirestore(title, ex.id);
+    CM('shm'); T('マイギャラリーに保存しました'); return;
   }
   var newApp = { id: Date.now(), title: title, code: cur, likes: 0, createdAt: Date.now(), author: prof.name||'', avatar: prof.avatar||'' };
   apps.push(newApp);
   localStorage.setItem('pt_apps', JSON.stringify(apps));
-  // マイギャラリー（users/uid/apps）に保存
   autoSaveToFirestore(title, newApp.id);
-  // みんなのギャラリーに公開する場合はgalleryコレクションにも保存
-  if (pubIsPublic) saveGalleryToFirestore(title, newApp.id, true);
-  CM('shm'); exitWorkspace(); nav('gallery'); T(pubIsPublic ? 'みんなのギャラリーに公開しました！ 🎉' : 'ギャラリーに保存しました！');
+  CM('shm'); exitWorkspace(); nav('gallery'); T('マイギャラリーに保存しました！');
 }
 
 // gallery コレクションに公開データを保存する関数

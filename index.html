@@ -59,7 +59,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 #toast.show{opacity:1}
 
 /* ══ GALLERY ══ */
-#g-search{padding:12px 16px;border-bottom:1px solid var(--br);background:rgba(13,16,24,.9);display:flex;align-items:center;gap:8px;flex-shrink:0}
+#g-search{padding:12px 16px;border-bottom:1px solid var(--br);background:rgba(13,16,24,.9);display:flex;align-items:center;gap:8px;flex-shrink:0;border-top:none}
 .sw{position:relative;flex:1}
 .sw svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--t3);pointer-events:none}
 #skw{width:100%;background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:7px 10px 7px 30px;font-size:12px;color:var(--t1);outline:none;font-family:var(--f);transition:border-color .15s}
@@ -86,6 +86,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 #g-empty{display:none;text-align:center;padding:80px 20px;color:var(--t3)}
 #g-empty svg{margin:0 auto 16px;opacity:.3;display:block}
 #g-login-banner{display:none;margin:12px 0;padding:10px 16px;background:rgba(109,90,239,.1);border:1px solid rgba(109,90,239,.25);border-radius:10px;font-size:12px;color:var(--ac2);text-align:center}
+
+/* ── Gallery Tabs ── */
+#g-tabs{display:flex;gap:6px;padding:10px 16px 0;border-bottom:1px solid var(--br);background:rgba(13,16,24,.9);flex-shrink:0}
+.g-tab{padding:7px 16px;border-radius:8px 8px 0 0;border:1px solid transparent;border-bottom:none;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);color:var(--t2);background:transparent;transition:all .15s;position:relative;bottom:-1px}
+.g-tab:hover{color:var(--t1);background:var(--s2)}
+.g-tab.active{background:var(--s2);border-color:var(--br);color:var(--t1);border-bottom-color:var(--s2)}
+.g-tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--ac);border-radius:2px 2px 0 0}
+/* 公開設定トグル in modal */
+.pub-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(109,90,239,.07);border:1px solid rgba(109,90,239,.2);border-radius:9px;margin-bottom:14px;cursor:pointer}
+.pub-toggle-label{font-size:12px;color:var(--t1);display:flex;flex-direction:column;gap:3px}
+.pub-toggle-sub{font-size:10px;color:var(--t3)}
+.toggle-sw{width:36px;height:20px;background:var(--s4);border-radius:10px;position:relative;flex-shrink:0;transition:background .2s}
+.toggle-sw.on{background:var(--ac)}
+.toggle-sw::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:white;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.toggle-sw.on::after{transform:translateX(16px)}
+/* みんなのギャラリー作者表示 */
+.gc-public-author{font-size:10px;color:var(--ac2);margin-top:5px;display:flex;align-items:center;gap:4px}
+.gc-public-author svg{flex-shrink:0;opacity:.7}
 
 /* ══ LAUNCHPAD ══ */
 #launchpad{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:28px 20px 20px;gap:18px;overflow-y:auto;background:radial-gradient(ellipse at 50% -10%,rgba(109,90,239,.1) 0%,transparent 60%)}
@@ -396,6 +414,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 
   <!-- GALLERY -->
   <div id="view-gallery" class="view active">
+    <!-- タブ切り替え -->
+    <div id="g-tabs">
+      <button class="g-tab active" id="tab-my" onclick="switchGalleryTab('my')">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        マイギャラリー
+      </button>
+      <button class="g-tab" id="tab-public" onclick="switchGalleryTab('public')">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        みんなのギャラリー
+      </button>
+    </div>
     <div id="g-search">
       <div class="sw">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -410,7 +439,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div id="gg" class="gg"></div>
       <div id="g-empty">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <p style="font-size:14px;margin-bottom:8px">まだアプリがありません</p>
+        <p style="font-size:14px;margin-bottom:8px" id="g-empty-msg">まだアプリがありません</p>
         <button onclick="nav('studio')" style="font-size:12px;color:var(--ac2);background:none;border:none;cursor:pointer;text-decoration:underline">作ってみる →</button>
       </div>
     </div>
@@ -850,6 +879,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div class="mt">公開・共有<button class="mc" onclick="CM('shm')">✕</button></div>
     <label class="fl">アプリのタイトル</label>
     <input type="text" id="shtitle" class="fi" placeholder="My Awesome App">
+    <!-- 公開設定トグル -->
+    <label class="fl">ギャラリー公開設定</label>
+    <div class="pub-toggle-row" onclick="togglePublic()">
+      <div class="pub-toggle-label">
+        みんなのギャラリーに公開する
+        <span class="pub-toggle-sub">ONにすると全ユーザーに作品が表示されます</span>
+      </div>
+      <div class="toggle-sw" id="pub-toggle"></div>
+    </div>
     <label class="fl">共有URLのフォーク保護</label>
     <div class="spw-share-opt" style="margin-bottom:4px">
       <label><input type="radio" name="share-pw-mode" value="0" checked onchange="syncSharePwUI()"> パスワードなし（URLを開いた人がそのままプレビュー・フォーク可）</label>
@@ -927,6 +965,8 @@ var aiMode = 'local'; // 'local' | 'cloud'
 var geminiKey = '';
 var lastError = '';
 var curUser = null;
+var galleryTab = 'my'; // 'my' | 'public'
+var publicApps = []; // みんなのギャラリー用キャッシュ
 var ICONS = ['🎮','🎨','🌐','🧮','🎵','📊','✨','🛠','🌈','🔮','🚀','🎯'];
 var THINKS = ['コードを考え中','構造を設計中','HTMLを書いています','CSSを調整中','仕上げ中'];
 var tkTimer;
@@ -1280,39 +1320,140 @@ function nav(v) {
 // ════════════════════════════════════════════
 //  Gallery
 // ════════════════════════════════════════════
+
+// タブ切り替え
+function switchGalleryTab(tab) {
+  galleryTab = tab;
+  document.getElementById('tab-my').classList.toggle('active', tab === 'my');
+  document.getElementById('tab-public').classList.toggle('active', tab === 'public');
+  // 検索をリセットして再描画
+  var skw = document.getElementById('skw');
+  if (skw) {
+    skw.placeholder = tab === 'my' ? 'アプリを検索...' : 'みんなの作品を検索...';
+  }
+  if (tab === 'public') {
+    loadPublicApps();
+  } else {
+    renderGallery();
+  }
+}
+
+// みんなのギャラリーをFirestoreから読み込む
+async function loadPublicApps() {
+  var g = document.getElementById('gg');
+  var em = document.getElementById('g-empty');
+  var msg = document.getElementById('g-empty-msg');
+  g.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--t3);font-size:12px">読み込み中...</div>';
+  em.style.display = 'none';
+  try {
+    var snap = await db.collection('gallery')
+      .where('isPublic', '==', true)
+      .orderBy('createdAt', 'desc')
+      .limit(60)
+      .get();
+    publicApps = [];
+    snap.forEach(function(doc) {
+      publicApps.push(Object.assign({ _docId: doc.id }, doc.data()));
+    });
+    renderGallery();
+  } catch(e) {
+    console.warn('Public gallery load failed:', e);
+    g.innerHTML = '';
+    em.style.display = 'block';
+    if (msg) msg.textContent = 'みんなのギャラリーを読み込めませんでした';
+  }
+}
+
 function renderGallery() {
   var q = (document.getElementById('skw').value || '').toLowerCase();
-  var list = apps.filter(function(a){ return !q || a.title.toLowerCase().includes(q); });
-  document.getElementById('gcnt').textContent = apps.length + '件';
-  var g = document.getElementById('gg'), em = document.getElementById('g-empty');
-  g.innerHTML = '';
+  var g = document.getElementById('gg');
+  var em = document.getElementById('g-empty');
+  var msg = document.getElementById('g-empty-msg');
   var lb = document.getElementById('g-login-banner');
-  lb.style.display = curUser ? 'none' : 'block';
-  if (!list.length) { em.style.display = 'block'; return; }
-  em.style.display = 'none';
-  list.slice().reverse().forEach(function(a, i) {
-    var el = document.createElement('div');
-    el.className = 'gc';
-    el.onclick = function(){ openApp(a.id); };
-    el.innerHTML =
-      '<div class="gc-thumb">' + ICONS[i % ICONS.length] + '</div>' +
-      '<div class="gc-body">' +
-        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">' +
-          '<div class="gc-title" style="flex:1">' + E(a.title) + '</div>' +
-          '<button class="gc-del" onclick="event.stopPropagation();delApp(' + a.id + ')" title="削除">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
-          '</button>' +
-        '</div>' +
-        '<div class="gc-meta">' +
-          '<div class="gc-author">' +
-            (a.avatar ? '<div class="gc-av"><img src="' + a.avatar + '"></div>' : '<div class="gc-av"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>') +
-            '<span class="gc-name">' + E(a.author || '匿名') + '</span>' +
+  var isPublicTab = galleryTab === 'public';
+
+  if (isPublicTab) {
+    // ── みんなのギャラリー ──
+    lb.style.display = 'none';
+    var list = publicApps.filter(function(a) {
+      return !q || (a.title||'').toLowerCase().includes(q) || (a.authorName||'').toLowerCase().includes(q);
+    });
+    document.getElementById('gcnt').textContent = list.length + '件';
+    g.innerHTML = '';
+    if (!list.length) {
+      em.style.display = 'block';
+      if (msg) msg.textContent = '公開中の作品がまだありません';
+      return;
+    }
+    em.style.display = 'none';
+    list.forEach(function(a, i) {
+      var el = document.createElement('div');
+      el.className = 'gc';
+      // みんなのギャラリーはローカルIDがないのでdocIdで管理
+      el.onclick = function(){ openPublicApp(a); };
+      var isOwn = curUser && a.uid === curUser.uid;
+      el.innerHTML =
+        '<div class="gc-thumb">' + ICONS[i % ICONS.length] + '</div>' +
+        '<div class="gc-body">' +
+          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">' +
+            '<div class="gc-title" style="flex:1">' + E(a.title || '無題') + '</div>' +
+            (isOwn
+              ? '<button class="gc-del" onclick="event.stopPropagation();delPublicApp(\'' + a._docId + '\')" title="削除">' +
+                  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
+                '</button>'
+              : '') +
           '</div>' +
-          '<div class="gc-likes"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' + a.likes + '</div>' +
-        '</div>' +
-      '</div>';
-    g.appendChild(el);
-  });
+          '<div class="gc-public-author">' +
+            '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
+            '作: ' + E(a.authorName || '名無しのポテト') + 'さん' +
+          '</div>' +
+          '<div class="gc-meta">' +
+            '<div class="gc-author">' +
+              '<div class="gc-av"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>' +
+              '<span class="gc-name">' + E(a.authorName || '名無しのポテト') + '</span>' +
+            '</div>' +
+            '<div class="gc-likes"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' + (a.likes||0) + '</div>' +
+          '</div>' +
+        '</div>';
+      g.appendChild(el);
+    });
+
+  } else {
+    // ── マイギャラリー ──
+    lb.style.display = curUser ? 'none' : 'block';
+    var list = apps.filter(function(a){ return !q || a.title.toLowerCase().includes(q); });
+    document.getElementById('gcnt').textContent = apps.length + '件';
+    g.innerHTML = '';
+    if (!list.length) {
+      em.style.display = 'block';
+      if (msg) msg.textContent = 'まだアプリがありません';
+      return;
+    }
+    em.style.display = 'none';
+    list.slice().reverse().forEach(function(a, i) {
+      var el = document.createElement('div');
+      el.className = 'gc';
+      el.onclick = function(){ openApp(a.id); };
+      el.innerHTML =
+        '<div class="gc-thumb">' + ICONS[i % ICONS.length] + '</div>' +
+        '<div class="gc-body">' +
+          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">' +
+            '<div class="gc-title" style="flex:1">' + E(a.title) + '</div>' +
+            '<button class="gc-del" onclick="event.stopPropagation();delApp(' + a.id + ')" title="削除">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
+            '</button>' +
+          '</div>' +
+          '<div class="gc-meta">' +
+            '<div class="gc-author">' +
+              (a.avatar ? '<div class="gc-av"><img src="' + a.avatar + '"></div>' : '<div class="gc-av"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>') +
+              '<span class="gc-name">' + E(a.author || '匿名') + '</span>' +
+            '</div>' +
+            '<div class="gc-likes"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' + a.likes + '</div>' +
+          '</div>' +
+        '</div>';
+      g.appendChild(el);
+    });
+  }
 }
 
 function delApp(id) {
@@ -1321,6 +1462,33 @@ function delApp(id) {
   localStorage.setItem('pt_apps', JSON.stringify(apps));
   if (curUser) db.collection('users').doc(curUser.uid).collection('apps').doc(String(id)).delete().catch(function(){});
   renderGallery(); T('削除しました');
+}
+
+// みんなのギャラリーの作品を削除（自分の投稿のみ）
+async function delPublicApp(docId) {
+  if (!curUser) { T('ログインが必要です'); return; }
+  if (!confirm('みんなのギャラリーから削除しますか？')) return;
+  try {
+    await db.collection('gallery').doc(docId).delete();
+    publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
+    renderGallery();
+    T('削除しました');
+  } catch(e) { T('削除に失敗しました'); }
+}
+
+// みんなのギャラリーの作品を開く
+function openPublicApp(a) {
+  // ローカルapps配列には存在しないためダミーとして登録して開く
+  var tempId = 'pub_' + (a._docId || Date.now());
+  document.getElementById('app-ttl').textContent = a.title || '無題のアプリ';
+  document.getElementById('lcnt').textContent = a.likes || 0;
+  document.getElementById('lico').setAttribute('fill','none');
+  forkCode = a.code;
+  sharedGatePayload = null;
+  document.getElementById('fork-btn').style.display = 'flex';
+  document.getElementById('app-pv').srcdoc = a.code;
+  curAppId = null; // みんなのギャラリーはライク書き戻し先なし
+  nav('app');
 }
 
 // ════════════════════════════════════════════
@@ -2295,6 +2463,9 @@ function dlCode() {
 // ════════════════════════════════════════════
 function openShareModal() {
   surl = '';
+  pubIsPublic = false;
+  var sw = document.getElementById('pub-toggle');
+  if (sw) sw.classList.remove('on');
   document.getElementById('surlbox').style.display = 'none';
   document.getElementById('mailbtn').style.display = 'none';
   var pwIn = document.getElementById('share-pw-in');
@@ -2394,19 +2565,51 @@ function shareEmail() {
   var t = document.getElementById('shtitle').value.trim() || '無題';
   location.href = 'mailto:?subject=' + encodeURIComponent('[Poteto] '+t) + '&body=' + encodeURIComponent(t+'\n\n'+surl);
 }
+// 公開トグルの状態管理
+var pubIsPublic = false;
+function togglePublic() {
+  pubIsPublic = !pubIsPublic;
+  var sw = document.getElementById('pub-toggle');
+  if (sw) sw.classList.toggle('on', pubIsPublic);
+}
+
 function pubGallery() {
   var title = document.getElementById('shtitle').value.trim() || '無題のアプリ';
   var ex = apps.find(function(a){ return a.code === cur; });
   if (ex) {
     ex.title = title; ex.author = prof.name||''; ex.avatar = prof.avatar||'';
     localStorage.setItem('pt_apps', JSON.stringify(apps));
+    // 既存の場合もisPublicを更新
+    if (curUser) saveGalleryToFirestore(title, ex.id, pubIsPublic);
     CM('shm'); T('上書き保存しました'); return;
   }
   var newApp = { id: Date.now(), title: title, code: cur, likes: 0, createdAt: Date.now(), author: prof.name||'', avatar: prof.avatar||'' };
   apps.push(newApp);
   localStorage.setItem('pt_apps', JSON.stringify(apps));
+  // マイギャラリー（users/uid/apps）に保存
   autoSaveToFirestore(title, newApp.id);
-  CM('shm'); exitWorkspace(); nav('gallery'); T('ギャラリーに公開しました！');
+  // みんなのギャラリーに公開する場合はgalleryコレクションにも保存
+  if (pubIsPublic) saveGalleryToFirestore(title, newApp.id, true);
+  CM('shm'); exitWorkspace(); nav('gallery'); T(pubIsPublic ? 'みんなのギャラリーに公開しました！ 🎉' : 'ギャラリーに保存しました！');
+}
+
+// gallery コレクションに公開データを保存する関数
+async function saveGalleryToFirestore(label, appId, isPublic) {
+  if (!curUser) return;
+  var authorName = (curUser.displayName) || (prof.name) || '名無しのポテト';
+  var id = String(appId || Date.now());
+  try {
+    await db.collection('gallery').doc(id).set({
+      code: cur,
+      title: label,
+      isPublic: !!isPublic,
+      authorName: authorName,
+      uid: curUser.uid,
+      likes: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }, { merge: true });
+  } catch(e) { console.warn('Gallery save failed:', e); }
 }
 
 // ════════════════════════════════════════════
@@ -2414,9 +2617,11 @@ function pubGallery() {
 // ════════════════════════════════════════════
 function autoSaveToFirestore(label, appId) {
   if (!curUser) return;
+  var authorName = (curUser.displayName) || (prof.name) || '名無しのポテト';
   var id = String(appId || Date.now());
   db.collection('users').doc(curUser.uid).collection('apps').doc(id).set({
-    code: cur, label: label, updatedAt: new Date(), uid: curUser.uid
+    code: cur, label: label, updatedAt: new Date(), uid: curUser.uid,
+    authorName: authorName, isPublic: false
   }).catch(function(e){ console.warn('Firestore save failed:', e); });
 }
 

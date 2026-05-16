@@ -2891,14 +2891,29 @@ function autoSaveToFirestore(label, appId) {
 async function loadUserApps() {
   if (!curUser) return;
   try {
+    // テンプレートコードの一覧を取得（除外フィルタ用）
+    var templateCodes = ['breakout','timer','paint','calc','clock'].map(function(n){
+      return getTemplate(n);
+    }).filter(Boolean);
+
     var snap = await db.collection('users').doc(curUser.uid).collection('apps').orderBy('updatedAt','desc').limit(30).get();
+    var deletePromises = [];
     snap.forEach(function(doc) {
       var d = doc.data();
+      // テンプレートと完全一致するコードはFirestoreから削除してスキップ
+      if (templateCodes.indexOf(d.code) !== -1) {
+        deletePromises.push(doc.ref.delete());
+        return;
+      }
       var id = parseInt(doc.id) || Date.now();
       if (!apps.find(function(a){ return a.code === d.code; })) {
         apps.push({ id: id, title: d.label||'保存済みアプリ', code: d.code, likes: 0, createdAt: id, author: prof.name||'', avatar: prof.avatar||'' });
       }
     });
+    if (deletePromises.length) {
+      await Promise.all(deletePromises);
+      console.log('テンプレートの不正保存エントリを' + deletePromises.length + '件削除しました');
+    }
     localStorage.setItem('pt_apps', JSON.stringify(apps));
     renderGallery();
     T('クラウドからアプリを読み込みました');
@@ -3249,6 +3264,18 @@ function loadTemplate(name) {
   startWS(code, name + ' テンプレート', 'original', true); // テンプレートは自動保存しない
   T(name + ' テンプレートを起動しました ✓');
 }
+
+// ローカルストレージに残ったテンプレートコードを除去（一度だけ実行）
+(function cleanTemplatesFromLocal() {
+  var templateCodes = ['breakout','timer','paint','calc','clock'].map(function(n){
+    return getTemplate(n);
+  }).filter(Boolean);
+  var before = apps.length;
+  apps = apps.filter(function(a){ return templateCodes.indexOf(a.code) === -1; });
+  if (apps.length !== before) {
+    localStorage.setItem('pt_apps', JSON.stringify(apps));
+  }
+})();
 
 // ════════════════════════════════════════════
 //  Shared URL load

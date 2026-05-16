@@ -395,6 +395,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         設定
       </button>
+      <button class="nb" id="nav-gallery-btn" onclick="nav('gallery')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        ギャラリー
+      </button>
       <button class="nb" onclick="nav('chat')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         チャット
@@ -1346,21 +1350,28 @@ async function loadPublicApps() {
   g.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--t3);font-size:12px">読み込み中...</div>';
   em.style.display = 'none';
   try {
+    // .where() + .orderBy() の複合インデックスが不要になるよう、
+    // orderBy はクライアント側で処理する
     var snap = await db.collection('gallery')
       .where('isPublic', '==', true)
-      .orderBy('createdAt', 'desc')
       .limit(60)
       .get();
     publicApps = [];
     snap.forEach(function(doc) {
       publicApps.push(Object.assign({ _docId: doc.id }, doc.data()));
     });
+    // createdAt 降順でソート（Timestamp or Date どちらにも対応）
+    publicApps.sort(function(a, b) {
+      var ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : Number(a.createdAt) || 0;
+      var tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : Number(b.createdAt) || 0;
+      return tb - ta;
+    });
     renderGallery();
   } catch(e) {
-    console.warn('Public gallery load failed:', e);
+    console.error('Public gallery load failed:', e);
     g.innerHTML = '';
     em.style.display = 'block';
-    if (msg) msg.textContent = 'みんなのギャラリーを読み込めませんでした';
+    if (msg) msg.textContent = 'エラー: ' + e.message;
   }
 }
 

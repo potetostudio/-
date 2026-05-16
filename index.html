@@ -771,7 +771,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       </div>
     </div>
     <label class="fl">表示名</label>
-    <input type="text" id="pname" class="fi" placeholder="あなたの名前...">
+    <input type="text" id="pname" class="fi" placeholder="あなたの名前..." oninput="onPnameInput()">
+    <div id="pname-change-warn" style="display:none;font-size:11px;color:var(--am);background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25);border-radius:8px;padding:9px 12px;margin-top:-10px;margin-bottom:14px;line-height:1.6">
+      ⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名もすべて更新されます。
+    </div>
     <div class="div1"></div>
     <!-- Ollama設定 -->
     <!-- モード切替 -->
@@ -932,6 +935,59 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div class="mbs">
       <button class="mbb can" onclick="CM('publish-confirm-modal')">キャンセル</button>
       <button class="mbb ok" style="background:linear-gradient(135deg,#0ea5e9,#6d5aef)" onclick="doPublishToGallery()">公開する</button>
+    </div>
+  </div>
+</div>
+
+<!-- タイトル未設定時の入力モーダル -->
+<div id="title-required-modal" class="mo">
+  <div class="mb">
+    <div class="mt">
+      アプリのタイトルを設定
+      <button class="mc" onclick="CM('title-required-modal')">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:14px">
+      このアプリにタイトルをつけてください。<br>あとから変更することもできます。
+    </p>
+    <label class="fl">タイトル</label>
+    <input type="text" id="title-required-input" class="fi" placeholder="例: ブロック崩しゲーム"
+      onkeydown="if(event.key==='Enter')submitRequiredTitle()">
+    <div id="title-required-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none">タイトルを入力してください</div>
+    <div class="mbs">
+      <button class="mbb can" onclick="CM('title-required-modal')">キャンセル</button>
+      <button class="mbb ok" onclick="submitRequiredTitle()">決定して続ける</button>
+    </div>
+  </div>
+</div>
+
+<!-- 公開前セットアップモーダル（タイトル・表示名の設定） -->
+<div id="publish-setup-modal" class="mo">
+  <div class="mb">
+    <div class="mt">
+      公開前の設定
+      <button class="mc" onclick="CM('publish-setup-modal')">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:16px">
+      みんなのギャラリーに公開するために、以下を設定してください。
+    </p>
+    <!-- タイトル欄（未設定時のみ表示） -->
+    <div id="psetup-title-row">
+      <label class="fl">アプリのタイトル</label>
+      <input type="text" id="psetup-title-input" class="fi" placeholder="例: ブロック崩しゲーム">
+      <div id="psetup-title-err" style="font-size:11px;color:var(--rd);margin-bottom:8px;display:none">タイトルを入力してください</div>
+    </div>
+    <!-- 表示名欄（未設定時のみ表示） -->
+    <div id="psetup-author-row">
+      <label class="fl">表示名（作者として公開されます）</label>
+      <input type="text" id="psetup-author-input" class="fi" placeholder="例: ポテト太郎">
+      <div id="psetup-author-err" style="font-size:11px;color:var(--rd);margin-bottom:8px;display:none">表示名を入力してください</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:14px;line-height:1.6">
+        表示名はアカウントに紐付けて保存されます。設定後は「設定」から変更できます。
+      </div>
+    </div>
+    <div class="mbs">
+      <button class="mbb can" onclick="CM('publish-setup-modal')">キャンセル</button>
+      <button class="mbb ok" style="background:linear-gradient(135deg,#0ea5e9,#6d5aef)" onclick="submitPublishSetup()">設定して公開へ進む</button>
     </div>
   </div>
 </div>
@@ -2503,6 +2559,15 @@ function openShareModal() {
   document.getElementById('shm').classList.add('on');
 }
 async function createShareURL() {
+  // タイトル未入力チェック
+  var existingTitle = document.getElementById('shtitle').value.trim();
+  if (!existingTitle) {
+    requireTitle(function(title) {
+      // タイトル入力完了後に再実行
+      createShareURL();
+    });
+    return;
+  }
   var btn = document.getElementById('curlbtn'); btn.disabled = true; btn.textContent = '⏳ 生成中...';
   try {
     var title = document.getElementById('shtitle').value.trim() || '無題';
@@ -2590,7 +2655,30 @@ function shareEmail() {
   var t = document.getElementById('shtitle').value.trim() || '無題';
   location.href = 'mailto:?subject=' + encodeURIComponent('[Poteto] '+t) + '&body=' + encodeURIComponent(t+'\n\n'+surl);
 }
-// 公開確認モーダルを開く
+// タイトルが未入力なら入力モーダルを出し、入力完了後にcallbackを実行する
+var _titleCallback = null;
+function requireTitle(callback) {
+  var title = document.getElementById('shtitle').value.trim();
+  if (title) { callback(title); return; }
+  _titleCallback = callback;
+  document.getElementById('title-required-input').value = '';
+  document.getElementById('title-required-err').style.display = 'none';
+  document.getElementById('title-required-modal').classList.add('on');
+  setTimeout(function(){ document.getElementById('title-required-input').focus(); }, 120);
+}
+function submitRequiredTitle() {
+  var val = document.getElementById('title-required-input').value.trim();
+  if (!val) {
+    document.getElementById('title-required-err').style.display = 'block';
+    return;
+  }
+  // シェアモーダルのタイトル欄にも反映
+  document.getElementById('shtitle').value = val;
+  CM('title-required-modal');
+  if (_titleCallback) { var cb = _titleCallback; _titleCallback = null; cb(val); }
+}
+
+// 公開確認モーダルを開く（タイトル・表示名チェック付き）
 function openPublishConfirm() {
   if (!curUser) {
     CM('shm');
@@ -2598,9 +2686,72 @@ function openPublishConfirm() {
     T('公開にはログインが必要です');
     return;
   }
-  var title = document.getElementById('shtitle').value.trim() || '無題のアプリ';
-  var authorName = (curUser.displayName) || (prof.name) || '名無しのポテト';
-  document.getElementById('publish-confirm-title').textContent = '「' + title + '」';
+  var title      = document.getElementById('shtitle').value.trim();
+  var authorName = prof.name || (curUser && curUser.displayName) || '';
+  var needTitle  = !title;
+  var needAuthor = !authorName;
+
+  if (needTitle || needAuthor) {
+    // セットアップモーダルで必要な欄だけ表示
+    document.getElementById('psetup-title-row').style.display  = needTitle  ? 'block' : 'none';
+    document.getElementById('psetup-author-row').style.display = needAuthor ? 'block' : 'none';
+    document.getElementById('psetup-title-input').value  = title;
+    document.getElementById('psetup-author-input').value = authorName;
+    document.getElementById('psetup-title-err').style.display  = 'none';
+    document.getElementById('psetup-author-err').style.display = 'none';
+    document.getElementById('publish-setup-modal').classList.add('on');
+    // フォーカス
+    setTimeout(function(){
+      var el = needTitle
+        ? document.getElementById('psetup-title-input')
+        : document.getElementById('psetup-author-input');
+      if (el) el.focus();
+    }, 120);
+    return;
+  }
+  _showPublishConfirm(title, authorName);
+}
+
+// セットアップモーダルの「決定して公開へ進む」
+async function submitPublishSetup() {
+  var needTitle  = document.getElementById('psetup-title-row').style.display  !== 'none';
+  var needAuthor = document.getElementById('psetup-author-row').style.display !== 'none';
+  var titleVal  = document.getElementById('psetup-title-input').value.trim();
+  var authorVal = document.getElementById('psetup-author-input').value.trim();
+  var ok = true;
+
+  if (needTitle && !titleVal) {
+    document.getElementById('psetup-title-err').style.display = 'block'; ok = false;
+  } else {
+    document.getElementById('psetup-title-err').style.display = 'none';
+  }
+  if (needAuthor && !authorVal) {
+    document.getElementById('psetup-author-err').style.display = 'block'; ok = false;
+  } else {
+    document.getElementById('psetup-author-err').style.display = 'none';
+  }
+  if (!ok) return;
+
+  // タイトルをシェアモーダルに反映
+  if (needTitle) document.getElementById('shtitle').value = titleVal;
+
+  // 表示名を保存（Firestoreにも）
+  if (needAuthor) {
+    prof.name = authorVal;
+    localStorage.setItem('pt_prof', JSON.stringify(prof));
+    await saveAuthorNameToFirestore(authorVal);
+  }
+
+  CM('publish-setup-modal');
+  _showPublishConfirm(
+    document.getElementById('shtitle').value.trim(),
+    prof.name || authorVal
+  );
+}
+
+// 確認モーダルを実際に開く内部関数
+function _showPublishConfirm(title, authorName) {
+  document.getElementById('publish-confirm-title').textContent  = '「' + title + '」';
   document.getElementById('publish-confirm-author').textContent = '作者名: ' + authorName + ' として表示されます';
   document.getElementById('publish-confirm-modal').classList.add('on');
 }
@@ -2629,19 +2780,20 @@ async function doPublishToGallery() {
 }
 
 function pubGallery() {
-  var title = document.getElementById('shtitle').value.trim() || '無題のアプリ';
-  var ex = apps.find(function(a){ return a.code === cur; });
-  if (ex) {
-    ex.title = title; ex.author = prof.name||''; ex.avatar = prof.avatar||'';
+  requireTitle(function(title) {
+    var ex = apps.find(function(a){ return a.code === cur; });
+    if (ex) {
+      ex.title = title; ex.author = prof.name||''; ex.avatar = prof.avatar||'';
+      localStorage.setItem('pt_apps', JSON.stringify(apps));
+      autoSaveToFirestore(title, ex.id);
+      CM('shm'); T('マイギャラリーに保存しました'); return;
+    }
+    var newApp = { id: Date.now(), title: title, code: cur, likes: 0, createdAt: Date.now(), author: prof.name||'', avatar: prof.avatar||'' };
+    apps.push(newApp);
     localStorage.setItem('pt_apps', JSON.stringify(apps));
-    autoSaveToFirestore(title, ex.id);
-    CM('shm'); T('マイギャラリーに保存しました'); return;
-  }
-  var newApp = { id: Date.now(), title: title, code: cur, likes: 0, createdAt: Date.now(), author: prof.name||'', avatar: prof.avatar||'' };
-  apps.push(newApp);
-  localStorage.setItem('pt_apps', JSON.stringify(apps));
-  autoSaveToFirestore(title, newApp.id);
-  CM('shm'); exitWorkspace(); nav('gallery'); T('マイギャラリーに保存しました！');
+    autoSaveToFirestore(title, newApp.id);
+    CM('shm'); exitWorkspace(); nav('gallery'); T('マイギャラリーに保存しました！');
+  });
 }
 
 // gallery コレクションに公開データを保存する関数
@@ -2823,6 +2975,31 @@ function toggleGeminiKeyVis() {
   }
 }
 
+// 表示名をFirestoreのusers/{uid}に保存
+async function saveAuthorNameToFirestore(name) {
+  if (!curUser) return;
+  try {
+    await db.collection('users').doc(curUser.uid).set({
+      authorName: name, updatedAt: new Date()
+    }, { merge: true });
+  } catch(e) { console.warn('authorName save failed:', e); }
+}
+
+// 表示名変更時：galleryコレクションの自分の投稿をすべて更新
+async function updateGalleryAuthorName(newName) {
+  if (!curUser) return;
+  try {
+    var snap = await db.collection('gallery')
+      .where('uid', '==', curUser.uid)
+      .get();
+    var batch = db.batch();
+    snap.forEach(function(doc) {
+      batch.update(doc.ref, { authorName: newName });
+    });
+    await batch.commit();
+  } catch(e) { console.warn('Gallery authorName update failed:', e); }
+}
+
 async function saveGeminiKeyToFirestore(key) {
   if (!curUser) return;
   try {
@@ -2849,6 +3026,13 @@ async function loadUserSettings() {
         aiMode = d.selectedMode;
         switchMode(aiMode);
       }
+      // 表示名をアカウントから引き継ぎ
+      if (d.authorName) {
+        prof.name = d.authorName;
+        localStorage.setItem('pt_prof', JSON.stringify(prof));
+        var pnameEl = document.getElementById('pname');
+        if (pnameEl) pnameEl.value = d.authorName;
+      }
     }
   } catch(e) { console.warn('Firestore load failed:', e); }
 }
@@ -2856,12 +3040,20 @@ async function loadUserSettings() {
 // ════════════════════════════════════════════
 //  Settings
 // ════════════════════════════════════════════
+function onPnameInput() {
+  var warn = document.getElementById('pname-change-warn');
+  if (!warn || !curUser) return;
+  var current = prof.name || '';
+  var input = document.getElementById('pname').value.trim();
+  // 既存の表示名があって、かつ変更されている場合に警告表示
+  warn.style.display = (current && input !== current) ? 'block' : 'none';
+}
+
 function openSettings() {
   document.getElementById('pname').value = prof.name || '';
+  document.getElementById('pname-change-warn').style.display = 'none';
   document.getElementById('ollama-url').value = ollamaURL;
-  // モード切替UIを現在の状態に反映
   switchMode(aiMode);
-  // Geminiキーを反映
   var gki = document.getElementById('gemini-key-input');
   if (gki) gki.value = geminiKey || '';
   var gks = document.getElementById('gemini-key-status');
@@ -2870,12 +3062,17 @@ function openSettings() {
   if (prof.avatar) { img.src = prof.avatar; img.style.display = 'block'; } else { img.style.display = 'none'; }
   document.getElementById('sm').classList.add('on');
 }
-function saveSets() {
-  prof.name = document.getElementById('pname').value.trim();
+
+async function saveSets() {
+  var newName = document.getElementById('pname').value.trim();
+  var oldName = prof.name || '';
+  var nameChanged = newName && newName !== oldName;
+
+  prof.name = newName;
   localStorage.setItem('pt_prof', JSON.stringify(prof));
   ollamaURL = document.getElementById('ollama-url').value.trim() || 'http://localhost:11434';
   localStorage.setItem('pt_ollama', ollamaURL);
-  // Geminiキーを保存（cloud モードのときのみ必須チェック）
+
   var gki = document.getElementById('gemini-key-input');
   if (gki && gki.value.trim()) {
     var newKey = gki.value.trim();
@@ -2885,13 +3082,30 @@ function saveSets() {
   } else if (aiMode === 'cloud' && !geminiKey) {
     T('クラウドモードにはGemini APIキーが必要です'); return;
   }
-  // モードをFirestoreに保存
+
   if (curUser) {
-    db.collection('users').doc(curUser.uid).set({ selectedMode: aiMode }, { merge: true }).catch(function(){});
+    // 表示名・モードをFirestoreに保存
+    db.collection('users').doc(curUser.uid).set({
+      selectedMode: aiMode,
+      authorName: newName,
+      updatedAt: new Date()
+    }, { merge: true }).catch(function(){});
+
+    // 表示名が変わった場合、galleryの投稿を一括更新
+    if (nameChanged) {
+      T('表示名を更新中...');
+      await updateGalleryAuthorName(newName);
+      // みんなのギャラリーのキャッシュも更新
+      publicApps.forEach(function(a) {
+        if (a.uid === curUser.uid) a.authorName = newName;
+      });
+    }
   }
+
   localStorage.setItem('pt_mode', aiMode);
   updateNavBadge();
-  CM('sm'); T('設定を保存しました ✓');
+  CM('sm');
+  T(nameChanged ? '設定を保存しました（作者名を更新しました）✓' : '設定を保存しました ✓');
 }
 function handleAv(e) {
   var f = e.target.files[0]; if (!f) return;

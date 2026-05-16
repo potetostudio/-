@@ -928,10 +928,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         公開後も、自分の投稿はいつでも削除できます。
       </div>
     </div>
-    <div style="font-size:11px;color:var(--t3);margin-bottom:16px;display:flex;align-items:center;gap:6px">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span id="publish-confirm-author"></span>
+    <label class="fl" style="margin-bottom:5px">
+      作者名
+      <span style="font-weight:400;color:var(--t3);font-size:10px;margin-left:6px">ギャラリーに表示されます</span>
+    </label>
+    <input type="text" id="publish-confirm-author-input" class="fi" placeholder="表示名を入力..."
+      oninput="onPublishAuthorInput()" style="margin-bottom:6px">
+    <div id="publish-author-change-warn" style="display:none;font-size:11px;color:var(--am);background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25);border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.6">
+      ⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名もすべて更新されます。
     </div>
+    <div id="publish-author-err" style="display:none;font-size:11px;color:var(--rd);margin-bottom:10px">作者名を入力してください</div>
     <div class="mbs">
       <button class="mbb can" onclick="CM('publish-confirm-modal')">キャンセル</button>
       <button class="mbb ok" style="background:linear-gradient(135deg,#0ea5e9,#6d5aef)" onclick="doPublishToGallery()">公開する</button>
@@ -950,8 +956,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       このアプリにタイトルをつけてください。<br>あとから変更することもできます。
     </p>
     <label class="fl">タイトル</label>
-    <input type="text" id="title-required-input" class="fi" placeholder="例: ブロック崩しゲーム"
-      onkeydown="if(event.key==='Enter')submitRequiredTitle()">
+    <input type="text" id="title-required-input" class="fi" placeholder="例: ブロック崩しゲーム">
     <div id="title-required-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none">タイトルを入力してください</div>
     <div class="mbs">
       <button class="mbb can" onclick="CM('title-required-modal')">キャンセル</button>
@@ -1034,7 +1039,7 @@ var ollamaChatModel = 'qwen2.5-coder:7b';
 var ollamaBuildModel = 'deepseek-coder-v2:16b';
 var codeModel = ollamaChatModel;
 var imgModel  = 'llama3.2-vision';
-var vers = [], cur = '', curAppId = null, cpOpen = false;
+var vers = [], cur = '', curAppId = null, cpOpen = false, isTemplate = false;
 var isFsS = false, isFsA = false, surl = '', forkCode = '';
 var sharedGatePayload = null;
 var imgBase64 = '', imgMime = '';
@@ -1582,6 +1587,7 @@ function openApp(id) {
   var a = apps.find(function(x){ return x.id === id; });
   if (!a) return;
   curAppId = id;
+  isTemplate = false;
   document.getElementById('app-ttl').textContent = a.title;
   document.getElementById('lcnt').textContent = a.likes;
   document.getElementById('lico').setAttribute('fill','none');
@@ -1668,18 +1674,19 @@ function wrapCode(code) {
   return t;
 }
 
-function startWS(code, label, type) {
+function startWS(code, label, type, skipAutoSave) {
   cur = code;
+  isTemplate = !!skipAutoSave; // テンプレート起動時はtrue
   document.getElementById('launchpad').style.display = 'none';
   document.getElementById('workspace').style.display = 'flex';
   document.getElementById('sif').srcdoc = cur;
   vers = [{ id: Date.now(), code: cur, label: label, type: type || 'original' }];
   renderHist(); hideCP(); hideAutoFix();
   setTimeout(setupErrCapture, 800);
-  autoSaveToFirestore(label);
+  if (!skipAutoSave) autoSaveToFirestore(label);
 }
 
-function exitWorkspace() { nav('studio'); }
+function exitWorkspace() { isTemplate = false; nav('studio'); }
 
 // ════════════════════════════════════════════
 //  AI Generate (Ollama)
@@ -2534,10 +2541,17 @@ function restoreV(i) {
 //  Download
 // ════════════════════════════════════════════
 function dlCode() {
-  var title = (document.getElementById('shtitle') && document.getElementById('shtitle').value.trim()) || 'my-app';
+  var currentTitle = (document.getElementById('shtitle') && document.getElementById('shtitle').value.trim()) || '';
+  if (!currentTitle) {
+    requireTitle(function(title) { _doDownload(title); });
+    return;
+  }
+  _doDownload(currentTitle);
+}
+function _doDownload(title) {
   var b = new Blob([cur], {type:'text/html'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(b);
-  a.download = title.replace(/[^\w\-]/g,'_')+'.html';
+  a.download = (title || 'my-app').replace(/[^\w\-]/g,'_')+'.html';
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
   T('ダウンロードしました');
 }
@@ -2751,17 +2765,60 @@ async function submitPublishSetup() {
 
 // 確認モーダルを実際に開く内部関数
 function _showPublishConfirm(title, authorName) {
-  document.getElementById('publish-confirm-title').textContent  = '「' + title + '」';
-  document.getElementById('publish-confirm-author').textContent = '作者名: ' + authorName + ' として表示されます';
+  document.getElementById('publish-confirm-title').textContent = '「' + title + '」';
+  var inp = document.getElementById('publish-confirm-author-input');
+  inp.value = authorName;
+  // 警告・エラーをリセット
+  document.getElementById('publish-author-change-warn').style.display = 'none';
+  document.getElementById('publish-author-err').style.display = 'none';
+  // 既存の表示名を記憶（変更検知用）
+  inp.dataset.original = authorName;
   document.getElementById('publish-confirm-modal').classList.add('on');
+  setTimeout(function(){ inp.focus(); inp.select(); }, 120);
+}
+
+// 確認モーダル内の作者名入力時
+function onPublishAuthorInput() {
+  var inp = document.getElementById('publish-confirm-author-input');
+  var warn = document.getElementById('publish-author-change-warn');
+  var original = inp.dataset.original || '';
+  var current = inp.value.trim();
+  // 既存の名前があって変更されている場合のみ警告
+  warn.style.display = (original && current !== original) ? 'block' : 'none';
+  document.getElementById('publish-author-err').style.display = 'none';
 }
 
 // 実際に公開実行
 async function doPublishToGallery() {
   var title = document.getElementById('shtitle').value.trim() || '無題のアプリ';
+  var inp = document.getElementById('publish-confirm-author-input');
+  var newAuthor = inp.value.trim();
+  if (!newAuthor) {
+    document.getElementById('publish-author-err').style.display = 'block';
+    inp.focus();
+    return;
+  }
+  var oldAuthor = prof.name || '';
+  var authorChanged = newAuthor !== oldAuthor;
+
+  // 作者名が変わっていたら保存・一括更新
+  if (authorChanged) {
+    prof.name = newAuthor;
+    localStorage.setItem('pt_prof', JSON.stringify(prof));
+    await saveAuthorNameToFirestore(newAuthor);
+    await updateGalleryAuthorName(newAuthor);
+    // キャッシュも更新
+    if (curUser) {
+      publicApps.forEach(function(a) {
+        if (a.uid === curUser.uid) a.authorName = newAuthor;
+      });
+    }
+  }
+
   CM('publish-confirm-modal');
-  // マイギャラリーにも保存
-  var ex = apps.find(function(a){ return a.code === cur; });
+
+  // マイギャラリーにも保存（テンプレートはコード一致チェックをスキップ）
+  var ex = isTemplate ? null : apps.find(function(a){ return a.code === cur; });
   var appId;
   if (ex) {
     ex.title = title;
@@ -2774,14 +2831,16 @@ async function doPublishToGallery() {
     appId = newApp.id;
     autoSaveToFirestore(title, appId);
   }
+  isTemplate = false; // 保存済みになったのでフラグをリセット
   await saveGalleryToFirestore(title, appId, true);
   CM('shm'); exitWorkspace(); nav('gallery');
-  T('🎉 みんなのギャラリーに公開しました！');
+  T(authorChanged ? '🎉 みんなのギャラリーに公開しました！（作者名も更新）' : '🎉 みんなのギャラリーに公開しました！');
 }
 
 function pubGallery() {
   requireTitle(function(title) {
-    var ex = apps.find(function(a){ return a.code === cur; });
+    // テンプレートの場合は code 一致チェックをスキップして必ず新規保存
+    var ex = isTemplate ? null : apps.find(function(a){ return a.code === cur; });
     if (ex) {
       ex.title = title; ex.author = prof.name||''; ex.avatar = prof.avatar||'';
       localStorage.setItem('pt_apps', JSON.stringify(apps));
@@ -2792,6 +2851,7 @@ function pubGallery() {
     apps.push(newApp);
     localStorage.setItem('pt_apps', JSON.stringify(apps));
     autoSaveToFirestore(title, newApp.id);
+    isTemplate = false; // 保存済みになったのでフラグをリセット
     CM('shm'); exitWorkspace(); nav('gallery'); T('マイギャラリーに保存しました！');
   });
 }
@@ -3186,7 +3246,7 @@ function getTemplate(name) {
 function loadTemplate(name) {
   var code = getTemplate(name);
   if (!code) return;
-  startWS(code, name + ' テンプレート', 'original');
+  startWS(code, name + ' テンプレート', 'original', true); // テンプレートは自動保存しない
   T(name + ' テンプレートを起動しました ✓');
 }
 

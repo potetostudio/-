@@ -264,8 +264,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 #cv-pv-title{font-size:11px;color:var(--t3);flex:1}
 #cv-pv-reload{background:none;border:none;color:var(--t3);cursor:pointer;padding:4px;border-radius:5px;transition:all .15s;display:flex;align-items:center}
 #cv-pv-reload:hover{color:var(--t1);background:var(--s3)}
-#cv-pv-open{font-size:11px;font-weight:600;color:var(--ac2);background:rgba(109,90,239,.15);border:1px solid rgba(109,90,239,.3);border-radius:7px;padding:4px 10px;cursor:pointer;font-family:var(--f);transition:all .15s}
-#cv-pv-open:hover{background:rgba(109,90,239,.3)}
+
 #cv-iframe{flex:1;border:none;background:white}
 #aibar-in{background:rgba(7,8,13,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--brh);border-radius:14px;padding:7px;display:flex;align-items:center;gap:7px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
 #aibar-in>svg{color:var(--ac2);flex-shrink:0;width:15px;height:15px;margin:0 4px}
@@ -723,7 +722,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <button id="cv-pv-reload" onclick="cvReload()" title="リロード">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
         </button>
-        <button id="cv-pv-open" onclick="cvOpenInStudio()">→ スタジオで開く</button>
       </div>
       <iframe id="cv-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
     </div>
@@ -1037,7 +1035,7 @@ var prof      = JSON.parse(localStorage.getItem('pt_prof') || '{"name":"","avata
 var ollamaURL = localStorage.getItem('pt_ollama') || 'http://localhost:11434';
 var ollamaChatModel = 'qwen2.5-coder:7b';
 var ollamaBuildModel = 'deepseek-coder-v2:16b';
-var codeModel = ollamaChatModel;
+var codeModel = ollamaBuildModel;
 var imgModel  = 'llama3.2-vision';
 var vers = [], cur = '', curAppId = null, cpOpen = false, isTemplate = false;
 var isFsS = false, isFsA = false, surl = '', forkCode = '';
@@ -2312,13 +2310,6 @@ function cvReload() {
   var ifr = document.getElementById('cv-iframe');
   ifr.srcdoc = ''; setTimeout(function(){ ifr.srcdoc = cvCode; }, 50);
   T('リロードしました');
-}
-
-function cvOpenInStudio() {
-  if (!cvCode) { T('まだコードがありません'); return; }
-  startWS(cvCode, 'チャットから起動', 'ai');
-  nav('studio');
-  T('スタジオで開きました ✓');
 }
 
 function handleImgSelect(e) { var f = e.target.files[0]; if (f) loadImgFile(f); }

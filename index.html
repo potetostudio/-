@@ -364,6 +364,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 #ollama-err{display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:100;padding:12px 20px;background:rgba(210,153,34,.15);border:1px solid rgba(210,153,34,.4);border-radius:10px;font-size:12px;color:var(--am);text-align:center;pointer-events:none;backdrop-filter:blur(8px);white-space:nowrap}
 #ollama-err.show{display:block}
 
+/* ── タイムマシン Undo/Redo ── */
+.tm-btn{display:flex;align-items:center;gap:4px;padding:5px 9px;border-radius:8px;border:1px solid var(--br);background:transparent;color:var(--t2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--f);transition:all .15s;white-space:nowrap;line-height:1}
+.tm-btn:hover:not(:disabled){border-color:var(--ac);color:var(--ac2);background:rgba(109,90,239,.1)}
+.tm-btn:disabled{opacity:.28;cursor:not-allowed;pointer-events:none}
+.tm-btn svg{width:13px;height:13px;flex-shrink:0}
+.tm-wrap{display:flex;gap:3px;align-items:center}
+
 @media(max-width:600px){
   .gg{grid-template-columns:1fr 1fr;gap:10px}
   #g-body{padding:12px}
@@ -572,6 +579,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <button class="nb" onclick="reloadPreview()" title="リロード">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
         </button>
+        <!-- ── タイムマシン ── -->
+        <div class="tm-wrap">
+          <button id="tm-undo" class="tm-btn" onclick="undoHistory()" title="一つ前に戻る (Ctrl+Z)" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+            <span>Undo</span>
+          </button>
+          <button id="tm-redo" class="tm-btn" onclick="redoHistory()" title="やり直す (Ctrl+Y)" disabled>
+            <span>Redo</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
+          </button>
+        </div>
         <div class="sep"></div>
         <button class="nb pri" onclick="openShareModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -1051,6 +1069,11 @@ var ICONS = ['🎮','🎨','🌐','🧮','🎵','📊','✨','🛠','🌈','🔮
 var THINKS = ['コードを考え中','構造を設計中','HTMLを書いています','CSSを調整中','仕上げ中'];
 var tkTimer;
 
+// ── タイムマシン（履歴ロールバック）──
+var codeHistory = []; // コードスナップショット配列（最大20件）
+var historyIndex = -1; // 現在位置（-1=空）
+var HISTORY_MAX = 20;
+
 // ════════════════════════════════════════════
 //  Utils
 // ════════════════════════════════════════════
@@ -1096,6 +1119,73 @@ function showOllamaErr(msg) {
   el.textContent = msg || 'Ollamaを起動してください: ollama serve';
   el.classList.add('show');
   setTimeout(function(){ el.classList.remove('show'); }, 5000);
+}
+
+// ════════════════════════════════════════════
+//  タイムマシン（履歴ロールバック）
+// ════════════════════════════════════════════
+/**
+ * 現在のコード（cur）をタイムマシン履歴に Push する。
+ * ・ historyIndex より後ろの "未来" を切り捨ててから追記
+ * ・ 最大 HISTORY_MAX 件を超えたら古い方を削除
+ */
+function pushHistory(code) {
+  if (!code) return;
+  // 現在位置より後ろの未来スナップショットを破棄（Undo後に別操作をした場合）
+  codeHistory = codeHistory.slice(0, historyIndex + 1);
+  // 直前と同じコードなら保存しない（重複排除）
+  if (codeHistory.length > 0 && codeHistory[codeHistory.length - 1] === code) return;
+  codeHistory.push(code);
+  // 最大件数を超えたら先頭を削除
+  if (codeHistory.length > HISTORY_MAX) {
+    codeHistory.shift();
+  }
+  historyIndex = codeHistory.length - 1;
+  updateTMButtons();
+}
+
+/** タイムマシン履歴を初期化して最初のコードを保存（プロジェクト読み込み時） */
+function resetHistory(code) {
+  codeHistory = [];
+  historyIndex = -1;
+  if (code) {
+    codeHistory.push(code);
+    historyIndex = 0;
+  }
+  updateTMButtons();
+}
+
+/** Undo/Redo ボタンの disabled 状態を更新 */
+function updateTMButtons() {
+  var undoBtn = document.getElementById('tm-undo');
+  var redoBtn = document.getElementById('tm-redo');
+  if (undoBtn) undoBtn.disabled = (historyIndex <= 0);
+  if (redoBtn) redoBtn.disabled = (historyIndex >= codeHistory.length - 1);
+}
+
+/** 一つ前のスナップショットに戻る */
+function undoHistory() {
+  if (historyIndex <= 0) return;
+  historyIndex--;
+  var code = codeHistory[historyIndex];
+  cur = code;
+  document.getElementById('sif').srcdoc = cur;
+  if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
+  updateTMButtons();
+  var remaining = historyIndex; // 残り何ステップ戻れるか
+  T('⏪ ' + (remaining > 0 ? remaining + ' ステップ前に戻りました' : '最初の状態に戻りました'));
+}
+
+/** やり直す（Redo） */
+function redoHistory() {
+  if (historyIndex >= codeHistory.length - 1) return;
+  historyIndex++;
+  var code = codeHistory[historyIndex];
+  cur = code;
+  document.getElementById('sif').srcdoc = cur;
+  if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
+  updateTMButtons();
+  T('⏩ やり直しました');
 }
 
 
@@ -1682,6 +1772,8 @@ function startWS(code, label, type, skipAutoSave) {
   renderHist(); hideCP(); hideAutoFix();
   setTimeout(setupErrCapture, 800);
   if (!skipAutoSave) autoSaveToFirestore(label);
+  // ── タイムマシン: 新しいプロジェクト読み込み時に履歴を初期化 ──
+  resetHistory(cur);
 }
 
 function exitWorkspace() { isTemplate = false; nav('studio'); }
@@ -1772,6 +1864,8 @@ async function genFromPrompt() {
 async function runAI() {
   var p = document.getElementById('ai-inp').value.trim();
   if (!p || !cur) return;
+  // ── タイムマシン: AIにプロンプトを送信する直前に現在のコードを保存 ──
+  pushHistory(cur);
   document.getElementById('ai-snd').disabled = true;
   startThinking();
 
@@ -1807,6 +1901,8 @@ async function runAI() {
       renderHist();
       document.getElementById('ai-inp').value = '';
       T('AI修正完了！');
+      // ── タイムマシン: AI修正後の新しいコードを履歴に追加 ──
+      pushHistory(cur);
       setTimeout(setupErrCapture, 800);
     } else { T('コードの抽出に失敗しました'); }
   }
@@ -1944,6 +2040,9 @@ async function sendChat() {
   // コードがない場合は生成モード
   var isGenMode = !cur;
 
+  // ── タイムマシン: コードが存在する場合、AI送信前に保存 ──
+  if (!isGenMode) pushHistory(cur);
+
   // thinking表示
   var thinkBubble = addThinkingBubble();
 
@@ -2041,8 +2140,12 @@ async function sendChat() {
       document.getElementById('launchpad').style.display = 'none';
       document.getElementById('workspace').style.display = 'flex';
       vers = [{ id: Date.now(), code: cur, label: p + '（チャット生成）', type: 'ai' }];
+      // ── タイムマシン: 初回生成時はresetHistory ──
+      resetHistory(cur);
     } else {
       vers.unshift({ id: Date.now(), code: cur, label: p, type: 'ai' });
+      // ── タイムマシン: AI修正後の新しいコードを履歴に追加 ──
+      pushHistory(cur);
     }
     renderHist();
     addChatMsg('ai', reply, 'プレビュー更新済み');
@@ -2394,6 +2497,8 @@ function hideAutoFix() {
 }
 async function runAutoFix() {
   if (!lastError || !cur) return;
+  // ── タイムマシン: Auto-Fix実行前に現在のコードを保存 ──
+  pushHistory(cur);
   var btn = document.getElementById('autofix-btn');
   btn.textContent = '🔧 修復中...'; btn.disabled = true;
   startThinking();
@@ -2431,6 +2536,8 @@ async function runAutoFix() {
       vers.unshift({ id: Date.now(), code: cur, label: 'Auto-Fix: ' + lastError.slice(0,40), type: 'ai' });
       renderHist(); hideAutoFix();
       T('✓ エラーを自動修復しました！');
+      // ── タイムマシン: 修復後の新しいコードを履歴に追加 ──
+      pushHistory(cur);
       setTimeout(setupErrCapture, 800);
     } else { T('修復に失敗しました'); }
   }
@@ -2473,10 +2580,14 @@ function ck(e) {
   }
 }
 function applyCode() {
+  // ── タイムマシン: 手動編集を「適用」する前に現在のコードを保存 ──
+  if (cur) pushHistory(cur);
   cur = document.getElementById('ct').value;
   document.getElementById('sif').srcdoc = cur;
   vers.unshift({ id: Date.now(), code: cur, label: 'コード編集', type: 'manual' });
   renderHist(); T('✓ 適用しました');
+  // ── タイムマシン: 適用後の新しいコードも履歴に追加 ──
+  pushHistory(cur);
 }
 
 // ════════════════════════════════════════════
@@ -3329,6 +3440,23 @@ window.addEventListener('DOMContentLoaded', async function() {
   updateNavBadge();
   var loaded = await loadShared();
   if (!loaded) nav('gallery');
+
+  // ── タイムマシン: Ctrl+Z / Ctrl+Y キーボードショートカット ──
+  document.addEventListener('keydown', function(e) {
+    // コードエディタ(textarea)にフォーカスしている場合はブラウザデフォルトに委譲
+    var active = document.activeElement;
+    if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) return;
+    // ワークスペースが非表示なら何もしない
+    var ws = document.getElementById('workspace');
+    if (!ws || ws.style.display === 'none') return;
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+      e.preventDefault();
+      undoHistory();
+    } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+      e.preventDefault();
+      redoHistory();
+    }
+  });
 });
 </script>
 </body>

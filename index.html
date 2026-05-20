@@ -230,11 +230,170 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 /* ══ CHAT VIEW ══ */
 #view-chat{flex:1;display:none;flex-direction:row;overflow:hidden;min-height:0}
 #view-chat.active{display:flex}
+
+/* ── チャット履歴サイドバー ── */
+#cv-sidebar{
+  width:220px;min-width:220px;
+  display:flex;flex-direction:column;
+  background:rgba(10,11,18,.98);
+  border-right:1px solid var(--br);
+  flex-shrink:0;
+  transition:width .2s cubic-bezier(.4,0,.2,1), min-width .2s cubic-bezier(.4,0,.2,1), opacity .18s;
+  overflow:hidden;
+  position:relative;
+}
+#cv-sidebar.collapsed{width:0;min-width:0;opacity:0;pointer-events:none}
+#cv-sidebar-inner{width:220px;display:flex;flex-direction:column;height:100%}
+
+#cvs-hdr{padding:10px 8px 8px;border-bottom:1px solid var(--br);flex-shrink:0;display:flex;flex-direction:column;gap:6px}
+#cvs-label{font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--t3);text-transform:uppercase;padding:0 3px}
+#cvs-new{
+  display:flex;align-items:center;gap:6px;
+  width:100%;padding:7px 9px;
+  background:rgba(109,90,239,.1);
+  border:1px solid rgba(109,90,239,.25);
+  border-radius:8px;
+  color:var(--ac2);font-size:11.5px;font-weight:600;
+  cursor:pointer;font-family:var(--f);
+  transition:all .14s;
+}
+#cvs-new:hover{background:rgba(109,90,239,.2);border-color:var(--ac)}
+#cvs-new svg{width:12px;height:12px;flex-shrink:0}
+
+/* サイドバーヘッダー上段（タイトル＋閉じる） */
+#cvs-hdr-top{display:flex;align-items:center;justify-content:space-between;padding:0 2px}
+#cvs-close{
+  background:none;border:none;cursor:pointer;
+  color:var(--t3);padding:3px;border-radius:5px;
+  display:flex;align-items:center;
+  transition:background .12s,color .12s;
+}
+#cvs-close:hover{background:var(--s4);color:var(--t1)}
+#cvs-close svg{width:13px;height:13px}
+
+#cvs-list{flex:1;overflow-y:auto;padding:6px 5px;display:flex;flex-direction:column;gap:2px}
+#cvs-list::-webkit-scrollbar{width:3px}
+#cvs-list::-webkit-scrollbar-thumb{background:var(--s4)}
+
+#cvs-login-note{
+  margin:8px 6px;padding:9px;
+  background:rgba(109,90,239,.06);
+  border:1px solid rgba(109,90,239,.15);
+  border-radius:8px;
+  font-size:10.5px;color:var(--t3);
+  line-height:1.6;text-align:center;
+  flex-shrink:0;
+}
+#cvs-login-note a{color:var(--ac2);cursor:pointer;text-decoration:underline}
+
+#cvs-empty{
+  padding:20px 8px;text-align:center;
+  color:var(--t3);font-size:10.5px;line-height:1.7;
+}
+#cvs-empty svg{opacity:.2;margin:0 auto 8px;display:block}
+
+.cvsi{
+  display:flex;align-items:flex-start;gap:6px;
+  padding:7px 8px;border-radius:7px;
+  cursor:pointer;transition:background .12s;
+  position:relative;min-width:0;
+}
+.cvsi:hover{background:var(--s2)}
+.cvsi.active{background:rgba(109,90,239,.16);border:1px solid rgba(109,90,239,.22)}
+.cvsi-ico{font-size:13px;flex-shrink:0;margin-top:1px;opacity:.7}
+.cvsi-body{flex:1;min-width:0}
+.cvsi-title{
+  font-size:11px;font-weight:500;color:var(--t1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cvsi.active .cvsi-title{color:var(--ac2)}
+.cvsi-meta{font-size:9px;color:var(--t3);margin-top:2px}
+.cvsi-del{
+  opacity:0;transition:opacity .14s;
+  background:none;border:none;cursor:pointer;
+  color:var(--t3);padding:2px;border-radius:4px;
+  display:flex;align-items:center;flex-shrink:0;margin-top:1px;
+}
+.cvsi:hover .cvsi-del{opacity:1}
+.cvsi-del:hover{color:var(--rd);background:rgba(218,54,51,.1)}
+.cvsi-del svg{width:10px;height:10px}
+
+/* サイドバー開閉タブ — サイドバー内には置かない（cv-hdrに移動） */
+#cvs-toggle{display:none} /* 旧ボタンは非表示 */
+
+/* コードを表示ボタン（cv-hdr内） */
+#cv-show-code-btn{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 9px;
+  background:transparent;
+  border:1px solid var(--br);
+  border-radius:7px;
+  color:var(--t2);font-size:11px;font-weight:500;
+  cursor:pointer;font-family:var(--f);
+  transition:all .14s;white-space:nowrap;flex-shrink:0;
+}
+#cv-show-code-btn:hover{border-color:var(--ac);color:var(--ac2);background:rgba(109,90,239,.1)}
+#cv-show-code-btn svg{width:12px;height:12px;flex-shrink:0}
+
+/* コード表示モーダル */
+#cv-code-panel{
+  width:min(820px,92vw);max-height:82vh;
+  display:flex;flex-direction:column;
+  background:var(--s1);border:1px solid var(--br);
+  border-radius:14px;overflow:hidden;
+  box-shadow:0 24px 64px rgba(0,0,0,.6);
+}
+#cv-code-mhdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;background:var(--s2);
+  border-bottom:1px solid var(--br);flex-shrink:0;
+}
+#cv-code-mtitle{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--t1)}
+#cv-code-copy-btn{
+  display:flex;align-items:center;gap:5px;padding:5px 10px;
+  background:rgba(109,90,239,.12);border:1px solid rgba(109,90,239,.3);
+  border-radius:7px;color:var(--ac2);font-size:11px;font-weight:600;
+  cursor:pointer;font-family:var(--f);transition:all .14s;
+}
+#cv-code-copy-btn:hover{background:rgba(109,90,239,.22);border-color:var(--ac)}
+#cv-code-copy-btn svg{width:11px;height:11px}
+#cv-code-close-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;background:none;border:none;
+  border-radius:6px;cursor:pointer;color:var(--t3);transition:background .12s,color .12s;
+}
+#cv-code-close-btn:hover{background:var(--s4);color:var(--t1)}
+#cv-code-close-btn svg{width:13px;height:13px}
+#cv-code-pre{
+  flex:1;overflow:auto;margin:0;padding:16px 20px;
+  font-family:'Fira Code','Cascadia Code',monospace;
+  font-size:12px;line-height:1.65;color:#c9d1d9;
+  background:transparent;white-space:pre;
+}
+#cv-code-pre::-webkit-scrollbar{width:6px;height:6px}
+#cv-code-pre::-webkit-scrollbar-thumb{background:var(--s4);border-radius:3px}
+
+/* チャットヘッダー内の履歴トグルボタン */
+#cvs-hdr-btn{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 9px;
+  background:transparent;
+  border:1px solid var(--br);
+  border-radius:7px;
+  color:var(--t2);
+  font-size:11px;font-weight:500;
+  cursor:pointer;font-family:var(--f);
+  transition:all .14s;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+#cvs-hdr-btn:hover{border-color:var(--ac);color:var(--ac2);background:rgba(109,90,239,.1)}
+#cvs-hdr-btn.open{border-color:var(--ac);color:var(--ac2);background:rgba(109,90,239,.12)}
+#cvs-hdr-btn svg{width:12px;height:12px;flex-shrink:0}
+
 #cv-left{width:360px;min-width:300px;max-width:480px;display:flex;flex-direction:column;background:var(--s1);border-right:1px solid var(--br);flex-shrink:0}
 #cv-hdr{padding:12px 16px;background:var(--s2);border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px;flex-shrink:0}
 #cv-hdr-title{font-size:13px;font-weight:700;color:var(--t1);flex:1}
-#cv-clear{background:none;border:none;color:var(--t3);cursor:pointer;font-size:11px;padding:4px 8px;border-radius:6px;font-family:var(--f);transition:all .15s}
-#cv-clear:hover{background:var(--s4);color:var(--rd)}
 #cv-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
 #cv-msgs::-webkit-scrollbar{width:3px}
 .cvm{display:flex;flex-direction:column;gap:4px;max-width:88%}
@@ -363,13 +522,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 /* Ollama error overlay */
 #ollama-err{display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:100;padding:12px 20px;background:rgba(210,153,34,.15);border:1px solid rgba(210,153,34,.4);border-radius:10px;font-size:12px;color:var(--am);text-align:center;pointer-events:none;backdrop-filter:blur(8px);white-space:nowrap}
 #ollama-err.show{display:block}
-
-/* ── タイムマシン Undo/Redo ── */
-.tm-btn{display:flex;align-items:center;gap:4px;padding:5px 9px;border-radius:8px;border:1px solid var(--br);background:transparent;color:var(--t2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--f);transition:all .15s;white-space:nowrap;line-height:1}
-.tm-btn:hover:not(:disabled){border-color:var(--ac);color:var(--ac2);background:rgba(109,90,239,.1)}
-.tm-btn:disabled{opacity:.28;cursor:not-allowed;pointer-events:none}
-.tm-btn svg{width:13px;height:13px;flex-shrink:0}
-.tm-wrap{display:flex;gap:3px;align-items:center}
 
 @media(max-width:600px){
   .gg{grid-template-columns:1fr 1fr;gap:10px}
@@ -579,17 +731,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <button class="nb" onclick="reloadPreview()" title="リロード">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
         </button>
-        <!-- ── タイムマシン ── -->
-        <div class="tm-wrap">
-          <button id="tm-undo" class="tm-btn" onclick="undoHistory()" title="一つ前に戻る (Ctrl+Z)" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
-            <span>Undo</span>
-          </button>
-          <button id="tm-redo" class="tm-btn" onclick="redoHistory()" title="やり直す (Ctrl+Y)" disabled>
-            <span>Redo</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
-          </button>
-        </div>
         <div class="sep"></div>
         <button class="nb pri" onclick="openShareModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -697,12 +838,55 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 
   <!-- ══ CHAT VIEW ══ -->
   <div id="view-chat" class="view">
+
+    <!-- ── チャット履歴サイドバー ── -->
+    <div id="cv-sidebar" class="collapsed">
+      <div id="cv-sidebar-inner">
+        <div id="cvs-hdr">
+          <div id="cvs-hdr-top">
+            <div id="cvs-label">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:3px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              チャット履歴
+            </div>
+            <button id="cvs-close" onclick="cvsToggle()" title="閉じる">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+          <button id="cvs-new" onclick="cvsNew()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            新しいチャット
+          </button>
+        </div>
+        <div id="cvs-login-note" style="display:none">
+          <a onclick="openAuthModal()">ログイン</a>すると履歴が自動保存されます
+        </div>
+        <div id="cvs-list">
+          <div id="cvs-empty">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            履歴がありません<br>AIに話しかけて<br>作成を始めましょう
+          </div>
+        </div>
+      </div>
+      <button id="cvs-toggle" onclick="cvsToggle()" title="サイドバーを開閉">
+        <svg id="cvs-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+
     <!-- 左：チャット -->
     <div id="cv-left">
       <div id="cv-hdr">
+        <!-- 履歴サイドバー開閉ボタン -->
+        <button id="cvs-hdr-btn" onclick="cvsToggle()" title="チャット履歴を開く/閉じる">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          履歴
+        </button>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ac2)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span id="cv-hdr-title">AIチャット</span>
-        <button id="cv-clear" onclick="cvClear()">チャット履歴をクリア</button>
+        <!-- コードを表示ボタン -->
+        <button id="cv-show-code-btn" onclick="cvShowCode()" title="生成されたコードを表示">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          コードを表示
+        </button>
       </div>
       <div id="cv-msgs">
         <div class="cvm ai">
@@ -736,7 +920,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div id="cv-pv-bar">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         <span id="cv-pv-title" style="color:var(--t3);font-size:11px;flex:1">プレビュー — まだコードがありません</span>
-        <button type="button" id="cv-copy-code" onclick="copyCvChatCode()" title="プレビューのHTMLをコピー" style="font-size:10px;font-weight:600;color:var(--t2);background:var(--s3);border:1px solid var(--br);border-radius:6px;padding:4px 9px;cursor:pointer;font-family:var(--f);flex-shrink:0;transition:all .15s" onmouseover="this.style.borderColor='var(--ac)';this.style.color='var(--ac2)'" onmouseout="this.style.borderColor='var(--br)';this.style.color='var(--t2)'">コピー</button>
         <button id="cv-pv-reload" onclick="cvReload()" title="リロード">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
         </button>
@@ -1069,10 +1252,11 @@ var ICONS = ['🎮','🎨','🌐','🧮','🎵','📊','✨','🛠','🌈','🔮
 var THINKS = ['コードを考え中','構造を設計中','HTMLを書いています','CSSを調整中','仕上げ中'];
 var tkTimer;
 
-// ── タイムマシン（履歴ロールバック）──
-var codeHistory = []; // コードスナップショット配列（最大20件）
-var historyIndex = -1; // 現在位置（-1=空）
-var HISTORY_MAX = 20;
+// ── チャット履歴サイドバー ──
+var cvsCurDocId   = null;  // 現在のFirestoreドキュメントID
+var cvsChats      = [];    // サイドバーに表示するチャット一覧キャッシュ
+var cvsSidebarCollapsed = true;  // デフォルトは収納状態
+var cvsUnsubscribe = null; // Firestoreリアルタイムリスナー解除関数
 
 // ════════════════════════════════════════════
 //  Utils
@@ -1119,73 +1303,6 @@ function showOllamaErr(msg) {
   el.textContent = msg || 'Ollamaを起動してください: ollama serve';
   el.classList.add('show');
   setTimeout(function(){ el.classList.remove('show'); }, 5000);
-}
-
-// ════════════════════════════════════════════
-//  タイムマシン（履歴ロールバック）
-// ════════════════════════════════════════════
-/**
- * 現在のコード（cur）をタイムマシン履歴に Push する。
- * ・ historyIndex より後ろの "未来" を切り捨ててから追記
- * ・ 最大 HISTORY_MAX 件を超えたら古い方を削除
- */
-function pushHistory(code) {
-  if (!code) return;
-  // 現在位置より後ろの未来スナップショットを破棄（Undo後に別操作をした場合）
-  codeHistory = codeHistory.slice(0, historyIndex + 1);
-  // 直前と同じコードなら保存しない（重複排除）
-  if (codeHistory.length > 0 && codeHistory[codeHistory.length - 1] === code) return;
-  codeHistory.push(code);
-  // 最大件数を超えたら先頭を削除
-  if (codeHistory.length > HISTORY_MAX) {
-    codeHistory.shift();
-  }
-  historyIndex = codeHistory.length - 1;
-  updateTMButtons();
-}
-
-/** タイムマシン履歴を初期化して最初のコードを保存（プロジェクト読み込み時） */
-function resetHistory(code) {
-  codeHistory = [];
-  historyIndex = -1;
-  if (code) {
-    codeHistory.push(code);
-    historyIndex = 0;
-  }
-  updateTMButtons();
-}
-
-/** Undo/Redo ボタンの disabled 状態を更新 */
-function updateTMButtons() {
-  var undoBtn = document.getElementById('tm-undo');
-  var redoBtn = document.getElementById('tm-redo');
-  if (undoBtn) undoBtn.disabled = (historyIndex <= 0);
-  if (redoBtn) redoBtn.disabled = (historyIndex >= codeHistory.length - 1);
-}
-
-/** 一つ前のスナップショットに戻る */
-function undoHistory() {
-  if (historyIndex <= 0) return;
-  historyIndex--;
-  var code = codeHistory[historyIndex];
-  cur = code;
-  document.getElementById('sif').srcdoc = cur;
-  if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
-  updateTMButtons();
-  var remaining = historyIndex; // 残り何ステップ戻れるか
-  T('⏪ ' + (remaining > 0 ? remaining + ' ステップ前に戻りました' : '最初の状態に戻りました'));
-}
-
-/** やり直す（Redo） */
-function redoHistory() {
-  if (historyIndex >= codeHistory.length - 1) return;
-  historyIndex++;
-  var code = codeHistory[historyIndex];
-  cur = code;
-  document.getElementById('sif').srcdoc = cur;
-  if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
-  updateTMButtons();
-  T('⏩ やり直しました');
 }
 
 
@@ -1477,14 +1594,26 @@ function startStreamBar() {
 // ════════════════════════════════════════════
 //  Navigation
 // ════════════════════════════════════════════
-function nav(v) {
+function nav(v, opts) {
   document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
   document.getElementById('view-' + v).classList.add('active');
   document.getElementById('nbg').style.display = (v === 'gallery' || v === 'chat') ? 'flex' : 'none';
   document.getElementById('nbs').style.display = v === 'studio' ? 'flex' : 'none';
   if (v === 'gallery') renderGallery();
   if (v === 'studio')  resetS();
-  if (v === 'chat')    cvUpdateEngine();
+  if (v === 'chat') {
+    cvUpdateEngine();
+    // ── 外部ナビ（ギャラリー・ヘッダーボタン等）からチャットに来た時は
+    //    サイドバーを収納した状態で表示する。
+    //    opts.keepSidebar === true の場合は収納しない（cvsLoad用）
+    if (!(opts && opts.keepSidebar)) {
+      cvsSidebarCollapsed = true;
+      var sb  = document.getElementById('cv-sidebar');
+      var btn = document.getElementById('cvs-hdr-btn');
+      if (sb)  sb.classList.add('collapsed');
+      if (btn) btn.classList.remove('open');
+    }
+  }
 }
 
 // ════════════════════════════════════════════
@@ -1772,8 +1901,6 @@ function startWS(code, label, type, skipAutoSave) {
   renderHist(); hideCP(); hideAutoFix();
   setTimeout(setupErrCapture, 800);
   if (!skipAutoSave) autoSaveToFirestore(label);
-  // ── タイムマシン: 新しいプロジェクト読み込み時に履歴を初期化 ──
-  resetHistory(cur);
 }
 
 function exitWorkspace() { isTemplate = false; nav('studio'); }
@@ -1864,8 +1991,6 @@ async function genFromPrompt() {
 async function runAI() {
   var p = document.getElementById('ai-inp').value.trim();
   if (!p || !cur) return;
-  // ── タイムマシン: AIにプロンプトを送信する直前に現在のコードを保存 ──
-  pushHistory(cur);
   document.getElementById('ai-snd').disabled = true;
   startThinking();
 
@@ -1901,8 +2026,6 @@ async function runAI() {
       renderHist();
       document.getElementById('ai-inp').value = '';
       T('AI修正完了！');
-      // ── タイムマシン: AI修正後の新しいコードを履歴に追加 ──
-      pushHistory(cur);
       setTimeout(setupErrCapture, 800);
     } else { T('コードの抽出に失敗しました'); }
   }
@@ -2040,9 +2163,6 @@ async function sendChat() {
   // コードがない場合は生成モード
   var isGenMode = !cur;
 
-  // ── タイムマシン: コードが存在する場合、AI送信前に保存 ──
-  if (!isGenMode) pushHistory(cur);
-
   // thinking表示
   var thinkBubble = addThinkingBubble();
 
@@ -2140,12 +2260,8 @@ async function sendChat() {
       document.getElementById('launchpad').style.display = 'none';
       document.getElementById('workspace').style.display = 'flex';
       vers = [{ id: Date.now(), code: cur, label: p + '（チャット生成）', type: 'ai' }];
-      // ── タイムマシン: 初回生成時はresetHistory ──
-      resetHistory(cur);
     } else {
       vers.unshift({ id: Date.now(), code: cur, label: p, type: 'ai' });
-      // ── タイムマシン: AI修正後の新しいコードを履歴に追加 ──
-      pushHistory(cur);
     }
     renderHist();
     addChatMsg('ai', reply, 'プレビュー更新済み');
@@ -2154,6 +2270,203 @@ async function sendChat() {
     // コードなし → 純粋な会話返答
     addChatMsg('ai', reply || raw);
   }
+}
+
+// ════════════════════════════════════════════
+//  チャット履歴サイドバー（#view-chat 用）
+// ════════════════════════════════════════════
+
+/** サイドバー開閉トグル */
+function cvsToggle() {
+  cvsSidebarCollapsed = !cvsSidebarCollapsed;
+  var sb  = document.getElementById('cv-sidebar');
+  var btn = document.getElementById('cvs-hdr-btn');
+  if (sb)  sb.classList.toggle('collapsed', cvsSidebarCollapsed);
+  if (btn) btn.classList.toggle('open', !cvsSidebarCollapsed);
+}
+
+/**
+ * Firestore users/{uid}/cvChats/{docId} にチャットセッションを保存/更新。
+ * cvHistory（表示ログ）と cvCode（最新コード）を丸ごと保存する。
+ */
+async function cvsSaveSession() {
+  if (!curUser) return;
+  // タイトル = 最初のユーザー発言の先頭30文字
+  var firstUser = cvHistory.find(function(m){ return m.role === 'user'; });
+  var title = firstUser ? firstUser.text.slice(0, 30) : '新しいチャット';
+  var payload = {
+    title: title,
+    code:  cvCode || '',
+    messages: cvHistory.map(function(m){ return { role: m.role, text: m.text }; }),
+    updatedAt: new Date(),
+    uid: curUser.uid
+  };
+  try {
+    if (cvsCurDocId) {
+      await db.collection('users').doc(curUser.uid)
+        .collection('cvChats').doc(cvsCurDocId)
+        .set(payload, { merge: true });
+    } else {
+      payload.createdAt = new Date();
+      var ref = await db.collection('users').doc(curUser.uid)
+        .collection('cvChats').add(payload);
+      cvsCurDocId = ref.id;
+    }
+    cvsRender(); // アクティブ状態を更新
+  } catch(e) { console.warn('cvsSaveSession failed:', e); }
+}
+
+/** サイドバーリストをレンダリング */
+function cvsRender() {
+  var list  = document.getElementById('cvs-list');
+  var empty = document.getElementById('cvs-empty');
+  var note  = document.getElementById('cvs-login-note');
+  if (!list) return;
+
+  if (note) note.style.display = curUser ? 'none' : 'block';
+
+  if (!curUser || !cvsChats.length) {
+    if (empty) empty.style.display = 'block';
+    // アイテムをクリア（emptyは残す）
+    Array.from(list.querySelectorAll('.cvsi')).forEach(function(el){ el.remove(); });
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  list.innerHTML = '';
+
+  cvsChats.forEach(function(chat) {
+    var el = document.createElement('div');
+    el.className = 'cvsi' + (chat.id === cvsCurDocId ? ' active' : '');
+    var dateStr = '';
+    if (chat.updatedAt) {
+      var d = chat.updatedAt.toDate ? chat.updatedAt.toDate() : new Date(chat.updatedAt);
+      dateStr = (d.getMonth()+1) + '/' + d.getDate() + ' ' + ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
+    }
+    el.innerHTML =
+      '<span class="cvsi-ico">💬</span>' +
+      '<div class="cvsi-body">' +
+        '<div class="cvsi-title" title="' + E(chat.title||'無題') + '">' + E(chat.title||'無題') + '</div>' +
+        '<div class="cvsi-meta">' + E(dateStr) + '</div>' +
+      '</div>' +
+      '<button class="cvsi-del" onclick="event.stopPropagation();cvsDelete(\'' + chat.id + '\')" title="削除">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
+      '</button>';
+    el.addEventListener('click', function(){ cvsLoad(chat.id); });
+    list.appendChild(el);
+  });
+}
+
+/** Firestoreからチャット一覧をリアルタイム購読 */
+function cvsSubscribe() {
+  if (!curUser) return;
+  if (cvsUnsubscribe) { cvsUnsubscribe(); cvsUnsubscribe = null; }
+  cvsUnsubscribe = db.collection('users').doc(curUser.uid)
+    .collection('cvChats')
+    .orderBy('updatedAt', 'desc')
+    .limit(50)
+    .onSnapshot(function(snap) {
+      cvsChats = [];
+      snap.forEach(function(doc){
+        cvsChats.push(Object.assign({ id: doc.id }, doc.data()));
+      });
+      cvsRender();
+    }, function(e){ console.warn('cvChats listen error:', e); });
+}
+
+/** 選択したチャットを読み込んで会話を再開 */
+async function cvsLoad(docId) {
+  if (!curUser) return;
+  try {
+    var snap = await db.collection('users').doc(curUser.uid)
+      .collection('cvChats').doc(docId).get();
+    if (!snap.exists) { T('セッションが見つかりません'); return; }
+    var d = snap.data();
+    cvsCurDocId = docId;
+
+    // 会話履歴・Ollama配列をリセット
+    cvHistory = [];
+    cvOllamaMessages = [];
+    cvCode = d.code || '';
+    cvPendingImg = ''; cvPendingMime = '';
+    var imgPrev = document.getElementById('cv-img-preview');
+    if (imgPrev) imgPrev.style.display = 'none';
+
+    // メッセージUIを再描画
+    var msgs = document.getElementById('cv-msgs');
+    msgs.innerHTML = '';
+    var savedMsgs = d.messages || [];
+    savedMsgs.forEach(function(m) {
+      _cvsRenderBubble(m.role, m.text);
+      cvHistory.push({ role: m.role, text: m.text });
+      cvOllamaMessages.push({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: m.text
+      });
+    });
+    cvOllamaMessages = trimOllamaTurns(cvOllamaMessages, 5);
+
+    // プレビューを更新
+    var iframe = document.getElementById('cv-iframe');
+    if (cvCode) {
+      iframe.srcdoc = cvCode;
+      document.getElementById('cv-pv-title').textContent =
+        (d.title || '再開したチャット').slice(0, 40);
+    } else {
+      iframe.srcdoc = '';
+      document.getElementById('cv-pv-title').textContent = 'プレビュー — まだコードがありません';
+    }
+
+    cvsRender();
+    nav('chat', { keepSidebar: true });
+    var btn = document.getElementById('cvs-hdr-btn');
+    if (btn) btn.classList.add('open');
+    T('「' + (d.title||'無題') + '」を再開しました');
+  } catch(e) { console.warn('cvsLoad failed:', e); T('読み込みに失敗しました'); }
+}
+
+/**
+ * UIにチャットバブルだけ描画する内部関数（cvHistory への push はしない）。
+ * cvsLoad での過去ログ再描画に使用。
+ */
+function _cvsRenderBubble(role, text) {
+  var msgs = document.getElementById('cv-msgs');
+  var wrap = document.createElement('div');
+  wrap.className = 'cvm ' + role;
+  var nameEl = document.createElement('span');
+  nameEl.className = 'cvm-name';
+  nameEl.textContent = role === 'user' ? 'あなた' : 'AI';
+  var bubble = document.createElement('div');
+  bubble.className = 'cvm-bubble';
+  bubble.textContent = text;
+  wrap.appendChild(nameEl);
+  wrap.appendChild(bubble);
+  msgs.appendChild(wrap);
+}
+
+/** 新しいチャットを開始（リセット） */
+/** 新しいチャットを開始 — 現在のセッションを先に保存してからリセット */
+async function cvsNew() {
+  // 会話が1件以上あれば保存してから新規へ
+  if (curUser && cvHistory.length > 0) {
+    await cvsSaveSession();
+  }
+  // cvClear内でcvsCurDocIdをnullにするので順番に注意
+  cvClear();
+  nav('chat');
+}
+
+/** チャットセッションを削除 */
+async function cvsDelete(docId) {
+  if (!curUser || !confirm('この履歴を削除しますか？')) return;
+  try {
+    await db.collection('users').doc(curUser.uid)
+      .collection('cvChats').doc(docId).delete();
+    if (cvsCurDocId === docId) {
+      cvsCurDocId = null;
+      cvClear();
+    }
+    T('削除しました');
+  } catch(e) { T('削除に失敗しました'); }
 }
 
 // ════════════════════════════════════════════
@@ -2173,9 +2486,14 @@ function cvUpdateEngine() {
   else                         el.textContent = '🖥 チャット: ' + ollamaChatModel + ' ／ 一発作成: ' + ollamaBuildModel;
 }
 
-function cvClear() {
+async function cvClear() {
+  // 会話が残っていれば先に保存
+  if (curUser && cvHistory.length > 0) {
+    await cvsSaveSession();
+  }
   cvHistory = []; cvOllamaMessages = []; cvCode = '';
   cvPendingImg = ''; cvPendingMime = '';
+  cvsCurDocId = null;
   var imgPreview = document.getElementById('cv-img-preview');
   if (imgPreview) imgPreview.style.display = 'none';
   document.getElementById('cv-msgs').innerHTML =
@@ -2183,6 +2501,7 @@ function cvClear() {
     '<div class="cvm-bubble">履歴をクリアしました。新しい会話を始めましょう！</div></div>';
   document.getElementById('cv-iframe').srcdoc = '';
   document.getElementById('cv-pv-title').textContent = 'プレビュー — まだコードがありません';
+  cvsRender();
 }
 
 function cvKeydown(e) {
@@ -2255,25 +2574,17 @@ async function cvSend() {
   // ── ユーザーメッセージをUIに追加 ──
   cvAddMsg('user', p || '（画像を送信）', null, hasImg ? cvPendingImg : null);
 
-  // ── Ollama messages配列にユーザー発言を積む ──
+  // ── Ollama messages配列にユーザー発言を積む（テキストのみ） ──
   var userMsg = { role: 'user', content: '' };
-  if (hasImg) {
-    // llama3.2-vision 用: content を配列形式で
-    userMsg.content = [
-      { type: 'text', text: (p || '画像からHTMLアプリを作成してください') +
-        '\n\nHTMLコードは必ず```html ... ```で囲んで出力してください。' },
-      { type: 'image_url', image_url: { url: 'data:' + cvPendingMime + ';base64,' + cvPendingImg } }
-    ];
-  } else {
-    var sysInject = !cvCode
-      ? '\n\n【重要】HTMLコードを生成する場合は必ず完全な1ファイルHTMLを```html ... ```で囲んで出力してください。コード後に日本語で1〜2文の説明を添えてください。'
-      : '\n\n【重要】コードを修正する場合は完全なHTMLを```html ... ```で囲んで出力してください。変更点を日本語で簡潔に説明してください。';
-    userMsg.content = p + sysInject;
-  }
+  var sysInject = !cvCode
+    ? '\n\n【重要】HTMLコードを生成する場合は必ず完全な1ファイルHTMLを```html ... ```で囲んで出力してください。コード後に日本語で1〜2文の説明を添えてください。'
+    : '\n\n【重要】コードを修正する場合は完全なHTMLを```html ... ```で囲んで出力してください。変更点を日本語で簡潔に説明してください。';
+  userMsg.content = (p || '画像からHTMLアプリを作成してください') + sysInject;
   cvOllamaMessages.push(userMsg);
 
   // 画像リセット
-  var sentImg = cvPendingImg;
+  var sentImg  = cvPendingImg;
+  var sentMime = cvPendingMime;
   cvPendingImg = ''; cvPendingMime = '';
   var imgPreview = document.getElementById('cv-img-preview');
   if (imgPreview) imgPreview.style.display = 'none';
@@ -2284,66 +2595,71 @@ async function cvSend() {
   var fullReply = '';
 
   try {
-    var model = sentImg ? imgModel : ollamaChatModel;
-    var url = ollamaURL + '/api/chat';
+    if (sentImg) {
+      // ── 画像あり: /api/generate エンドポイントで llama3.2-vision へ ──
+      var imgPrompt =
+        (p || '画像からHTMLアプリを作成してください') +
+        '\n\nHTMLコードは必ず完全な1ファイルを```html ... ```で囲んで出力してください。コード後に日本語で1〜2文の説明を添えてください。';
+      fullReply = await callOllamaWithImage(imgModel, imgPrompt, sentImg);
+      if (!fullReply) throw new Error('画像からの応答がありませんでした');
+      // Ollama履歴には画像なしのテキスト要約として積む
+      cvOllamaMessages.push({ role: 'assistant', content: fullReply });
+      cvOllamaMessages = trimOllamaTurns(cvOllamaMessages, 5);
 
-    var cvSys =
-      'You are an expert HTML/CSS/JavaScript developer. ' +
-      'When creating or modifying web apps, always output the COMPLETE single-file HTML wrapped in ```html ... ``` code blocks. ' +
-      'After any code block, reply in Japanese with a brief explanation.';
-    var messages = [{ role: 'system', content: cvSys }].concat(trimOllamaTurns(cvOllamaMessages, 5));
+    } else {
+      // ── テキストのみ: /api/chat でストリーミング ──
+      var cvSys =
+        'You are an expert HTML/CSS/JavaScript developer. ' +
+        'When creating or modifying web apps, always output the COMPLETE single-file HTML wrapped in ```html ... ``` code blocks. ' +
+        'After any code block, reply in Japanese with a brief explanation.';
+      var messages = [{ role: 'system', content: cvSys }].concat(trimOllamaTurns(cvOllamaMessages, 5));
 
-    var res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: model, messages: messages, stream: true })
-    });
+      var res = await fetch(ollamaURL + '/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: ollamaChatModel, messages: messages, stream: true })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
 
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-
-    var reader = res.body.getReader();
-    var decoder = new TextDecoder();
-
-    while (true) {
-      var ref = await reader.read();
-      if (ref.done) break;
-      var lines = decoder.decode(ref.value).split('\n');
-      for (var i = 0; i < lines.length; i++) {
-        var line = lines[i].trim();
-        if (!line) continue;
-        try {
-          var obj = JSON.parse(line);
-          var token = (obj.message && obj.message.content) ? obj.message.content : '';
-          if (token) {
-            fullReply += token;
-            // バブルに進捗表示（コード部分は省略表示）
-            var display = fullReply.replace(/```html[\s\S]*?```/gi, '[コード生成中...]');
-            typingBubble.textContent = display.slice(-200) || '生成中...';
-            typingBubble.className = 'cvm-bubble typing';
-            // リアルタイムプレビュー
-            var now = Date.now();
-            if (now - lastPvUpdate > 600) {
-              lastPvUpdate = now;
-              var partial = extractCode(fullReply);
-              if (partial && partial.length > 300 && /<html/i.test(partial)) {
-                document.getElementById('cv-iframe').srcdoc = partial;
+      var reader = res.body.getReader();
+      var decoder = new TextDecoder();
+      while (true) {
+        var ref = await reader.read();
+        if (ref.done) break;
+        var lines = decoder.decode(ref.value).split('\n');
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i].trim();
+          if (!line) continue;
+          try {
+            var obj = JSON.parse(line);
+            var token = (obj.message && obj.message.content) ? obj.message.content : '';
+            if (token) {
+              fullReply += token;
+              var display = fullReply.replace(/```html[\s\S]*?```/gi, '[コード生成中...]');
+              typingBubble.textContent = display.slice(-200) || '生成中...';
+              typingBubble.className = 'cvm-bubble typing';
+              var now = Date.now();
+              if (now - lastPvUpdate > 600) {
+                lastPvUpdate = now;
+                var partial = extractCode(fullReply);
+                if (partial && partial.length > 300 && /<html/i.test(partial)) {
+                  document.getElementById('cv-iframe').srcdoc = partial;
+                }
               }
             }
-          }
-        } catch(e) {}
+          } catch(e) {}
+        }
       }
+      cvOllamaMessages.push({ role: 'assistant', content: fullReply });
+      cvOllamaMessages = trimOllamaTurns(cvOllamaMessages, 5);
     }
-
-    // ── AIの返答をmessages配列に積む（最大5往復にトリム） ──
-    cvOllamaMessages.push({ role: 'assistant', content: fullReply });
-    cvOllamaMessages = trimOllamaTurns(cvOllamaMessages, 5);
 
   } catch(e) {
     stopBar();
-    var tyEl = document.getElementById('cv-typing');
-    if (tyEl) tyEl.remove();
+    var tyElErr = document.getElementById('cv-typing');
+    if (tyElErr) tyElErr.remove();
     btn.disabled = false;
-    cvOllamaMessages.pop(); // 失敗したユーザー発言を取り消す
+    cvOllamaMessages.pop();
     if (e.name === 'TypeError' || (e.message && e.message.includes('fetch'))) {
       cvAddMsg('ai', '⚠ Ollamaに接続できません。\n「ollama serve」で起動し、OLLAMA_ORIGINS="*" を設定してください。');
     } else {
@@ -2376,6 +2692,7 @@ async function cvSend() {
   } else {
     cvAddMsg('ai', reply || fullReply.trim());
   }
+  cvsSaveSession();
 }
 
 function cvAttachImg(e) {
@@ -2406,6 +2723,27 @@ function copyCvChatCode() {
   var c = (typeof cvCode === 'string' && cvCode.trim()) ? cvCode.trim() : '';
   if (!c) { T('コピーできるコードがありません'); return; }
   copyPlainText(c, 'コードをクリップボードにコピーしました');
+}
+
+/** コード表示モーダルを開く */
+function cvShowCode() {
+  if (!cvCode) { T('まだコードがありません'); return; }
+  document.getElementById('cv-code-body').textContent = cvCode;
+  document.getElementById('cv-code-modal').style.display = 'flex';
+}
+/** コード表示モーダルを閉じる */
+function cvCloseCode() {
+  document.getElementById('cv-code-modal').style.display = 'none';
+}
+/** モーダル内コードをコピー */
+function cvCopyCode() {
+  if (!cvCode) return;
+  var btn = document.getElementById('cv-code-copy-btn');
+  copyPlainText(cvCode, 'コードをコピーしました');
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> コピー済み';
+  setTimeout(function() {
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> コピー';
+  }, 2000);
 }
 
 function cvReload() {
@@ -2497,8 +2835,6 @@ function hideAutoFix() {
 }
 async function runAutoFix() {
   if (!lastError || !cur) return;
-  // ── タイムマシン: Auto-Fix実行前に現在のコードを保存 ──
-  pushHistory(cur);
   var btn = document.getElementById('autofix-btn');
   btn.textContent = '🔧 修復中...'; btn.disabled = true;
   startThinking();
@@ -2536,8 +2872,6 @@ async function runAutoFix() {
       vers.unshift({ id: Date.now(), code: cur, label: 'Auto-Fix: ' + lastError.slice(0,40), type: 'ai' });
       renderHist(); hideAutoFix();
       T('✓ エラーを自動修復しました！');
-      // ── タイムマシン: 修復後の新しいコードを履歴に追加 ──
-      pushHistory(cur);
       setTimeout(setupErrCapture, 800);
     } else { T('修復に失敗しました'); }
   }
@@ -2580,14 +2914,10 @@ function ck(e) {
   }
 }
 function applyCode() {
-  // ── タイムマシン: 手動編集を「適用」する前に現在のコードを保存 ──
-  if (cur) pushHistory(cur);
   cur = document.getElementById('ct').value;
   document.getElementById('sif').srcdoc = cur;
   vers.unshift({ id: Date.now(), code: cur, label: 'コード編集', type: 'manual' });
   renderHist(); T('✓ 適用しました');
-  // ── タイムマシン: 適用後の新しいコードも履歴に追加 ──
-  pushHistory(cur);
 }
 
 // ════════════════════════════════════════════
@@ -3064,10 +3394,17 @@ auth.onAuthStateChanged(function(user) {
     lb.style.display = 'block';
     loadUserApps();
     loadUserSettings();
+    // ── チャット履歴サイドバー: ログイン時に購読開始 ──
+    cvsSubscribe();
   } else {
     as.textContent = '未ログイン';
     as.style.color = 'var(--t2)';
     lb.style.display = 'none';
+    // ── チャット履歴サイドバー: ログアウト時は購読解除・リストを空に ──
+    if (cvsUnsubscribe) { cvsUnsubscribe(); cvsUnsubscribe = null; }
+    cvsChats = [];
+    cvsCurDocId = null;
+    cvsRender();
   }
   renderGallery();
 });
@@ -3434,30 +3771,41 @@ function loadPrism() {
 // ════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', async function() {
   loadPrism();
-  // ローカルストレージからモードを復元
   var savedMode = localStorage.getItem('pt_mode');
   if (savedMode) aiMode = savedMode;
   updateNavBadge();
+  // ── チャット履歴サイドバー: 初期表示（未ログイン時もログインノートを出す）──
+  cvsRender();
   var loaded = await loadShared();
   if (!loaded) nav('gallery');
-
-  // ── タイムマシン: Ctrl+Z / Ctrl+Y キーボードショートカット ──
-  document.addEventListener('keydown', function(e) {
-    // コードエディタ(textarea)にフォーカスしている場合はブラウザデフォルトに委譲
-    var active = document.activeElement;
-    if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) return;
-    // ワークスペースが非表示なら何もしない
-    var ws = document.getElementById('workspace');
-    if (!ws || ws.style.display === 'none') return;
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
-      e.preventDefault();
-      undoHistory();
-    } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
-      e.preventDefault();
-      redoHistory();
-    }
+  // モーダル背景クリックで閉じる
+  document.getElementById('cv-code-modal').addEventListener('click', function(e) {
+    if (e.target === this) cvCloseCode();
   });
 });
 </script>
+
+  <!-- ── コード表示モーダル ── -->
+  <div id="cv-code-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+    <div id="cv-code-panel">
+      <div id="cv-code-mhdr">
+        <span id="cv-code-mtitle">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ac2)" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          生成されたコード
+        </span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button id="cv-code-copy-btn" onclick="cvCopyCode()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            コピー
+          </button>
+          <button id="cv-code-close-btn" onclick="cvCloseCode()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <pre id="cv-code-pre"><code id="cv-code-body"></code></pre>
+    </div>
+  </div>
+
 </body>
 </html>

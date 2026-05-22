@@ -781,7 +781,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
             </div>
           </div>
           <div id="dc" class="device-desktop">
-            <iframe id="sif" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
+            <iframe id="sif" sandbox="allow-scripts allow-forms allow-pointer-lock"></iframe>
           </div>
         </div>
         <div id="cp" style="display:none">
@@ -924,13 +924,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
         </button>
       </div>
-      <iframe id="cv-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
+      <iframe id="cv-iframe" sandbox="allow-scripts allow-forms allow-pointer-lock"></iframe>
     </div>
   </div>
 
   <!-- APP VIEW -->
   <div id="view-app" class="view" style="position:relative">
-    <iframe id="app-pv" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
+    <iframe id="app-pv" sandbox="allow-scripts allow-forms allow-pointer-lock"></iframe>
     <div id="hud">
       <div class="hp2" id="app-ttl">無題のアプリ</div>
       <div class="hp2" onclick="likeApp()" id="lbtn">
@@ -1745,7 +1745,7 @@ function renderGallery() {
         '<div class="gc-body">' +
           '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">' +
             '<div class="gc-title" style="flex:1">' + E(a.title) + '</div>' +
-            '<button class="gc-del" onclick="event.stopPropagation();delApp(' + a.id + ')" title="削除">' +
+            '<button class="gc-del" onclick="event.stopPropagation();delApp(\'' + (a.urlId || a.id) + '\')" title="削除">' +
               '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
             '</button>' +
           '</div>' +
@@ -1764,7 +1764,8 @@ function renderGallery() {
 
 function delApp(id) {
   if (!confirm('削除しますか？')) return;
-  apps = apps.filter(function(a){ return a.id !== id; });
+  // urlId（文字列）または数値id どちらで渡されても対応
+  apps = apps.filter(function(a){ return (a.urlId || String(a.id)) !== String(id) && a.id !== id; });
   localStorage.setItem('pt_apps', JSON.stringify(apps));
   if (curUser) db.collection('users').doc(curUser.uid).collection('apps').doc(String(id)).delete().catch(function(){});
   renderGallery(); T('削除しました');
@@ -1792,7 +1793,7 @@ function openPublicApp(a) {
   forkCode = a.code;
   sharedGatePayload = null;
   document.getElementById('fork-btn').style.display = 'flex';
-  document.getElementById('app-pv').srcdoc = a.code;
+  injectAndSet(document.getElementById('app-pv'), a.code);
   curAppId = null; // みんなのギャラリーはライク書き戻し先なし
   nav('app');
 }
@@ -1812,7 +1813,7 @@ function openApp(id) {
   forkCode = a.code;
   sharedGatePayload = null;
   document.getElementById('fork-btn').style.display = 'flex';
-  document.getElementById('app-pv').srcdoc = a.code;
+  injectAndSet(document.getElementById('app-pv'), a.code);
   nav('app');
 }
 function likeApp() {
@@ -1896,10 +1897,10 @@ function startWS(code, label, type, skipAutoSave) {
   isTemplate = !!skipAutoSave; // テンプレート起動時はtrue
   document.getElementById('launchpad').style.display = 'none';
   document.getElementById('workspace').style.display = 'flex';
-  document.getElementById('sif').srcdoc = cur;
+  injectAndSet(document.getElementById('sif'), cur);
   vers = [{ id: Date.now(), code: cur, label: label, type: type || 'original' }];
   renderHist(); hideCP(); hideAutoFix();
-  setTimeout(setupErrCapture, 800);
+  setupErrCapture();
   if (!skipAutoSave) autoSaveToFirestore(label);
 }
 
@@ -2009,7 +2010,7 @@ async function runAI() {
       lastAIUpdate = now;
       var partial = extractCode(chunk);
       if (partial && partial.length > 200 && /<html/i.test(partial)) {
-        document.getElementById('sif').srcdoc = partial;
+        injectAndSet(document.getElementById('sif'), partial);
       }
     }
   });
@@ -2020,13 +2021,13 @@ async function runAI() {
     var code = extractCode(raw);
     if (code) {
       cur = code;
-      document.getElementById('sif').srcdoc = cur;
+      injectAndSet(document.getElementById('sif'), cur);
       if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
       vers.unshift({ id: Date.now(), code: cur, label: p, type: 'ai' });
       renderHist();
       document.getElementById('ai-inp').value = '';
       T('AI修正完了！');
-      setTimeout(setupErrCapture, 800);
+      setupErrCapture();
     } else { T('コードの抽出に失敗しました'); }
   }
 }
@@ -2213,7 +2214,7 @@ async function sendChat() {
         lastUpdate = now;
         var partial = extractCode(full);
         if (partial && partial.length > 200 && /<html/i.test(partial)) {
-          document.getElementById('sif').srcdoc = partial;
+          injectAndSet(document.getElementById('sif'), partial);
         }
       }
     });
@@ -2232,7 +2233,7 @@ async function sendChat() {
         lastUpdate = now;
         var partial = extractCode(chunk);
         if (partial && partial.length > 200 && /<html/i.test(partial)) {
-          document.getElementById('sif').srcdoc = partial;
+          injectAndSet(document.getElementById('sif'), partial);
         }
       }
     });
@@ -2253,7 +2254,7 @@ async function sendChat() {
 
   if (code) {
     cur = code;
-    document.getElementById('sif').srcdoc = cur;
+    injectAndSet(document.getElementById('sif'), cur);
     if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
     if (isGenMode) {
       // 初回生成ならワークスペースに遷移
@@ -2265,7 +2266,7 @@ async function sendChat() {
     }
     renderHist();
     addChatMsg('ai', reply, 'プレビュー更新済み');
-    setTimeout(setupErrCapture, 800);
+    setupErrCapture();
   } else {
     // コードなし → 純粋な会話返答
     addChatMsg('ai', reply || raw);
@@ -2408,7 +2409,7 @@ async function cvsLoad(docId) {
     // プレビューを更新
     var iframe = document.getElementById('cv-iframe');
     if (cvCode) {
-      iframe.srcdoc = cvCode;
+      injectAndSet(iframe, cvCode);
       document.getElementById('cv-pv-title').textContent =
         (d.title || '再開したチャット').slice(0, 40);
     } else {
@@ -2643,7 +2644,7 @@ async function cvSend() {
                 lastPvUpdate = now;
                 var partial = extractCode(fullReply);
                 if (partial && partial.length > 300 && /<html/i.test(partial)) {
-                  document.getElementById('cv-iframe').srcdoc = partial;
+                  injectAndSet(document.getElementById('cv-iframe'), partial);
                 }
               }
             }
@@ -2685,7 +2686,7 @@ async function cvSend() {
 
   if (code) {
     cvCode = code;
-    document.getElementById('cv-iframe').srcdoc = cvCode;
+    injectAndSet(document.getElementById('cv-iframe'), cvCode);
     var titleText = (p || '画像からコード生成').slice(0, 40);
     document.getElementById('cv-pv-title').textContent = titleText + (titleText.length >= 40 ? '…' : '');
     cvAddMsg('ai', reply, 'プレビューに反映済み');
@@ -2749,7 +2750,7 @@ function cvCopyCode() {
 function cvReload() {
   if (!cvCode) return;
   var ifr = document.getElementById('cv-iframe');
-  ifr.srcdoc = ''; setTimeout(function(){ ifr.srcdoc = cvCode; }, 50);
+  ifr.srcdoc = ''; setTimeout(function(){ injectAndSet(ifr, cvCode); }, 50);
   T('リロードしました');
 }
 
@@ -2804,18 +2805,43 @@ async function generateFromImage() {
 // ════════════════════════════════════════════
 //  Auto-Fix
 // ════════════════════════════════════════════
+// allow-same-origin を使わずにiframeのエラーをキャプチャするため
+// postMessage 経由でエラーを受け取る方式に変更
+var _errRelayListener = null;
 function setupErrCapture() {
-  var iframe = document.getElementById('sif');
-  if (!iframe || !iframe.contentWindow) return;
-  try {
-    iframe.contentWindow.onerror = function(msg, src, line) {
-      showAutoFix(msg + (line ? ' (line ' + line + ')' : ''));
-      return true;
-    };
-    iframe.contentWindow.addEventListener('unhandledrejection', function(e) {
-      showAutoFix('Promise: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
-    });
-  } catch(e) {}
+  // 重複登録を防止
+  if (_errRelayListener) {
+    window.removeEventListener('message', _errRelayListener);
+  }
+  _errRelayListener = function(e) {
+    if (!e.data || e.data.type !== '__poteto_err__') return;
+    showAutoFix(e.data.msg);
+  };
+  window.addEventListener('message', _errRelayListener);
+}
+
+// エラーリレー用スニペットをコードの <head> 直後に注入して srcdoc にセット
+// （allow-same-origin なしで onerror を親に伝える）
+var _ERR_RELAY = '<script>(function(){' +
+  'window.onerror=function(m,s,l){' +
+    'try{parent.postMessage({type:"__poteto_err__",msg:m+(l?" (line "+l+")":"")}, "*");}catch(ex){}' +
+    'return true;};' +
+  'window.addEventListener("unhandledrejection",function(e){' +
+    'try{parent.postMessage({type:"__poteto_err__",msg:"Promise: "+(e.reason&&e.reason.message?e.reason.message:String(e.reason))}, "*");}catch(ex){}' +
+  '});' +
+'}());<\/script>';
+
+function injectAndSet(iframe, code) {
+  if (!code) { iframe.srcdoc = ''; return; }
+  var injected;
+  if (/<head(\s[^>]*)?>/i.test(code)) {
+    injected = code.replace(/(<head(\s[^>]*)?>)/i, '$1' + _ERR_RELAY);
+  } else if (/<html(\s[^>]*)?>/i.test(code)) {
+    injected = code.replace(/(<html(\s[^>]*)?>)/i, '$1<head>' + _ERR_RELAY + '</head>');
+  } else {
+    injected = _ERR_RELAY + code;
+  }
+  iframe.srcdoc = injected;
 }
 function showAutoFix(msg) {
   lastError = msg;
@@ -2854,7 +2880,7 @@ async function runAutoFix() {
       lastAIUpdate = now;
       var partial = extractCode(chunk);
       if (partial && partial.length > 200 && /<html/i.test(partial)) {
-        document.getElementById('sif').srcdoc = partial;
+        injectAndSet(document.getElementById('sif'), partial);
       }
     }
   });
@@ -2867,12 +2893,12 @@ async function runAutoFix() {
     var code = extractCode(raw);
     if (code) {
       cur = code;
-      document.getElementById('sif').srcdoc = cur;
+      injectAndSet(document.getElementById('sif'), cur);
       if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
       vers.unshift({ id: Date.now(), code: cur, label: 'Auto-Fix: ' + lastError.slice(0,40), type: 'ai' });
       renderHist(); hideAutoFix();
       T('✓ エラーを自動修復しました！');
-      setTimeout(setupErrCapture, 800);
+      setupErrCapture();
     } else { T('修復に失敗しました'); }
   }
 }
@@ -2915,7 +2941,7 @@ function ck(e) {
 }
 function applyCode() {
   cur = document.getElementById('ct').value;
-  document.getElementById('sif').srcdoc = cur;
+  injectAndSet(document.getElementById('sif'), cur);
   vers.unshift({ id: Date.now(), code: cur, label: 'コード編集', type: 'manual' });
   renderHist(); T('✓ 適用しました');
 }
@@ -2944,7 +2970,7 @@ function toggleFS() {
 function reloadPreview() {
   if (!cur) return;
   document.getElementById('sif').srcdoc = '';
-  setTimeout(function(){ document.getElementById('sif').srcdoc = cur; T('リロードしました'); }, 50);
+  setTimeout(function(){ injectAndSet(document.getElementById('sif'), cur); T('リロードしました'); }, 50);
 }
 
 // ════════════════════════════════════════════
@@ -2964,7 +2990,7 @@ function renderHist() {
 }
 function restoreV(i) {
   cur = vers[i].code;
-  document.getElementById('sif').srcdoc = cur;
+  injectAndSet(document.getElementById('sif'), cur);
   if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
   T('「'+vers[i].label+'」に戻しました');
 }
@@ -3221,6 +3247,18 @@ function onPublishAuthorInput() {
 }
 
 // 実際に公開実行
+// ランダムIDを生成する関数（英数字、指定桁数）
+function generateId(len) {
+  var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var result = '';
+  var arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  for (var i = 0; i < len; i++) {
+    result += chars[arr[i] % chars.length];
+  }
+  return result;
+}
+
 async function doPublishToGallery() {
   var title = document.getElementById('shtitle').value.trim() || '無題のアプリ';
   var inp = document.getElementById('publish-confirm-author-input');
@@ -3249,22 +3287,50 @@ async function doPublishToGallery() {
 
   CM('publish-confirm-modal');
 
+  // ── フォーク判定: URLの ?id= が他人の作品を指していないか確認 ──
+  var search = window.location.search;
+  var urlId = null;
+  if (search.indexOf('?id=') !== -1) {
+    urlId = search.split('?id=')[1].split('&')[0];
+  }
+  if (urlId) {
+    try {
+      var snap = await db.collection('apps').doc(urlId).get();
+      if (snap.exists) {
+        var snapData = snap.data();
+        // uid が自分のものでも null でもない場合 ＝ 完全に他人の作品
+        if (snapData.uid && snapData.uid !== curUser.uid) {
+          urlId = generateId(10); // 新しいIDを発行してフォークとして保存
+        }
+      }
+    } catch(e) {
+      urlId = generateId(10); // 取得失敗時も安全のため新IDを発行
+    }
+  }
+
   // マイギャラリーにも保存（テンプレートはコード一致チェックをスキップ）
   var ex = isTemplate ? null : apps.find(function(a){ return a.code === cur; });
   var appId;
   if (ex) {
     ex.title = title;
     localStorage.setItem('pt_apps', JSON.stringify(apps));
-    appId = ex.id;
+    appId = ex.urlId || ex.id;
   } else {
-    var newApp = { id: Date.now(), title: title, code: cur, likes: 0, createdAt: Date.now(), author: prof.name||'', avatar: prof.avatar||'' };
+    var localId = Date.now();
+    var newApp = { id: localId, urlId: urlId || String(localId), title: title, code: cur, likes: 0, createdAt: localId, author: prof.name||'', avatar: prof.avatar||'' };
     apps.push(newApp);
     localStorage.setItem('pt_apps', JSON.stringify(apps));
-    appId = newApp.id;
+    appId = newApp.urlId;
     autoSaveToFirestore(title, appId);
   }
   isTemplate = false; // 保存済みになったのでフラグをリセット
   await saveGalleryToFirestore(title, appId, true);
+
+  // シェアURLを新しく確定した urlId で即時書き換え
+  var newShareUrl = window.location.origin + window.location.pathname + '?id=' + appId;
+  var surlEl = document.getElementById('surl');
+  if (surlEl) surlEl.textContent = newShareUrl;
+
   CM('shm'); exitWorkspace(); nav('gallery');
   T(authorChanged ? '🎉 みんなのギャラリーに公開しました！（作者名も更新）' : '🎉 みんなのギャラリーに公開しました！');
 }
@@ -3315,7 +3381,7 @@ function autoSaveToFirestore(label, appId) {
   var authorName = (curUser.displayName) || (prof.name) || '名無しのポテト';
   var id = String(appId || Date.now());
   db.collection('users').doc(curUser.uid).collection('apps').doc(id).set({
-    code: cur, label: label, updatedAt: new Date(), uid: curUser.uid,
+    code: cur, label: label, urlId: id, updatedAt: new Date(), uid: curUser.uid,
     authorName: authorName, isPublic: false
   }).catch(function(e){ console.warn('Firestore save failed:', e); });
 }
@@ -3339,7 +3405,7 @@ async function loadUserApps() {
       }
       var id = parseInt(doc.id) || Date.now();
       if (!apps.find(function(a){ return a.code === d.code; })) {
-        apps.push({ id: id, title: d.label||'保存済みアプリ', code: d.code, likes: 0, createdAt: id, author: prof.name||'', avatar: prof.avatar||'' });
+        apps.push({ id: id, urlId: d.urlId || doc.id, title: d.label||'保存済みアプリ', code: d.code, likes: 0, createdAt: id, author: prof.name||'', avatar: prof.avatar||'' });
       }
     });
     if (deletePromises.length) {
@@ -3737,12 +3803,12 @@ async function loadShared() {
       forkCode = '';
       if (d.hasPassword && d.passwordHash && d.shareSalt) {
         sharedGatePayload = { code: d.code, salt: d.shareSalt, hash: d.passwordHash };
-        document.getElementById('app-pv').srcdoc = d.code;
+        injectAndSet(document.getElementById('app-pv'), d.code);
         document.getElementById('fork-btn').style.display = 'flex';
       } else {
         sharedGatePayload = null;
         forkCode = d.code;
-        document.getElementById('app-pv').srcdoc = d.code;
+        injectAndSet(document.getElementById('app-pv'), d.code);
         document.getElementById('fork-btn').style.display = 'flex';
       }
 

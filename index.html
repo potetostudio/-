@@ -930,7 +930,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 
   <!-- APP VIEW -->
   <div id="view-app" class="view" style="position:relative">
-    <iframe id="app-pv" sandbox="allow-scripts allow-forms allow-pointer-lock"></iframe>
+    <iframe id="app-pv" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
     <div id="hud">
       <div class="hp2" id="app-ttl">無題のアプリ</div>
       <div class="hp2" onclick="likeApp()" id="lbtn">
@@ -1261,17 +1261,40 @@ function _agentDbg(location, message, data, hypothesisId) {
 /** ギャラリー作品がエディタ+game-frame(Blob)ラッパーのとき、textarea内の実ゲームHTMLを取り出す */
 function normalizeGalleryPreviewCode(code) {
   if (!code || typeof code !== 'string') return code || '';
-  var isStudioWrapper = /id\s*=\s*["']game-frame["']/i.test(code) && /<textarea/i.test(code);
-  if (!isStudioWrapper) return code;
-  var m = code.match(/<textarea[^>]*\bid\s*=\s*["']code-area["'][^>]*>([\s\S]*?)<\/textarea>/i);
-  if (!m) m = code.match(/<textarea[^>]*>([\s\S]*?)<\/textarea>/i);
-  if (!m) return code;
-  var inner = m[1].trim();
-  if (!inner) return code;
-  if (/<html/i.test(inner) || /<!DOCTYPE/i.test(inner) || /<canvas/i.test(inner) || /<body/i.test(inner)) {
-    return inner;
+  var hasTextarea = /<textarea/i.test(code);
+  var isStudioWrapper = hasTextarea && (
+    /id\s*=\s*["']game-frame["']/i.test(code) ||
+    /createObjectURL/i.test(code) ||
+    /function\s+runGame\s*\(/i.test(code)
+  );
+  if (isStudioWrapper) {
+    var m = code.match(/<textarea[^>]*\bid\s*=\s*["']code-area["'][^>]*>([\s\S]*?)<\/textarea>/i);
+    if (!m) m = code.match(/<textarea[^>]*>([\s\S]*?)<\/textarea>/i);
+    if (m) {
+      var inner = m[1].trim();
+      if (inner && (/<html/i.test(inner) || /<!DOCTYPE/i.test(inner) || /<canvas/i.test(inner) || /<body/i.test(inner))) {
+        return inner;
+      }
+    }
+  }
+  var dtCount = (code.match(/<!DOCTYPE\s+html/gi) || []).length;
+  if (dtCount > 1) {
+    var last = code.lastIndexOf('<!DOCTYPE');
+    if (last > 0) return code.slice(last);
   }
   return code;
+}
+
+/** ギャラリープレビュー: ビュー表示後に iframe へ注入（非表示のまま srcdoc を書く PC 不具合対策） */
+function openGalleryPreview(code) {
+  var apv = document.getElementById('app-pv');
+  if (!apv) return;
+  nav('app');
+  apv.removeAttribute('src');
+  apv.srcdoc = '';
+  setTimeout(function() {
+    injectAndSet(apv, code);
+  }, 50);
 }
 
 // ── チャット履歴サイドバー ──
@@ -1620,7 +1643,7 @@ var _prevView = 'gallery'; // 戻るボタン用：直前のビュー
 function goBack() {
   // app-pvをクリアしてから前の画面に戻る
   var apv = document.getElementById('app-pv');
-  if (apv) apv.srcdoc = '';
+  if (apv) { apv.srcdoc = ''; apv.removeAttribute('src'); }
   forkCode = '';
   curPublicDocId = null;
   curAppId = null;
@@ -1855,8 +1878,7 @@ function openPublicApp(a) {
     innerW: window.innerWidth
   }, 'A');
   // #endregion
-  injectAndSet(document.getElementById('app-pv'), previewCode);
-  nav('app');
+  openGalleryPreview(previewCode);
 }
 
 // ════════════════════════════════════════════
@@ -1887,8 +1909,7 @@ function openApp(id) {
     innerW: window.innerWidth
   }, 'A');
   // #endregion
-  injectAndSet(document.getElementById('app-pv'), previewCode);
-  nav('app');
+  openGalleryPreview(previewCode);
 }
 async function likeApp() {
   // ── みんなのギャラリーの作品へのいいね ──
@@ -2932,39 +2953,71 @@ var _ERR_RELAY = [
   '}());</'+'script>'
 ].join('');
 
+var _RENDER_PROBE = [
+  '<scr'+'ipt>(function(){',
+  'function ping(){try{parent.postMessage({type:"__poteto_render__",',
+  'w:innerWidth,h:innerHeight,children:document.body?document.body.children.length:0}, "*");}catch(e){}}',
+  'if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",ping);',
+  'else ping();',
+  '})();</'+'script>'
+].join('');
+
+function injectAppPreview(code) {
+  var tail = _ERR_RELAY + _RENDER_PROBE;
+  if (/<\/body>/i.test(code)) return code.replace(/<\/body>/i, tail + '</body>');
+  return code + tail;
+}
+
+function attachAppPvDebugListeners(iframe) {
+  iframe.addEventListener('load', function onAppPvLoad() {
+    iframe.removeEventListener('load', onAppPvLoad);
+    var v = document.getElementById('view-app');
+    var r = iframe.getBoundingClientRect();
+    var data = {
+      iframeW: Math.round(r.width),
+      iframeH: Math.round(r.height),
+      viewActive: !!(v && v.classList.contains('active')),
+      srcdocLen: (iframe.srcdoc || '').length
+    };
+    try {
+      var doc = iframe.contentDocument;
+      if (doc && doc.body) {
+        data.bodyChildren = doc.body.children.length;
+        data.bodyBg = getComputedStyle(doc.body).backgroundColor;
+        data.hasStart = !!doc.getElementById('start-screen');
+        data.hasCanvas = !!doc.querySelector('canvas');
+      }
+    } catch (e) { data.docErr = String(e.message || e); }
+    // #region agent log
+    _agentDbg('injectAndSet', 'app-pv load', data, 'G');
+    // #endregion
+  }, { once: true });
+}
+
 function injectAndSet(iframe, code) {
-  if (!code) { iframe.srcdoc = ''; return; }
+  if (!code) { iframe.srcdoc = ''; iframe.removeAttribute('src'); return; }
+  if (iframe && iframe.id === 'app-pv') {
+    var injected = injectAppPreview(code);
+    iframe.removeAttribute('src');
+    // #region agent log
+    _agentDbg('injectAndSet', 'app-pv inject', {
+      branch: 'body-tail',
+      codeLen: code.length,
+      injectedLen: injected.length
+    }, 'B');
+    attachAppPvDebugListeners(iframe);
+    // #endregion
+    iframe.srcdoc = injected;
+    return;
+  }
   var injected;
-  var branch = 'prefix';
   if (/<head(\s[^>]*)?>/i.test(code)) {
     injected = code.replace(/(<head(\s[^>]*)?>)/i, '$1' + _ERR_RELAY);
-    branch = 'head';
   } else if (/<html(\s[^>]*)?>/i.test(code)) {
     injected = code.replace(/(<html(\s[^>]*)?>)/i, '$1<head>' + _ERR_RELAY + '</head>');
-    branch = 'html';
   } else {
     injected = _ERR_RELAY + code;
   }
-  // #region agent log
-  if (iframe && iframe.id === 'app-pv') {
-    _agentDbg('injectAndSet', 'app-pv inject', {
-      branch: branch,
-      codeLen: code.length,
-      injectedLen: injected.length,
-      iframeId: iframe.id
-    }, 'B');
-    iframe.addEventListener('load', function onAppPvLoad() {
-      iframe.removeEventListener('load', onAppPvLoad);
-      var v = document.getElementById('view-app');
-      var r = iframe.getBoundingClientRect();
-      _agentDbg('injectAndSet', 'app-pv load', {
-        iframeW: Math.round(r.width),
-        iframeH: Math.round(r.height),
-        viewActive: !!(v && v.classList.contains('active'))
-      }, 'C');
-    }, { once: true });
-  }
-  // #endregion
   iframe.srcdoc = injected;
 }
 function showAutoFix(msg) {
@@ -3925,19 +3978,16 @@ async function loadShared() {
       document.getElementById('lcnt').textContent = '-';
 
       forkCode = '';
+      var sharedPreview = normalizeGalleryPreviewCode(d.code);
       if (d.hasPassword && d.passwordHash && d.shareSalt) {
         sharedGatePayload = { code: d.code, salt: d.shareSalt, hash: d.passwordHash };
-        injectAndSet(document.getElementById('app-pv'), d.code);
         document.getElementById('fork-btn').style.display = 'flex';
       } else {
         sharedGatePayload = null;
         forkCode = d.code;
-        injectAndSet(document.getElementById('app-pv'), d.code);
         document.getElementById('fork-btn').style.display = 'flex';
       }
-
-      document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
-      document.getElementById('view-app').classList.add('active');
+      openGalleryPreview(sharedPreview);
       document.getElementById('nbg').style.display = 'none';
       document.getElementById('nbs').style.display = 'none';
       return true;
@@ -3959,6 +4009,19 @@ function loadPrism() {
 // ════════════════════════════════════════════
 //  Init
 // ════════════════════════════════════════════
+window.addEventListener('message', function(e) {
+  if (!e.data) return;
+  if (e.data.type === '__poteto_render__') {
+    // #region agent log
+    _agentDbg('iframe-render', 'preview rendered', e.data, 'G');
+    // #endregion
+  } else if (e.data.type === '__poteto_err__') {
+    // #region agent log
+    _agentDbg('iframe-error', 'preview error', { msg: e.data.msg }, 'D');
+    // #endregion
+  }
+});
+
 window.addEventListener('DOMContentLoaded', async function() {
   loadPrism();
   var savedMode = localStorage.getItem('pt_mode');

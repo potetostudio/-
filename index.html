@@ -1354,8 +1354,82 @@ function showOllamaErr(msg) {
 // ════════════════════════════════════════════
 //  Gemini API (クラウドモード)
 // ════════════════════════════════════════════
+/** Gemini API の英語エラーを日本語の短い説明に変換 */
+function formatGeminiApiError(httpStatus, data, networkErr) {
+  if (networkErr) {
+    var ne = String(networkErr).toLowerCase();
+    if (/failed to fetch|networkerror|load failed|network request failed/.test(ne)) {
+      return 'ネットワークエラー：インターネット接続を確認してください。';
+    }
+    if (/abort|timeout|timed out/.test(ne)) {
+      return '接続がタイムアウトしました。時間をおいて再試行してください。';
+    }
+    return '接続エラー：通信に失敗しました。';
+  }
+
+  var err = data && data.error;
+  var status = err && err.status ? String(err.status).toUpperCase() : '';
+  var msg = err && err.message ? String(err.message).toLowerCase() : '';
+  var code = (err && err.code) || httpStatus || 0;
+
+  // APIキー関連（認証できない・無効）
+  if (
+    httpStatus === 401 ||
+    status === 'UNAUTHENTICATED' ||
+    /api key not valid|invalid api key|api_key_invalid|api key expired|key string|authentication|credential/.test(msg)
+  ) {
+    return 'APIキーの認証に失敗しました。設定 → クラウド AI → Gemini APIキーに、Google AI Studio で発行した AIza で始まるキーを貼り付けて保存してください。';
+  }
+  if (
+    status === 'INVALID_ARGUMENT' &&
+    (/api key|apikey|key not valid|invalid.*key/.test(msg) || httpStatus === 400)
+  ) {
+    return 'APIキーが正しくありません。余分な空白や改行が入っていないか確認し、新しいキーを発行して貼り直してください。';
+  }
+  if (status === 'PERMISSION_DENIED' || httpStatus === 403 || /permission|forbidden|not enabled|caller does not/.test(msg)) {
+    return 'このAPIキーでは利用できません。Google AI Studio でキーが有効か、APIキーの「アプリ制限」でこのサイトがブロックされていないか確認してください。';
+  }
+  if (status === 'RESOURCE_EXHAUSTED' || httpStatus === 429 || /quota|rate limit|too many requests|exceeded/.test(msg)) {
+    return '利用回数の上限に達しました。Google AI Studio の無料枠を確認するか、しばらく待ってから再試行してください。';
+  }
+  if (/billing|payment required|account disabled/.test(msg)) {
+    return 'Google Cloud の課金設定が必要な可能性があります。AI Studio の利用条件を確認してください。';
+  }
+  if (/safety|blocked|harm|policy/.test(msg)) {
+    return '安全フィルターにより生成が拒否されました。プロンプトの表現を変えて再試行してください。';
+  }
+  if (httpStatus === 503 || status === 'UNAVAILABLE') {
+    return 'Gemini サーバーが一時的に利用できません。しばらく待ってから再試行してください。';
+  }
+  if (httpStatus === 500 || status === 'INTERNAL') {
+    return 'Gemini サーバー側でエラーが発生しました。時間をおいて再試行してください。';
+  }
+  if (status === 'NOT_FOUND' || httpStatus === 404) {
+    return '指定したAIモデルが見つかりません。アプリを最新版に更新するか、管理者に連絡してください。';
+  }
+
+  var shortMap = {
+    INVALID_ARGUMENT: 'リクエストまたはAPIキーに問題があります。',
+    UNAUTHENTICATED: 'APIキーの認証に失敗しました。',
+    PERMISSION_DENIED: 'APIキーに権限がありません。',
+    RESOURCE_EXHAUSTED: '利用上限に達しました。',
+    NOT_FOUND: 'モデルまたはリソースが見つかりません。',
+    INTERNAL: 'サーバー内部エラーです。',
+    UNAVAILABLE: 'サービスが一時的に利用できません。'
+  };
+  if (shortMap[status]) {
+    return shortMap[status] + '（エラーコード: ' + code + '）';
+  }
+  return 'Gemini APIでエラーが発生しました（コード ' + code + '）。APIキーとネットワークを確認してください。';
+}
+
 async function callGemini(prompt, base64img, mimeType) {
-  if (!geminiKey) { openSettings(); T('Gemini APIキーを設定してください'); return null; }
+  if (!geminiKey) {
+    openSettings();
+    switchMode('cloud');
+    T('Gemini APIキーが未設定です。設定 → クラウド AI からキーを入力して保存してください');
+    return null;
+  }
   var model = 'gemini-2.0-flash';
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + geminiKey;
   var parts = [{ text: prompt }];
@@ -1366,14 +1440,36 @@ async function callGemini(prompt, base64img, mimeType) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: parts }] })
     });
-    var data = await res.json();
+    var data = {};
+    try { data = await res.json(); } catch (parseErr) { data = {}; }
+
     if (!res.ok) {
-      var msg = (data.error && data.error.message) || ('HTTP ' + res.status);
-      T('Gemini エラー: ' + msg); return null;
+      var jaMsg = formatGeminiApiError(res.status, data, null);
+      console.warn('Gemini API error:', res.status, data);
+      T(jaMsg);
+      var agMsg = document.getElementById('ag-msg');
+      if (agMsg) agMsg.textContent = '⚠ ' + jaMsg;
+      return null;
+    }
+
+    if (!data.candidates || !data.candidates.length || !data.candidates[0].content ||
+        !data.candidates[0].content.parts || !data.candidates[0].content.parts.length) {
+      var blockReason = (data.candidates && data.candidates[0] && data.candidates[0].finishReason) || '';
+      if (blockReason === 'SAFETY') {
+        T('安全フィルターにより回答が得られませんでした。プロンプトを変えて再試行してください。');
+      } else {
+        T('Gemini からコードが返ってきませんでした。プロンプトを変えて再試行してください。');
+      }
+      return null;
     }
     return data.candidates[0].content.parts[0].text;
-  } catch(e) {
-    T('Gemini 接続エラー: ' + e.message); return null;
+  } catch (e) {
+    var jaNet = formatGeminiApiError(null, null, e.message);
+    console.warn('Gemini fetch error:', e);
+    T(jaNet);
+    var agMsg2 = document.getElementById('ag-msg');
+    if (agMsg2) agMsg2.textContent = '⚠ ' + jaNet;
+    return null;
   }
 }
 

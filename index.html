@@ -566,12 +566,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         作る
       </button>
     </div>
-    <div id="nbs" style="display:none;align-items:center;gap:8px">
-      <button class="nb" onclick="exitWorkspace()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-        戻る
-      </button>
-    </div>
   </div>
 
   <!-- GALLERY -->
@@ -1755,7 +1749,6 @@ function nav(v, opts) {
   document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
   document.getElementById('view-' + v).classList.add('active');
   document.getElementById('nbg').style.display = (v === 'gallery' || v === 'chat') ? 'flex' : 'none';
-  document.getElementById('nbs').style.display = v === 'studio' ? 'flex' : 'none';
   if (v === 'gallery') {
     if (galleryTab === 'public') {
       loadPublicApps();
@@ -4136,7 +4129,6 @@ async function loadShared() {
       }
       openGalleryPreview(sharedPreview);
       document.getElementById('nbg').style.display = 'none';
-      document.getElementById('nbs').style.display = 'none';
       return true;
     }
   } catch(e) { console.error(e); }

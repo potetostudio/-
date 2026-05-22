@@ -941,8 +941,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
         フォーク
       </div>
-      <div class="hi" onclick="nav('gallery')" title="ギャラリーへ">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <div class="hi" onclick="goBack()" title="戻る">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </div>
       <div class="hi" onclick="toggleAFS()" title="全画面">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
@@ -1594,12 +1594,34 @@ function startStreamBar() {
 // ════════════════════════════════════════════
 //  Navigation
 // ════════════════════════════════════════════
+var _prevView = 'gallery'; // 戻るボタン用：直前のビュー
+function goBack() {
+  // app-pvをクリアしてから前の画面に戻る
+  var apv = document.getElementById('app-pv');
+  if (apv) apv.srcdoc = '';
+  forkCode = '';
+  curPublicDocId = null;
+  curAppId = null;
+  sharedGatePayload = null;
+  nav(_prevView);
+}
 function nav(v, opts) {
+  // app以外のビューへ移動する場合、現在のビューを記録しておく（戻るボタン用）
+  var currentActive = document.querySelector('.view.active');
+  if (currentActive && currentActive.id !== 'view-app') {
+    _prevView = currentActive.id.replace('view-', '');
+  }
   document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
   document.getElementById('view-' + v).classList.add('active');
   document.getElementById('nbg').style.display = (v === 'gallery' || v === 'chat') ? 'flex' : 'none';
   document.getElementById('nbs').style.display = v === 'studio' ? 'flex' : 'none';
-  if (v === 'gallery') renderGallery();
+  if (v === 'gallery') {
+    if (galleryTab === 'public') {
+      loadPublicApps();
+    } else {
+      renderGallery();
+    }
+  }
   if (v === 'studio')  resetS();
   if (v === 'chat') {
     cvUpdateEngine();
@@ -1784,17 +1806,22 @@ async function delPublicApp(docId) {
 }
 
 // みんなのギャラリーの作品を開く
+var curPublicDocId = null; // 現在開いている公開アプリのFirestoreドキュメントID
 function openPublicApp(a) {
-  // ローカルapps配列には存在しないためダミーとして登録して開く
-  var tempId = 'pub_' + (a._docId || Date.now());
+  // 前のゲームをクリアしてから新しいコードをセット
+  var apv = document.getElementById('app-pv');
+  if (apv) apv.srcdoc = '';
+  curPublicDocId = a._docId || null;
+  curAppId = null;
   document.getElementById('app-ttl').textContent = a.title || '無題のアプリ';
   document.getElementById('lcnt').textContent = a.likes || 0;
-  document.getElementById('lico').setAttribute('fill','none');
+  // いいね済みかどうかをlocalStorageで確認してハート表示を切り替える
+  var alreadyLiked = curPublicDocId && !!localStorage.getItem('pt_liked_' + curPublicDocId);
+  document.getElementById('lico').setAttribute('fill', alreadyLiked ? 'currentColor' : 'none');
   forkCode = a.code;
   sharedGatePayload = null;
   document.getElementById('fork-btn').style.display = 'flex';
   injectAndSet(document.getElementById('app-pv'), a.code);
-  curAppId = null; // みんなのギャラリーはライク書き戻し先なし
   nav('app');
 }
 
@@ -1816,7 +1843,29 @@ function openApp(id) {
   injectAndSet(document.getElementById('app-pv'), a.code);
   nav('app');
 }
-function likeApp() {
+async function likeApp() {
+  // ── みんなのギャラリーの作品へのいいね ──
+  if (curPublicDocId) {
+    var key = 'pt_liked_' + curPublicDocId;
+    if (localStorage.getItem(key)) return; // 既にいいね済み
+    localStorage.setItem(key, '1');
+    document.getElementById('lico').setAttribute('fill', 'currentColor');
+    var cur_cnt = parseInt(document.getElementById('lcnt').textContent, 10) || 0;
+    document.getElementById('lcnt').textContent = cur_cnt + 1;
+    // Firestoreのlikesをインクリメント
+    try {
+      var ref = db.collection('gallery').doc(curPublicDocId);
+      await ref.update({ likes: firebase.firestore.FieldValue.increment(1) });
+      // キャッシュも更新
+      var pa = publicApps.find(function(x){ return x._docId === curPublicDocId; });
+      if (pa) pa.likes = (pa.likes || 0) + 1;
+    } catch(e) {
+      // Firestore更新失敗時はlocalStorageだけ残す（カウント表示はそのまま）
+      console.warn('like update failed:', e);
+    }
+    return;
+  }
+  // ── マイギャラリーの作品へのいいね（元の動作） ──
   var a = apps.find(function(x){ return x.id === curAppId; });
   if (!a) return;
   a.likes++;
@@ -1836,8 +1885,11 @@ function forkApp() {
   }
   if (!forkCode) return;
   // ギャラリーのアプリをフォーク: スタジオのワークスペースを直接起動
+  // タイトル取得: マイギャラリー → curAppId、みんなのギャラリー → curPublicDocId で探す
   var a = curAppId ? apps.find(function(x){ return x.id === curAppId; }) : null;
-  var label = (a ? a.title : 'フォーク') + ' のフォーク';
+  var pub = (!a && curPublicDocId) ? publicApps.find(function(x){ return x._docId === curPublicDocId; }) : null;
+  var baseTitle = (a ? a.title : (pub ? pub.title : null));
+  var label = (baseTitle || 'フォーク') + ' のフォーク';
   nav('studio');
   setTimeout(function(){
     startWS(forkCode, label, 'original');
@@ -2822,14 +2874,16 @@ function setupErrCapture() {
 
 // エラーリレー用スニペットをコードの <head> 直後に注入して srcdoc にセット
 // （allow-same-origin なしで onerror を親に伝える）
-var _ERR_RELAY = '<script>(function(){' +
-  'window.onerror=function(m,s,l){' +
-    'try{parent.postMessage({type:"__poteto_err__",msg:m+(l?" (line "+l+")":"")}, "*");}catch(ex){}' +
-    'return true;};' +
-  'window.addEventListener("unhandledrejection",function(e){' +
-    'try{parent.postMessage({type:"__poteto_err__",msg:"Promise: "+(e.reason&&e.reason.message?e.reason.message:String(e.reason))}, "*");}catch(ex){}' +
-  '});' +
-'}());<\/script>';
+var _ERR_RELAY = [
+  '<scr'+'ipt>(function(){',
+  'window.onerror=function(m,s,l){',
+  'try{parent.postMessage({type:"__poteto_err__",msg:m+(l?" (line "+l+")":"")}, "*");}catch(ex){}',
+  'return true;};',
+  'window.addEventListener("unhandledrejection",function(e){',
+  'try{parent.postMessage({type:"__poteto_err__",msg:"Promise: "+(e.reason&&e.reason.message?e.reason.message:String(e.reason))}, "*");}catch(ex){}',
+  '});',
+  '}());</'+'script>'
+].join('');
 
 function injectAndSet(iframe, code) {
   if (!code) { iframe.srcdoc = ''; return; }

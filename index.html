@@ -1252,6 +1252,28 @@ var ICONS = ['🎮','🎨','🌐','🧮','🎵','📊','✨','🛠','🌈','🔮
 var THINKS = ['コードを考え中','構造を設計中','HTMLを書いています','CSSを調整中','仕上げ中'];
 var tkTimer;
 
+// #region agent log
+function _agentDbg(location, message, data, hypothesisId) {
+  fetch('http://127.0.0.1:7380/ingest/90b4e790-ca5c-4cfd-8011-3160a3dc93a3',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'80b200'},body:JSON.stringify({sessionId:'80b200',location:location,message:message,data:data||{},hypothesisId:hypothesisId||'',timestamp:Date.now()})}).catch(function(){});
+}
+// #endregion
+
+/** ギャラリー作品がエディタ+game-frame(Blob)ラッパーのとき、textarea内の実ゲームHTMLを取り出す */
+function normalizeGalleryPreviewCode(code) {
+  if (!code || typeof code !== 'string') return code || '';
+  var isStudioWrapper = /id\s*=\s*["']game-frame["']/i.test(code) && /<textarea/i.test(code);
+  if (!isStudioWrapper) return code;
+  var m = code.match(/<textarea[^>]*\bid\s*=\s*["']code-area["'][^>]*>([\s\S]*?)<\/textarea>/i);
+  if (!m) m = code.match(/<textarea[^>]*>([\s\S]*?)<\/textarea>/i);
+  if (!m) return code;
+  var inner = m[1].trim();
+  if (!inner) return code;
+  if (/<html/i.test(inner) || /<!DOCTYPE/i.test(inner) || /<canvas/i.test(inner) || /<body/i.test(inner)) {
+    return inner;
+  }
+  return code;
+}
+
 // ── チャット履歴サイドバー ──
 var cvsCurDocId   = null;  // 現在のFirestoreドキュメントID
 var cvsChats      = [];    // サイドバーに表示するチャット一覧キャッシュ
@@ -1821,7 +1843,19 @@ function openPublicApp(a) {
   forkCode = a.code;
   sharedGatePayload = null;
   document.getElementById('fork-btn').style.display = 'flex';
-  injectAndSet(document.getElementById('app-pv'), a.code);
+  var previewCode = normalizeGalleryPreviewCode(a.code);
+  // #region agent log
+  _agentDbg('openPublicApp', 'gallery open public', {
+    title: a.title || '',
+    rawLen: (a.code || '').length,
+    previewLen: previewCode.length,
+    unwrapped: previewCode.length < (a.code || '').length,
+    hasGameFrame: /game-frame/i.test(a.code || ''),
+    ua: navigator.userAgent.slice(0, 80),
+    innerW: window.innerWidth
+  }, 'A');
+  // #endregion
+  injectAndSet(document.getElementById('app-pv'), previewCode);
   nav('app');
 }
 
@@ -1840,7 +1874,20 @@ function openApp(id) {
   forkCode = a.code;
   sharedGatePayload = null;
   document.getElementById('fork-btn').style.display = 'flex';
-  injectAndSet(document.getElementById('app-pv'), a.code);
+  var previewCode = normalizeGalleryPreviewCode(a.code);
+  // #region agent log
+  _agentDbg('openApp', 'gallery open my', {
+    id: id,
+    title: a.title || '',
+    rawLen: (a.code || '').length,
+    previewLen: previewCode.length,
+    unwrapped: previewCode.length < (a.code || '').length,
+    hasGameFrame: /game-frame/i.test(a.code || ''),
+    ua: navigator.userAgent.slice(0, 80),
+    innerW: window.innerWidth
+  }, 'A');
+  // #endregion
+  injectAndSet(document.getElementById('app-pv'), previewCode);
   nav('app');
 }
 async function likeApp() {
@@ -2888,13 +2935,36 @@ var _ERR_RELAY = [
 function injectAndSet(iframe, code) {
   if (!code) { iframe.srcdoc = ''; return; }
   var injected;
+  var branch = 'prefix';
   if (/<head(\s[^>]*)?>/i.test(code)) {
     injected = code.replace(/(<head(\s[^>]*)?>)/i, '$1' + _ERR_RELAY);
+    branch = 'head';
   } else if (/<html(\s[^>]*)?>/i.test(code)) {
     injected = code.replace(/(<html(\s[^>]*)?>)/i, '$1<head>' + _ERR_RELAY + '</head>');
+    branch = 'html';
   } else {
     injected = _ERR_RELAY + code;
   }
+  // #region agent log
+  if (iframe && iframe.id === 'app-pv') {
+    _agentDbg('injectAndSet', 'app-pv inject', {
+      branch: branch,
+      codeLen: code.length,
+      injectedLen: injected.length,
+      iframeId: iframe.id
+    }, 'B');
+    iframe.addEventListener('load', function onAppPvLoad() {
+      iframe.removeEventListener('load', onAppPvLoad);
+      var v = document.getElementById('view-app');
+      var r = iframe.getBoundingClientRect();
+      _agentDbg('injectAndSet', 'app-pv load', {
+        iframeW: Math.round(r.width),
+        iframeH: Math.round(r.height),
+        viewActive: !!(v && v.classList.contains('active'))
+      }, 'C');
+    }, { once: true });
+  }
+  // #endregion
   iframe.srcdoc = injected;
 }
 function showAutoFix(msg) {

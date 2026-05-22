@@ -1861,8 +1861,7 @@ function openPublicApp(a) {
   document.getElementById('app-ttl').textContent = a.title || '無題のアプリ';
   document.getElementById('lcnt').textContent = a.likes || 0;
   // いいね済みかどうかをlocalStorageで確認してハート表示を切り替える
-  var alreadyLiked = curPublicDocId && !!localStorage.getItem('pt_liked_' + curPublicDocId);
-  document.getElementById('lico').setAttribute('fill', alreadyLiked ? 'currentColor' : 'none');
+  syncLikeHeartFromStorage();
   forkCode = a.code;
   sharedGatePayload = null;
   document.getElementById('fork-btn').style.display = 'flex';
@@ -1891,7 +1890,7 @@ function openApp(id) {
   isTemplate = false;
   document.getElementById('app-ttl').textContent = a.title;
   document.getElementById('lcnt').textContent = a.likes;
-  document.getElementById('lico').setAttribute('fill','none');
+  syncLikeHeartFromStorage();
   // ギャラリーのアプリはパスワードなしでフォーク可能
   forkCode = a.code;
   sharedGatePayload = null;
@@ -1911,35 +1910,87 @@ function openApp(id) {
   // #endregion
   openGalleryPreview(previewCode);
 }
+
+/** いいね状態の localStorage キー（アカウント＋作品ごと） */
+function likeStorageKey() {
+  if (curPublicDocId) return 'pt_liked_' + curPublicDocId;
+  if (curAppId != null) return 'pt_liked_my_' + curAppId;
+  return null;
+}
+function isAppLiked() {
+  var key = likeStorageKey();
+  return !!(key && localStorage.getItem(key));
+}
+function setLikeHeartUI(liked) {
+  document.getElementById('lico').setAttribute('fill', liked ? 'currentColor' : 'none');
+}
+function syncLikeHeartFromStorage() {
+  setLikeHeartUI(isAppLiked());
+}
+
 async function likeApp() {
-  // ── みんなのギャラリーの作品へのいいね ──
+  if (!curUser) { T('ログインが必要です'); return; }
+  var key = likeStorageKey();
+  if (!key) return;
+
+  var liked = !!localStorage.getItem(key);
+
+  // ── みんなのギャラリー ──
   if (curPublicDocId) {
-    var key = 'pt_liked_' + curPublicDocId;
-    if (localStorage.getItem(key)) return; // 既にいいね済み
-    localStorage.setItem(key, '1');
-    document.getElementById('lico').setAttribute('fill', 'currentColor');
     var cur_cnt = parseInt(document.getElementById('lcnt').textContent, 10) || 0;
-    document.getElementById('lcnt').textContent = cur_cnt + 1;
-    // Firestoreのlikesをインクリメント
-    try {
-      var ref = db.collection('gallery').doc(curPublicDocId);
-      await ref.update({ likes: firebase.firestore.FieldValue.increment(1) });
-      // キャッシュも更新
-      var pa = publicApps.find(function(x){ return x._docId === curPublicDocId; });
-      if (pa) pa.likes = (pa.likes || 0) + 1;
-    } catch(e) {
-      // Firestore更新失敗時はlocalStorageだけ残す（カウント表示はそのまま）
-      console.warn('like update failed:', e);
+    var pa = publicApps.find(function(x){ return x._docId === curPublicDocId; });
+    if (liked) {
+      localStorage.removeItem(key);
+      setLikeHeartUI(false);
+      var next = Math.max(0, cur_cnt - 1);
+      document.getElementById('lcnt').textContent = next;
+      try {
+        await db.collection('gallery').doc(curPublicDocId).update({
+          likes: firebase.firestore.FieldValue.increment(-1)
+        });
+        if (pa) pa.likes = next;
+      } catch (e) {
+        console.warn('unlike update failed:', e);
+        localStorage.setItem(key, '1');
+        setLikeHeartUI(true);
+        document.getElementById('lcnt').textContent = cur_cnt;
+        T('いいねの解除に失敗しました');
+      }
+    } else {
+      localStorage.setItem(key, '1');
+      setLikeHeartUI(true);
+      var nextUp = cur_cnt + 1;
+      document.getElementById('lcnt').textContent = nextUp;
+      try {
+        await db.collection('gallery').doc(curPublicDocId).update({
+          likes: firebase.firestore.FieldValue.increment(1)
+        });
+        if (pa) pa.likes = nextUp;
+      } catch (e) {
+        console.warn('like update failed:', e);
+        localStorage.removeItem(key);
+        setLikeHeartUI(false);
+        document.getElementById('lcnt').textContent = cur_cnt;
+        T('いいねに失敗しました（ログイン・通信を確認）');
+      }
     }
     return;
   }
-  // ── マイギャラリーの作品へのいいね（元の動作） ──
+
+  // ── マイギャラリー（端末内カウント＋ログインアカウント単位のいいね記録） ──
   var a = apps.find(function(x){ return x.id === curAppId; });
   if (!a) return;
-  a.likes++;
+  if (liked) {
+    localStorage.removeItem(key);
+    a.likes = Math.max(0, (a.likes || 0) - 1);
+    setLikeHeartUI(false);
+  } else {
+    localStorage.setItem(key, '1');
+    a.likes = (a.likes || 0) + 1;
+    setLikeHeartUI(true);
+  }
   localStorage.setItem('pt_apps', JSON.stringify(apps));
   document.getElementById('lcnt').textContent = a.likes;
-  document.getElementById('lico').setAttribute('fill','currentColor');
 }
 function forkApp() {
   if (sharedGatePayload && !forkCode) {

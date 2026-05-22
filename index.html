@@ -34,6 +34,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 
 /* ── Nav ── */
 #nav{height:var(--nav);background:rgba(13,16,24,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;z-index:20}
+#app.game-active #nav{display:none}
 .logo{font-size:14px;font-weight:700;letter-spacing:-.02em;margin-right:auto;display:flex;align-items:center;gap:7px;color:var(--t1)}
 .logo-icon{font-size:18px}
 .logo-tag{font-size:9px;background:var(--ac);color:white;padding:2px 6px;border-radius:4px;font-weight:700;letter-spacing:.06em}
@@ -1804,6 +1805,17 @@ function updateAppBackLabel() {
   el.textContent = _prevView === 'gallery' ? 'ギャラリーに戻る' : (_prevView === 'chat' ? 'チャットに戻る' : '戻る');
 }
 
+/** ゲーム起動中は上部ナビ（設定・ギャラリー・チャット・作る）を非表示 */
+function updateTopNavVisibility() {
+  var appEl = document.getElementById('app');
+  if (!appEl) return;
+  var viewApp = document.getElementById('view-app');
+  var workspace = document.getElementById('workspace');
+  var gameActive = !!(viewApp && viewApp.classList.contains('active')) ||
+    !!(workspace && workspace.style.display === 'flex');
+  appEl.classList.toggle('game-active', gameActive);
+}
+
 /** スタジオのコード入力画面（launchpad）へ戻る */
 function backToStudio() {
   if (isFsS) toggleFS();
@@ -1838,7 +1850,6 @@ function nav(v, opts) {
   }
   document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
   document.getElementById('view-' + v).classList.add('active');
-  document.getElementById('nbg').style.display = (v === 'gallery' || v === 'chat' || v === 'studio' || v === 'app') ? 'flex' : 'none';
   if (v === 'gallery') {
     if (galleryTab === 'public') {
       loadPublicApps();
@@ -1868,6 +1879,7 @@ function nav(v, opts) {
       if (btn) btn.classList.remove('open');
     }
   }
+  updateTopNavVisibility();
 }
 
 // ════════════════════════════════════════════
@@ -2229,6 +2241,7 @@ function resetS() {
   clearChat();
   hideCP(); hideAutoFix();
   vers = []; cur = '';
+  updateTopNavVisibility();
 }
 
 function launchStudio() {
@@ -2262,6 +2275,7 @@ function startWS(code, label, type, skipAutoSave) {
   renderHist(); hideCP(); hideAutoFix();
   setupErrCapture();
   if (!skipAutoSave) autoSaveToFirestore(label);
+  updateTopNavVisibility();
 }
 
 function exitWorkspace() { isTemplate = false; nav('studio'); }
@@ -2308,6 +2322,7 @@ async function genFromPrompt() {
   if (useDeepBuild) {
     document.getElementById('launchpad').style.display = 'none';
     document.getElementById('workspace').style.display = 'flex';
+    updateTopNavVisibility();
     document.getElementById('sif').srcdoc = '';
     showBuildLoading(true);
     var buildSys =
@@ -2340,11 +2355,12 @@ async function genFromPrompt() {
   if (raw) {
     var code = extractCode(raw);
     if (code) { startWS(code, p + '（AI生成）', 'ai'); T('生成完了！'); }
-    else { T('コードの抽出に失敗しました'); if (useDeepBuild) { document.getElementById('launchpad').style.display = 'flex'; document.getElementById('workspace').style.display = 'none'; } }
+    else { T('コードの抽出に失敗しました'); if (useDeepBuild) { document.getElementById('launchpad').style.display = 'flex'; document.getElementById('workspace').style.display = 'none'; updateTopNavVisibility(); } }
   } else {
     if (useDeepBuild) {
       document.getElementById('launchpad').style.display = 'flex';
       document.getElementById('workspace').style.display = 'none';
+      updateTopNavVisibility();
     }
   }
 }
@@ -2620,6 +2636,7 @@ async function sendChat() {
       // 初回生成ならワークスペースに遷移
       document.getElementById('launchpad').style.display = 'none';
       document.getElementById('workspace').style.display = 'flex';
+      updateTopNavVisibility();
       vers = [{ id: Date.now(), code: cur, label: p + '（チャット生成）', type: 'ai' }];
     } else {
       vers.unshift({ id: Date.now(), code: cur, label: p, type: 'ai' });
@@ -4321,7 +4338,6 @@ async function loadShared() {
         document.getElementById('fork-btn').style.display = 'flex';
       }
       openGalleryPreview(sharedPreview);
-      document.getElementById('nbg').style.display = 'none';
       return true;
     }
   } catch(e) { console.error(e); }

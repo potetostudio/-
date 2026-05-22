@@ -523,6 +523,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 #ollama-err{display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:100;padding:12px 20px;background:rgba(210,153,34,.15);border:1px solid rgba(210,153,34,.4);border-radius:10px;font-size:12px;color:var(--am);text-align:center;pointer-events:none;backdrop-filter:blur(8px);white-space:nowrap}
 #ollama-err.show{display:block}
 
+/* ログイン必須ゲート */
+#auth-gate{display:none;position:fixed;inset:0;z-index:500;background:var(--bg);align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+#auth-gate.on{display:flex}
+#auth-gate .auth-gate-card{width:100%;max-width:400px;background:var(--s2);border:1px solid var(--brh);border-radius:16px;padding:28px 24px;box-shadow:0 24px 64px rgba(0,0,0,.55);animation:fu .25s ease both}
+#auth-gate .auth-gate-logo{font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:8px}
+#auth-gate .auth-gate-sub{font-size:12px;color:var(--t2);text-align:center;line-height:1.65;margin-bottom:22px}
+#auth-gate .auth-gate-features{font-size:11px;color:var(--t3);background:rgba(109,90,239,.08);border:1px solid rgba(109,90,239,.2);border-radius:10px;padding:12px 14px;margin-bottom:20px;line-height:1.7}
+#auth-gate .auth-gate-features li{margin-left:1.2em}
+
 @media(max-width:600px){
   .gg{grid-template-columns:1fr 1fr;gap:10px}
   #g-body{padding:12px}
@@ -536,6 +545,29 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 </style>
 </head>
 <body>
+
+<!-- 未ログイン時: ログイン / 新規登録（閉じられない） -->
+<div id="auth-gate" class="on">
+  <div class="auth-gate-card">
+    <div class="auth-gate-logo"><span>🥔</span> Poteto STUDIO</div>
+    <p class="auth-gate-sub">アプリの作成・保存・ギャラリー利用には<br>アカウント登録（無料）が必要です</p>
+    <ul class="auth-gate-features">
+      <li>作ったゲームをマイギャラリーに保存</li>
+      <li>みんなのギャラリーへの公開・いいね</li>
+      <li>チャット履歴とクラウド同期</li>
+    </ul>
+    <label class="fl">メールアドレス</label>
+    <input type="email" id="auth-gate-email" class="fi" placeholder="you@example.com" autocomplete="email">
+    <label class="fl">パスワード</label>
+    <input type="password" id="auth-gate-pw" class="fi" placeholder="6文字以上" autocomplete="new-password">
+    <div id="auth-gate-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
+    <div class="mbs">
+      <button class="mbb can" onclick="doLogin()">ログイン</button>
+      <button class="mbb ok" onclick="doSignup()">新規登録</button>
+    </div>
+  </div>
+</div>
+
 <div id="app">
   <!-- NAV -->
   <div id="nav">
@@ -1240,6 +1272,7 @@ var aiMode = 'local'; // 'local' | 'cloud'
 var geminiKey = '';
 var lastError = '';
 var curUser = null;
+var appBootstrapped = false;
 var galleryTab = 'my'; // 'my' | 'public'
 var publicApps = []; // みんなのギャラリー用キャッシュ
 var ICONS = ['🎮','🎨','🌐','🧮','🎵','📊','✨','🛠','🌈','🔮','🚀','🎯'];
@@ -1741,6 +1774,10 @@ function goBack() {
   nav(_prevView);
 }
 function nav(v, opts) {
+  if (!curUser) {
+    updateAuthGate();
+    return;
+  }
   // app以外のビューへ移動する場合、現在のビューを記録しておく（戻るボタン用）
   var currentActive = document.querySelector('.view.active');
   if (currentActive && currentActive.id !== 'view-app') {
@@ -3738,36 +3775,122 @@ async function loadUserApps() {
 // ════════════════════════════════════════════
 //  Firebase Auth
 // ════════════════════════════════════════════
-function openAuthModal() { document.getElementById('auth-modal').classList.add('on'); }
-async function doLogin() {
-  var email = document.getElementById('auth-email').value.trim();
-  var pw = document.getElementById('auth-pw').value;
-  var err = document.getElementById('auth-err');
-  err.style.display = 'none';
-  try {
-    await auth.signInWithEmailAndPassword(email, pw);
-    CM('auth-modal'); T('ログインしました');
-  } catch(e) {
-    err.textContent = e.message; err.style.display = 'block';
-  }
-}
-async function doSignup() {
-  var email = document.getElementById('auth-email').value.trim();
-  var pw = document.getElementById('auth-pw').value;
-  var err = document.getElementById('auth-err');
-  err.style.display = 'none';
-  try {
-    await auth.createUserWithEmailAndPassword(email, pw);
-    CM('auth-modal'); T('アカウントを作成しました');
-  } catch(e) {
-    err.textContent = e.message; err.style.display = 'block';
-  }
-}
-async function doLogout() {
-  await auth.signOut(); T('ログアウトしました');
+function formatAuthError(e) {
+  var code = (e && e.code) || '';
+  var map = {
+    'auth/invalid-email': 'メールアドレスの形式が正しくありません。',
+    'auth/user-disabled': 'このアカウントは無効になっています。',
+    'auth/user-not-found': 'メールアドレスまたはパスワードが正しくありません。',
+    'auth/wrong-password': 'メールアドレスまたはパスワードが正しくありません。',
+    'auth/invalid-credential': 'メールアドレスまたはパスワードが正しくありません。',
+    'auth/email-already-in-use': 'このメールアドレスはすでに登録されています。ログインしてください。',
+    'auth/weak-password': 'パスワードは6文字以上にしてください。',
+    'auth/too-many-requests': '試行回数が多すぎます。しばらく待ってから再試行してください。',
+    'auth/network-request-failed': 'ネットワークエラーです。接続を確認してください。',
+    'auth/operation-not-allowed': 'メールでの登録が有効になっていません。'
+  };
+  return map[code] || '認証に失敗しました。入力内容を確認してください。';
 }
 
-auth.onAuthStateChanged(function(user) {
+function isAuthGateVisible() {
+  var gate = document.getElementById('auth-gate');
+  return !!(gate && gate.classList.contains('on'));
+}
+
+function getAuthFormEls() {
+  if (isAuthGateVisible()) {
+    return {
+      email: document.getElementById('auth-gate-email'),
+      pw: document.getElementById('auth-gate-pw'),
+      err: document.getElementById('auth-gate-err')
+    };
+  }
+  return {
+    email: document.getElementById('auth-email'),
+    pw: document.getElementById('auth-pw'),
+    err: document.getElementById('auth-err')
+  };
+}
+
+function updateAuthGate() {
+  var gate = document.getElementById('auth-gate');
+  var app = document.getElementById('app');
+  if (!gate) return;
+  if (curUser) {
+    gate.classList.remove('on');
+    if (app) { app.style.visibility = ''; app.style.pointerEvents = ''; }
+  } else {
+    gate.classList.add('on');
+    if (app) { app.style.visibility = 'hidden'; app.style.pointerEvents = 'none'; }
+    CM('auth-modal');
+    CM('sm');
+  }
+}
+
+async function finishAppBootstrap() {
+  var loaded = await loadShared();
+  if (!loaded) nav('gallery');
+}
+
+function openAuthModal() {
+  if (!curUser) {
+    updateAuthGate();
+    var em = document.getElementById('auth-gate-email');
+    if (em) em.focus();
+    return;
+  }
+  document.getElementById('auth-modal').classList.add('on');
+}
+
+async function doLogin() {
+  var els = getAuthFormEls();
+  var email = (els.email && els.email.value || '').trim();
+  var pw = els.pw ? els.pw.value : '';
+  var err = els.err;
+  if (!email || !pw) {
+    if (err) { err.textContent = 'メールアドレスとパスワードを入力してください。'; err.style.display = 'block'; }
+    return;
+  }
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+  try {
+    await auth.signInWithEmailAndPassword(email, pw);
+    if (!isAuthGateVisible()) CM('auth-modal');
+    T('ログインしました');
+  } catch (e) {
+    if (err) { err.textContent = formatAuthError(e); err.style.display = 'block'; }
+  }
+}
+
+async function doSignup() {
+  var els = getAuthFormEls();
+  var email = (els.email && els.email.value || '').trim();
+  var pw = els.pw ? els.pw.value : '';
+  var err = els.err;
+  if (!email || !pw) {
+    if (err) { err.textContent = 'メールアドレスとパスワードを入力してください。'; err.style.display = 'block'; }
+    return;
+  }
+  if (pw.length < 6) {
+    if (err) { err.textContent = 'パスワードは6文字以上にしてください。'; err.style.display = 'block'; }
+    return;
+  }
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+  try {
+    await auth.createUserWithEmailAndPassword(email, pw);
+    if (!isAuthGateVisible()) CM('auth-modal');
+    T('アカウントを作成しました');
+  } catch (e) {
+    if (err) { err.textContent = formatAuthError(e); err.style.display = 'block'; }
+  }
+}
+
+async function doLogout() {
+  appBootstrapped = false;
+  await auth.signOut();
+  T('ログアウトしました');
+}
+
+auth.onAuthStateChanged(async function(user) {
   curUser = user;
   var as = document.getElementById('auth-status');
   var lb = document.getElementById('logout-btn');
@@ -3777,19 +3900,23 @@ auth.onAuthStateChanged(function(user) {
     lb.style.display = 'block';
     loadUserApps();
     loadUserSettings();
-    // ── チャット履歴サイドバー: ログイン時に購読開始 ──
     cvsSubscribe();
+    if (!appBootstrapped) {
+      appBootstrapped = true;
+      await finishAppBootstrap();
+    }
   } else {
     as.textContent = '未ログイン';
     as.style.color = 'var(--t2)';
     lb.style.display = 'none';
-    // ── チャット履歴サイドバー: ログアウト時は購読解除・リストを空に ──
+    appBootstrapped = false;
     if (cvsUnsubscribe) { cvsUnsubscribe(); cvsUnsubscribe = null; }
     cvsChats = [];
     cvsCurDocId = null;
     cvsRender();
   }
-  renderGallery();
+  updateAuthGate();
+  if (user) renderGallery();
 });
 
 
@@ -3947,6 +4074,7 @@ function onPnameInput() {
 }
 
 function openSettings() {
+  if (!curUser) { updateAuthGate(); return; }
   document.getElementById('pname').value = prof.name || '';
   document.getElementById('pname-change-warn').style.display = 'none';
   document.getElementById('ollama-url').value = ollamaURL;
@@ -4161,18 +4289,22 @@ window.addEventListener('message', function(e) {
   }
 });
 
-window.addEventListener('DOMContentLoaded', async function() {
+window.addEventListener('DOMContentLoaded', function() {
   loadPrism();
   var savedMode = localStorage.getItem('pt_mode');
   if (savedMode) aiMode = savedMode;
   updateNavBadge();
-  // ── チャット履歴サイドバー: 初期表示（未ログイン時もログインノートを出す）──
-  cvsRender();
-  var loaded = await loadShared();
-  if (!loaded) nav('gallery');
-  // モーダル背景クリックで閉じる
+  updateAuthGate();
+  // ログイン後に onAuthStateChanged → finishAppBootstrap で画面遷移
   document.getElementById('cv-code-modal').addEventListener('click', function(e) {
     if (e.target === this) cvCloseCode();
+  });
+  // Enter キーでログイン
+  ['auth-gate-email', 'auth-gate-pw', 'auth-email', 'auth-pw'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', function(ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); doLogin(); }
+    });
   });
 });
 </script>

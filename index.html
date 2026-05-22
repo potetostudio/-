@@ -472,7 +472,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 /* ══ APP VIEW ══ */
 #view-app{position:relative;background:#000}
 #app-pv{position:absolute;inset:0;width:100%;height:100%;border:none;background:white}
-#hud{position:absolute;top:12px;right:12px;z-index:10;display:flex;align-items:center;gap:6px}
+#hud{position:absolute;top:12px;left:12px;right:12px;z-index:10;display:flex;align-items:center;gap:6px;pointer-events:none}
+#hud>*{pointer-events:auto}
+#hud .hud-spacer{flex:1}
+#hud .app-back-main{font-weight:600}
 .hp2{display:flex;align-items:center;gap:5px;padding:5px 11px;background:rgba(7,8,13,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);border-radius:20px;font-size:12px;font-weight:500;color:#edf2f7;cursor:pointer;transition:all .15s;white-space:nowrap}
 .hp2:hover{background:rgba(20,24,36,.95)}
 .hp2 svg{width:13px;height:13px;flex-shrink:0}
@@ -724,6 +727,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div id="workspace">
       <div id="stream-bar"></div>
       <div id="wsbar">
+        <button class="nb" onclick="backToStudio()" title="作る画面（コード入力）に戻る" style="margin-right:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          作るに戻る
+        </button>
+        <div class="sep"></div>
         <div class="dev-group">
           <button class="dev-btn" id="dev-desktop" onclick="setDevice('desktop')" style="background:rgba(109,90,239,.3);color:white" title="デスクトップ">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
@@ -855,7 +863,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <div id="hl" style="flex:1;overflow-y:auto"></div>
       </div>
 
-      <!-- FS exit -->
+      <!-- FS exit / back -->
+      <button id="ws-back-fs" onclick="backToStudio()" style="display:none;position:absolute;top:12px;left:12px;z-index:60;padding:8px 14px;background:rgba(7,8,13,.88);border:1px solid var(--brh);border-radius:10px;color:var(--t1);cursor:pointer;font-family:var(--f);font-size:12px;font-weight:600;align-items:center;gap:6px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        作るに戻る
+      </button>
       <button id="fsexit" onclick="toggleFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:60;padding:8px;background:rgba(7,8,13,.88);border:1px solid var(--brh);border-radius:10px;color:var(--t1);cursor:pointer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
       </button>
@@ -958,6 +970,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   <div id="view-app" class="view" style="position:relative">
     <iframe id="app-pv" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
     <div id="hud">
+      <div class="hp2 app-back-main" onclick="goBack()" title="前の画面に戻る">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <span id="app-back-label">戻る</span>
+      </div>
+      <div class="hp2" onclick="backToStudio()" title="作る画面に戻る">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        作る
+      </div>
+      <div class="hud-spacer"></div>
       <div class="hp2" id="app-ttl">無題のアプリ</div>
       <div class="hp2" onclick="likeApp()" id="lbtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="#da3633" stroke-width="2" id="lico"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
@@ -967,14 +988,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
         フォーク
       </div>
-      <div class="hi" onclick="goBack()" title="戻る">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-      </div>
       <div class="hi" onclick="toggleAFS()" title="全画面">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
       </div>
     </div>
-    <button id="afsexit" onclick="toggleAFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:20;padding:8px;background:rgba(7,8,13,.88);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#edf2f7;cursor:pointer">
+    <button id="afs-back" onclick="goBack()" style="display:none;position:absolute;top:12px;left:12px;z-index:25;padding:8px 14px;background:rgba(7,8,13,.88);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#edf2f7;cursor:pointer;font-family:var(--f);font-size:12px;font-weight:600">
+      ← 戻る
+    </button>
+    <button id="afsexit" onclick="toggleAFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:25;padding:8px;background:rgba(7,8,13,.88);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#edf2f7;cursor:pointer">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
     </button>
   </div>
@@ -1316,6 +1337,12 @@ function normalizeGalleryPreviewCode(code) {
 function openGalleryPreview(code) {
   var apv = document.getElementById('app-pv');
   if (!apv) return;
+  if (!curUser) { updateAuthGate(); return; }
+  var currentActive = document.querySelector('.view.active');
+  if (currentActive && currentActive.id !== 'view-app') {
+    _prevView = currentActive.id.replace('view-', '');
+  }
+  updateAppBackLabel();
   nav('app');
   apv.removeAttribute('src');
   apv.srcdoc = '';
@@ -1763,16 +1790,46 @@ function startStreamBar() {
 //  Navigation
 // ════════════════════════════════════════════
 var _prevView = 'gallery'; // 戻るボタン用：直前のビュー
-function goBack() {
-  // app-pvをクリアしてから前の画面に戻る
+
+function clearAppPreview() {
   var apv = document.getElementById('app-pv');
   if (apv) { apv.srcdoc = ''; apv.removeAttribute('src'); }
   forkCode = '';
   curPublicDocId = null;
   curAppId = null;
   sharedGatePayload = null;
-  nav(_prevView);
+  var fb = document.getElementById('fork-btn');
+  if (fb) fb.style.display = 'none';
 }
+
+function updateAppBackLabel() {
+  var el = document.getElementById('app-back-label');
+  if (!el) return;
+  el.textContent = _prevView === 'gallery' ? 'ギャラリーに戻る' : (_prevView === 'chat' ? 'チャットに戻る' : '戻る');
+}
+
+/** スタジオのコード入力画面（launchpad）へ戻る */
+function backToStudio() {
+  if (isFsS) toggleFS();
+  if (isFsA) toggleAFS();
+  clearAppPreview();
+  var sif = document.getElementById('sif');
+  if (sif) { sif.srcdoc = ''; sif.removeAttribute('src'); }
+  if (cur) {
+    var lp = document.getElementById('lp-code');
+    if (lp) lp.value = cur;
+  }
+  document.getElementById('workspace').style.display = 'none';
+  document.getElementById('launchpad').style.display = 'flex';
+  nav('studio', { noReset: true });
+}
+
+function goBack() {
+  if (isFsA) toggleAFS();
+  clearAppPreview();
+  nav(_prevView || 'gallery');
+}
+
 function nav(v, opts) {
   if (!curUser) {
     updateAuthGate();
@@ -1785,7 +1842,7 @@ function nav(v, opts) {
   }
   document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
   document.getElementById('view-' + v).classList.add('active');
-  document.getElementById('nbg').style.display = (v === 'gallery' || v === 'chat') ? 'flex' : 'none';
+  document.getElementById('nbg').style.display = (v === 'gallery' || v === 'chat' || v === 'studio' || v === 'app') ? 'flex' : 'none';
   if (v === 'gallery') {
     if (galleryTab === 'public') {
       loadPublicApps();
@@ -1793,7 +1850,15 @@ function nav(v, opts) {
       renderGallery();
     }
   }
-  if (v === 'studio')  resetS();
+  if (v === 'studio') {
+    if (opts && opts.noReset) {
+      document.getElementById('launchpad').style.display = 'flex';
+      document.getElementById('workspace').style.display = 'none';
+    } else {
+      resetS();
+    }
+  }
+  if (v === 'app') updateAppBackLabel();
   if (v === 'chat') {
     cvUpdateEngine();
     // ── 外部ナビ（ギャラリー・ヘッダーボタン等）からチャットに来た時は
@@ -2145,6 +2210,8 @@ function toggleAFS() {
   isFsA = !isFsA;
   document.getElementById('hud').style.display = isFsA ? 'none' : 'flex';
   document.getElementById('afsexit').style.display = isFsA ? 'block' : 'none';
+  var ab = document.getElementById('afs-back');
+  if (ab) ab.style.display = isFsA ? 'block' : 'none';
 }
 
 // ════════════════════════════════════════════
@@ -3319,6 +3386,8 @@ function toggleFS() {
   document.getElementById('wsbar').style.display = isFsS ? 'none' : 'flex';
   document.getElementById('aibar').style.display = isFsS ? 'none' : 'block';
   document.getElementById('fsexit').style.display = isFsS ? 'block' : 'none';
+  var wbf = document.getElementById('ws-back-fs');
+  if (wbf) wbf.style.display = isFsS ? 'flex' : 'none';
   if (isFsS) hideCP();
 }
 function reloadPreview() {

@@ -485,6 +485,26 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .hi{width:32px;height:32px;border-radius:50%;background:rgba(7,8,13,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:#edf2f7;cursor:pointer;transition:all .15s}
 .hi:hover{background:rgba(20,24,36,.95)}
 .hi svg{width:14px;height:14px}
+.hp2.active{background:rgba(109,90,239,.35);border-color:rgba(109,90,239,.5)}
+#app-comments{position:absolute;bottom:0;left:0;right:0;z-index:12;max-height:min(52vh,420px);background:rgba(7,8,13,.97);border-top:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;transform:translateY(100%);transition:transform .28s ease;pointer-events:auto}
+#app-comments.open{transform:translateY(0)}
+.app-comments-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--br);flex-shrink:0}
+.app-comments-hdr span{font-size:13px;font-weight:700;color:#edf2f7}
+#app-comments-list{flex:1;overflow-y:auto;padding:10px 14px;min-height:80px}
+.app-cmt-item{padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--br);border-radius:10px;margin-bottom:8px}
+.app-cmt-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.app-cmt-author{font-size:12px;font-weight:600;color:var(--ac2)}
+.app-cmt-time{font-size:10px;color:var(--t3)}
+.app-cmt-del{margin-left:auto;padding:2px 8px;font-size:10px;color:var(--t3);background:transparent;border:1px solid var(--br);border-radius:6px;cursor:pointer;font-family:var(--f)}
+.app-cmt-del:hover{color:var(--rd);border-color:var(--rd)}
+.app-cmt-body{font-size:12px;color:#edf2f7;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.app-cmt-empty,.app-cmt-loading{font-size:12px;color:var(--t3);text-align:center;padding:24px 12px}
+.app-comments-form{padding:10px 14px 14px;border-top:1px solid var(--br);flex-shrink:0;display:flex;flex-direction:column;gap:8px}
+#app-comment-input{width:100%;padding:10px 12px;background:var(--s3);border:1px solid var(--br);border-radius:9px;color:var(--t1);font-family:var(--f);font-size:12px;resize:vertical;min-height:56px;max-height:120px}
+#app-comment-input::placeholder{color:var(--t3)}
+#app-comment-post{align-self:flex-end;padding:8px 18px;border-radius:9px;border:none;background:var(--ac);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f)}
+#app-comment-post:disabled{opacity:.5;cursor:not-allowed}
+#app-comment-login-hint{font-size:11px;color:var(--t3);display:none}
 
 /* ══ MODALS ══ */
 .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:200;align-items:center;justify-content:center;padding:16px}
@@ -987,6 +1007,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
         フォーク
       </div>
+      <div class="hp2" onclick="toggleAppCommentsPanel()" id="comment-btn" style="display:none" title="コメント">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span id="comment-cnt">0</span>
+      </div>
       <div class="hi" onclick="toggleAFS()" title="全画面">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
       </div>
@@ -997,6 +1021,20 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <button id="afsexit" onclick="toggleAFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:25;padding:8px;background:rgba(7,8,13,.88);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#edf2f7;cursor:pointer">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
     </button>
+    <div id="app-comments">
+      <div class="app-comments-hdr">
+        <span>コメント <span id="comment-cnt-hdr" style="font-weight:500;color:var(--t3)"></span></span>
+        <button type="button" class="xbtn" onclick="setCommentsPanelVisible(false)" title="閉じる">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div id="app-comments-list"></div>
+      <div class="app-comments-form">
+        <p id="app-comment-login-hint">コメントするにはログインが必要です</p>
+        <textarea id="app-comment-input" rows="2" placeholder="コメントを入力（500文字以内）"></textarea>
+        <button type="button" id="app-comment-post" onclick="postComment()">投稿</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1816,6 +1854,9 @@ function clearAppPreview() {
   sharedGatePayload = null;
   var fb = document.getElementById('fork-btn');
   if (fb) fb.style.display = 'none';
+  var cb = document.getElementById('comment-btn');
+  if (cb) cb.style.display = 'none';
+  setCommentsPanelVisible(false);
 }
 
 function updateAppBackLabel() {
@@ -2126,11 +2167,149 @@ async function delPublicApp(docId) {
   if (!curUser) { T('ログインが必要です'); return; }
   if (!confirm('みんなのギャラリーから削除しますか？')) return;
   try {
+    var csnap = await db.collection('gallery').doc(docId).collection('comments').get();
+    if (!csnap.empty) {
+      var batch = db.batch();
+      csnap.forEach(function(doc) { batch.delete(doc.ref); });
+      await batch.commit();
+    }
     await db.collection('gallery').doc(docId).delete();
     publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
     renderGallery();
     T('削除しました');
   } catch(e) { T('削除に失敗しました'); }
+}
+
+// ── みんなのギャラリー：コメント ──
+var commentsUnsub = null;
+var commentsOpen = false;
+
+function stopCommentsListener() {
+  if (commentsUnsub) { commentsUnsub(); commentsUnsub = null; }
+}
+
+function syncCommentFormState() {
+  var loggedIn = !!curUser;
+  var inp = document.getElementById('app-comment-input');
+  var btn = document.getElementById('app-comment-post');
+  var hint = document.getElementById('app-comment-login-hint');
+  if (inp) inp.disabled = !loggedIn;
+  if (btn) btn.disabled = !loggedIn;
+  if (hint) hint.style.display = loggedIn ? 'none' : 'block';
+}
+
+function setCommentsPanelVisible(show) {
+  commentsOpen = !!show;
+  var panel = document.getElementById('app-comments');
+  if (panel) panel.classList.toggle('open', commentsOpen);
+  var btn = document.getElementById('comment-btn');
+  if (btn) btn.classList.toggle('active', commentsOpen);
+  syncCommentFormState();
+  if (!commentsOpen) {
+    stopCommentsListener();
+  } else if (curPublicDocId) {
+    startCommentsListener(curPublicDocId);
+  }
+}
+
+function toggleAppCommentsPanel() {
+  setCommentsPanelVisible(!commentsOpen);
+}
+
+function formatCommentTime(ts) {
+  if (!ts) return '';
+  var d = ts.toDate ? ts.toDate() : new Date(ts);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function renderCommentsList(snap) {
+  var list = document.getElementById('app-comments-list');
+  var cntEl = document.getElementById('comment-cnt');
+  var cntHdr = document.getElementById('comment-cnt-hdr');
+  var n = snap.size;
+  if (cntEl) cntEl.textContent = String(n);
+  if (cntHdr) cntHdr.textContent = n ? '(' + n + ')' : '';
+  if (!list) return;
+  if (snap.empty) {
+    list.innerHTML = '<div class="app-cmt-empty">まだコメントはありません</div>';
+    return;
+  }
+  var html = '';
+  snap.forEach(function(doc) {
+    var d = doc.data();
+    var isOwn = curUser && d.uid === curUser.uid;
+    html += '<div class="app-cmt-item">' +
+      '<div class="app-cmt-head">' +
+        '<span class="app-cmt-author">' + E(d.authorName || '名無しのポテト') + '</span>' +
+        '<span class="app-cmt-time">' + E(formatCommentTime(d.createdAt)) + '</span>' +
+        (isOwn ? '<button type="button" class="app-cmt-del" onclick="deleteComment(\'' + doc.id + '\')">削除</button>' : '') +
+      '</div>' +
+      '<div class="app-cmt-body">' + E(d.text || '') + '</div>' +
+    '</div>';
+  });
+  list.innerHTML = html;
+  list.scrollTop = list.scrollHeight;
+}
+
+function prefetchCommentCount(appId) {
+  if (!appId) return;
+  db.collection('gallery').doc(appId).collection('comments').get().then(function(snap) {
+    var cntEl = document.getElementById('comment-cnt');
+    if (cntEl && curPublicDocId === appId) cntEl.textContent = String(snap.size);
+  }).catch(function() {});
+}
+
+function startCommentsListener(appId) {
+  stopCommentsListener();
+  var list = document.getElementById('app-comments-list');
+  if (!list) return;
+  list.innerHTML = '<div class="app-cmt-loading">読み込み中...</div>';
+  commentsUnsub = db.collection('gallery').doc(appId).collection('comments')
+    .orderBy('createdAt', 'asc')
+    .limit(100)
+    .onSnapshot(function(snap) {
+      renderCommentsList(snap);
+    }, function(err) {
+      console.warn('comments listen failed:', err);
+      list.innerHTML = '<div class="app-cmt-empty">コメントを読み込めませんでした</div>';
+    });
+}
+
+async function postComment() {
+  if (!curUser) { T('ログインが必要です'); return; }
+  if (!curPublicDocId) return;
+  var ta = document.getElementById('app-comment-input');
+  var text = (ta && ta.value || '').trim();
+  if (!text) { T('コメントを入力してください'); return; }
+  if (text.length > 500) { T('コメントは500文字以内にしてください'); return; }
+  var btn = document.getElementById('app-comment-post');
+  if (btn) btn.disabled = true;
+  try {
+    await db.collection('gallery').doc(curPublicDocId).collection('comments').add({
+      uid: curUser.uid,
+      authorName: (curUser.displayName) || (prof.name) || '名無しのポテト',
+      text: text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    if (ta) ta.value = '';
+  } catch (e) {
+    console.warn('postComment failed:', e);
+    T('コメントの投稿に失敗しました');
+  }
+  if (btn) btn.disabled = !curUser;
+}
+
+async function deleteComment(commentId) {
+  if (!curUser || !curPublicDocId) return;
+  if (!confirm('このコメントを削除しますか？')) return;
+  try {
+    await db.collection('gallery').doc(curPublicDocId).collection('comments').doc(commentId).delete();
+    T('コメントを削除しました');
+  } catch (e) {
+    console.warn('deleteComment failed:', e);
+    T('削除に失敗しました');
+  }
 }
 
 // みんなのギャラリーの作品を開く
@@ -2148,6 +2327,10 @@ function openPublicApp(a) {
   forkCode = a.code;
   sharedGatePayload = null;
   document.getElementById('fork-btn').style.display = 'flex';
+  var cbtn = document.getElementById('comment-btn');
+  if (cbtn) cbtn.style.display = 'flex';
+  setCommentsPanelVisible(false);
+  prefetchCommentCount(a._docId);
   var previewCode = normalizeGalleryPreviewCode(a.code);
   // #region agent log
   _agentDbg('openPublicApp', 'gallery open public', {
@@ -2178,6 +2361,9 @@ function openApp(id) {
   forkCode = a.code;
   sharedGatePayload = null;
   document.getElementById('fork-btn').style.display = 'flex';
+  var cbtn = document.getElementById('comment-btn');
+  if (cbtn) cbtn.style.display = 'none';
+  setCommentsPanelVisible(false);
   var previewCode = normalizeGalleryPreviewCode(a.code);
   // #region agent log
   _agentDbg('openApp', 'gallery open my', {
@@ -4082,6 +4268,7 @@ auth.onAuthStateChanged(async function(user) {
     cvsRender();
   }
   updateAuthGate();
+  syncCommentFormState();
   if (user) renderGallery();
 });
 

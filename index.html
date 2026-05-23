@@ -79,6 +79,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .gc-av{width:16px;height:16px;border-radius:50%;background:var(--s4);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
 .gc-av img{width:100%;height:100%;object-fit:cover}
 .gc-name{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gc-stats{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.gc-comments{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--ac2);flex-shrink:0}
 .gc-likes{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--rd);flex-shrink:0}
 .gc-actions{display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity .15s}
 .gc:hover .gc-actions{opacity:1}
@@ -2007,12 +2009,40 @@ async function loadPublicApps() {
       return tb - ta;
     });
     renderGallery();
+    refreshPublicCommentCounts();
   } catch(e) {
     console.error('Public gallery load failed:', e);
     g.innerHTML = '';
     em.style.display = 'block';
     if (msg) msg.textContent = 'エラー: ' + e.message;
   }
+}
+
+var GC_COMMENT_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+
+function publicCommentCountLabel(a) {
+  if (typeof a._commentCount === 'number') return String(a._commentCount);
+  if (typeof a.commentCount === 'number') return String(a.commentCount);
+  return '…';
+}
+
+function syncPublicAppCommentCount(docId, n) {
+  if (!docId) return;
+  var a = publicApps.find(function(x) { return x._docId === docId; });
+  if (a) a._commentCount = n;
+  if (galleryTab === 'public') renderGallery();
+}
+
+/** みんなのギャラリー各カード用：comments 件数を並列取得 */
+async function refreshPublicCommentCounts() {
+  if (!publicApps.length) return;
+  await Promise.all(publicApps.map(function(a) {
+    if (!a._docId) return Promise.resolve();
+    return db.collection('gallery').doc(a._docId).collection('comments').get()
+      .then(function(snap) { a._commentCount = snap.size; })
+      .catch(function() { a._commentCount = 0; });
+  }));
+  if (galleryTab === 'public') renderGallery();
 }
 
 function renderGallery() {
@@ -2063,7 +2093,10 @@ function renderGallery() {
               '<div class="gc-av"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>' +
               '<span class="gc-name">' + E(a.authorName || '名無しのポテト') + '</span>' +
             '</div>' +
-            '<div class="gc-likes"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' + (a.likes||0) + '</div>' +
+            '<div class="gc-stats">' +
+              '<div class="gc-comments" title="コメント">' + GC_COMMENT_SVG + publicCommentCountLabel(a) + '</div>' +
+              '<div class="gc-likes" title="いいね"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' + (a.likes||0) + '</div>' +
+            '</div>' +
           '</div>' +
         '</div>';
       g.appendChild(el);
@@ -2262,6 +2295,7 @@ function renderCommentsList(snap) {
   var n = snap.size;
   if (cntEl) cntEl.textContent = String(n);
   if (cntHdr) cntHdr.textContent = n ? '(' + n + ')' : '';
+  if (curPublicDocId) syncPublicAppCommentCount(curPublicDocId, n);
   if (!list) return;
   if (snap.empty) {
     list.innerHTML = '<div class="app-cmt-empty">まだコメントはありません</div>';
@@ -2294,6 +2328,7 @@ function prefetchCommentCount(appId) {
   db.collection('gallery').doc(appId).collection('comments').get().then(function(snap) {
     var cntEl = document.getElementById('comment-cnt');
     if (cntEl && curPublicDocId === appId) cntEl.textContent = String(snap.size);
+    syncPublicAppCommentCount(appId, snap.size);
   }).catch(function() {});
 }
 

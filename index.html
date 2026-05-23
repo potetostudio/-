@@ -80,10 +80,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .gc-av img{width:100%;height:100%;object-fit:cover}
 .gc-name{font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gc-likes{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--rd);flex-shrink:0}
-.gc-del{position:absolute;top:6px;right:6px;width:24px;height:24px;background:rgba(0,0,0,.6);border:none;border-radius:6px;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .15s}
-.gc:hover .gc-del{opacity:1}
+.gc-actions{display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity .15s}
+.gc:hover .gc-actions{opacity:1}
+.gc-rename,.gc-del{width:24px;height:24px;background:rgba(0,0,0,.6);border:none;border-radius:6px;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.gc-rename:hover{background:var(--ac);color:white}
 .gc-del:hover{background:var(--rd);color:white}
-.gc-del svg{width:11px;height:11px}
+.gc-rename svg,.gc-del svg{width:11px;height:11px}
 #g-empty{display:none;text-align:center;padding:80px 20px;color:var(--t3)}
 #g-empty svg{margin:0 auto 16px;opacity:.3;display:block}
 #g-login-banner{display:none;margin:12px 0;padding:10px 16px;background:rgba(109,90,239,.1);border:1px solid rgba(109,90,239,.25);border-radius:10px;font-size:12px;color:var(--ac2);text-align:center}
@@ -1208,6 +1210,23 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   </div>
 </div>
 
+<!-- マイギャラリー：名前変更 -->
+<div id="rename-app-modal" class="mo">
+  <div class="mb">
+    <div class="mt">
+      名前を変更
+      <button class="mc" onclick="CM('rename-app-modal')">✕</button>
+    </div>
+    <label class="fl">アプリ名</label>
+    <input type="text" id="rename-app-input" class="fi" placeholder="例: ブロック崩しゲーム" onkeydown="if(event.key==='Enter')submitRenameApp()">
+    <div id="rename-app-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none">名前を入力してください</div>
+    <div class="mbs">
+      <button class="mbb can" onclick="CM('rename-app-modal')">キャンセル</button>
+      <button class="mbb ok" onclick="submitRenameApp()">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- 公開前セットアップモーダル（タイトル・表示名の設定） -->
 <div id="publish-setup-modal" class="mo">
   <div class="mb">
@@ -2011,9 +2030,14 @@ function renderGallery() {
         '<div class="gc-body">' +
           '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">' +
             '<div class="gc-title" style="flex:1">' + E(a.title) + '</div>' +
-            '<button class="gc-del" onclick="event.stopPropagation();delApp(\'' + (a.urlId || a.id) + '\')" title="削除">' +
-              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
-            '</button>' +
+            '<div class="gc-actions">' +
+              '<button class="gc-rename" onclick="event.stopPropagation();openRenameApp(\'' + (a.urlId || a.id) + '\')" title="名前を変更">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
+              '</button>' +
+              '<button class="gc-del" onclick="event.stopPropagation();delApp(\'' + (a.urlId || a.id) + '\')" title="削除">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
+              '</button>' +
+            '</div>' +
           '</div>' +
           '<div class="gc-meta">' +
             '<div class="gc-author">' +
@@ -2026,6 +2050,66 @@ function renderGallery() {
       g.appendChild(el);
     });
   }
+}
+
+var _renameAppId = null;
+
+function findMyAppByKey(key) {
+  var k = String(key);
+  return apps.find(function(a) {
+    return String(a.urlId || a.id) === k || String(a.id) === k;
+  });
+}
+
+function openRenameApp(id) {
+  var a = findMyAppByKey(id);
+  if (!a) return;
+  _renameAppId = a.urlId || a.id;
+  document.getElementById('rename-app-input').value = a.title || '';
+  document.getElementById('rename-app-err').style.display = 'none';
+  document.getElementById('rename-app-modal').classList.add('on');
+  setTimeout(function() { document.getElementById('rename-app-input').focus(); }, 120);
+}
+
+async function submitRenameApp() {
+  var val = document.getElementById('rename-app-input').value.trim();
+  if (!val) {
+    document.getElementById('rename-app-err').style.display = 'block';
+    return;
+  }
+  var a = findMyAppByKey(_renameAppId);
+  if (!a) { CM('rename-app-modal'); return; }
+  var docId = String(a.urlId || a.id);
+  a.title = val;
+  localStorage.setItem('pt_apps', JSON.stringify(apps));
+  if (curUser) {
+    try {
+      await db.collection('users').doc(curUser.uid).collection('apps').doc(docId).set({
+        label: val,
+        updatedAt: new Date()
+      }, { merge: true });
+      var gsnap = await db.collection('gallery').doc(docId).get();
+      if (gsnap.exists && gsnap.data().uid === curUser.uid) {
+        await db.collection('gallery').doc(docId).update({
+          title: val,
+          updatedAt: new Date()
+        });
+        publicApps.forEach(function(p) {
+          if (String(p._docId) === docId) p.title = val;
+        });
+      }
+    } catch (e) {
+      console.warn('rename failed:', e);
+      T('名前の保存に失敗しました');
+      return;
+    }
+  }
+  CM('rename-app-modal');
+  renderGallery();
+  if (curAppId != null && (a.id === curAppId || String(a.urlId || a.id) === String(curAppId))) {
+    document.getElementById('app-ttl').textContent = val;
+  }
+  T('名前を変更しました');
 }
 
 function delApp(id) {

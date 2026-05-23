@@ -1058,7 +1058,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <label class="fl">表示名</label>
     <input type="text" id="pname" class="fi" placeholder="あなたの名前..." oninput="onPnameInput()">
     <div id="pname-change-warn" style="display:none;font-size:11px;color:var(--am);background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25);border-radius:8px;padding:9px 12px;margin-top:-10px;margin-bottom:14px;line-height:1.6">
-      ⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名もすべて更新されます。
+      ⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名と、あなたが投稿したコメントの表示名もすべて更新されます。
     </div>
     <div class="div1"></div>
     <!-- Ollama設定 -->
@@ -1220,7 +1220,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <input type="text" id="publish-confirm-author-input" class="fi" placeholder="表示名を入力..."
       oninput="onPublishAuthorInput()" style="margin-bottom:6px">
     <div id="publish-author-change-warn" style="display:none;font-size:11px;color:var(--am);background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25);border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.6">
-      ⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名もすべて更新されます。
+      ⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名と、あなたが投稿したコメントの表示名もすべて更新されます。
     </div>
     <div id="publish-author-err" style="display:none;font-size:11px;color:var(--rd);margin-bottom:10px">作者名を入力してください</div>
     <div class="mbs">
@@ -4056,7 +4056,7 @@ async function doPublishToGallery() {
     prof.name = newAuthor;
     localStorage.setItem('pt_prof', JSON.stringify(prof));
     await saveAuthorNameToFirestore(newAuthor);
-    await updateGalleryAuthorName(newAuthor);
+    await updatePublicAuthorNameEverywhere(newAuthor);
     // キャッシュも更新
     if (curUser) {
       publicApps.forEach(function(a) {
@@ -4451,6 +4451,37 @@ async function updateGalleryAuthorName(newName) {
   } catch(e) { console.warn('Gallery authorName update failed:', e); }
 }
 
+/** 表示名変更時：自分が投稿したコメント（全作品）の authorName を更新 */
+async function updateGalleryCommentsAuthorName(newName) {
+  if (!curUser) return;
+  try {
+    var snap = await db.collectionGroup('comments').where('uid', '==', curUser.uid).get();
+    if (snap.empty) return;
+    var batch = db.batch();
+    var ops = 0;
+    var commits = [];
+    snap.forEach(function(doc) {
+      batch.update(doc.ref, { authorName: newName });
+      ops++;
+      if (ops >= 450) {
+        commits.push(batch.commit());
+        batch = db.batch();
+        ops = 0;
+      }
+    });
+    if (ops > 0) commits.push(batch.commit());
+    await Promise.all(commits);
+  } catch (e) {
+    console.warn('Gallery comments authorName update failed:', e);
+  }
+}
+
+/** 公開側の作者名を作品・コメントの両方で一括更新 */
+async function updatePublicAuthorNameEverywhere(newName) {
+  await updateGalleryAuthorName(newName);
+  await updateGalleryCommentsAuthorName(newName);
+}
+
 async function saveGeminiKeyToFirestore(key) {
   if (!curUser) return;
   try {
@@ -4546,7 +4577,7 @@ async function saveSets() {
     // 表示名が変わった場合、galleryの投稿を一括更新
     if (nameChanged) {
       T('表示名を更新中...');
-      await updateGalleryAuthorName(newName);
+      await updatePublicAuthorNameEverywhere(newName);
       // みんなのギャラリーのキャッシュも更新
       publicApps.forEach(function(a) {
         if (a.uid === curUser.uid) a.authorName = newName;

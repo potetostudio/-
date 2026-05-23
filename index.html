@@ -4056,7 +4056,14 @@ async function doPublishToGallery() {
     prof.name = newAuthor;
     localStorage.setItem('pt_prof', JSON.stringify(prof));
     await saveAuthorNameToFirestore(newAuthor);
-    await updatePublicAuthorNameEverywhere(newAuthor);
+    try {
+      var pubRes = await updatePublicAuthorNameEverywhere(newAuthor);
+      if (pubRes && pubRes.commentCount > 0) {
+        T('コメント ' + pubRes.commentCount + ' 件の表示名も更新しました');
+      }
+    } catch (e) {
+      T('コメントの表示名更新に失敗しました。Firestoreルールを確認してください');
+    }
     // キャッシュも更新
     if (curUser) {
       publicApps.forEach(function(a) {
@@ -4451,35 +4458,92 @@ async function updateGalleryAuthorName(newName) {
   } catch(e) { console.warn('Gallery authorName update failed:', e); }
 }
 
+/** コメント authorName 更新をバッチで実行 */
+async function _commitCommentAuthorNameUpdates(refs, newName) {
+  if (!refs.length) return 0;
+  var batch = db.batch();
+  var ops = 0;
+  var commits = [];
+  refs.forEach(function(ref) {
+    batch.update(ref, { authorName: newName });
+    ops++;
+    if (ops >= 450) {
+      commits.push(batch.commit());
+      batch = db.batch();
+      ops = 0;
+    }
+  });
+  if (ops > 0) commits.push(batch.commit());
+  await Promise.all(commits);
+  return refs.length;
+}
+
+/** collectionGroup で自分のコメントを一括更新（要インデックス） */
+async function _updateCommentsAuthorNameViaGroup(newName) {
+  var snap = await db.collectionGroup('comments').where('uid', '==', curUser.uid).get();
+  var refs = [];
+  snap.forEach(function(doc) { refs.push(doc.ref); });
+  return _commitCommentAuthorNameUpdates(refs, newName);
+}
+
+/** 各ギャラリー作品の comments を走査して更新（インデックス不要） */
+async function _updateCommentsAuthorNameViaGalleryScan(newName) {
+  var idMap = {};
+  var pubSnap = await db.collection('gallery').where('isPublic', '==', true).get();
+  pubSnap.forEach(function(d) { idMap[d.id] = true; });
+  var mineSnap = await db.collection('gallery').where('uid', '==', curUser.uid).get();
+  mineSnap.forEach(function(d) { idMap[d.id] = true; });
+  publicApps.forEach(function(a) { if (a._docId) idMap[a._docId] = true; });
+
+  var refs = [];
+  var ids = Object.keys(idMap);
+  for (var i = 0; i < ids.length; i++) {
+    var csnap = await db.collection('gallery').doc(ids[i]).collection('comments')
+      .where('uid', '==', curUser.uid).get();
+    csnap.forEach(function(cdoc) { refs.push(cdoc.ref); });
+  }
+  return _commitCommentAuthorNameUpdates(refs, newName);
+}
+
 /** 表示名変更時：自分が投稿したコメント（全作品）の authorName を更新 */
 async function updateGalleryCommentsAuthorName(newName) {
-  if (!curUser) return;
+  if (!curUser || !newName) return 0;
   try {
-    var snap = await db.collectionGroup('comments').where('uid', '==', curUser.uid).get();
-    if (snap.empty) return;
-    var batch = db.batch();
-    var ops = 0;
-    var commits = [];
-    snap.forEach(function(doc) {
-      batch.update(doc.ref, { authorName: newName });
-      ops++;
-      if (ops >= 450) {
-        commits.push(batch.commit());
-        batch = db.batch();
-        ops = 0;
-      }
-    });
-    if (ops > 0) commits.push(batch.commit());
-    await Promise.all(commits);
+    var n = await _updateCommentsAuthorNameViaGroup(newName);
+    // #region agent log
+    _agentDbg('updateGalleryCommentsAuthorName', 'collectionGroup ok', { count: n, newName: newName }, 'H1');
+    // #endregion
+    return n;
   } catch (e) {
-    console.warn('Gallery comments authorName update failed:', e);
+    // #region agent log
+    _agentDbg('updateGalleryCommentsAuthorName', 'collectionGroup failed, fallback', {
+      code: e.code || '', message: e.message || String(e)
+    }, 'H1');
+    // #endregion
+    console.warn('collectionGroup comments update failed, trying per-gallery scan:', e);
+    try {
+      var n2 = await _updateCommentsAuthorNameViaGalleryScan(newName);
+      // #region agent log
+      _agentDbg('updateGalleryCommentsAuthorName', 'gallery scan ok', { count: n2, newName: newName }, 'H2');
+      // #endregion
+      return n2;
+    } catch (e2) {
+      // #region agent log
+      _agentDbg('updateGalleryCommentsAuthorName', 'gallery scan failed', {
+        code: e2.code || '', message: e2.message || String(e2)
+      }, 'H2');
+      // #endregion
+      console.warn('Gallery comments authorName update failed:', e2);
+      throw e2;
+    }
   }
 }
 
 /** 公開側の作者名を作品・コメントの両方で一括更新 */
 async function updatePublicAuthorNameEverywhere(newName) {
   await updateGalleryAuthorName(newName);
-  await updateGalleryCommentsAuthorName(newName);
+  var commentCount = await updateGalleryCommentsAuthorName(newName);
+  return { commentCount: commentCount };
 }
 
 async function saveGeminiKeyToFirestore(key) {
@@ -4574,21 +4638,43 @@ async function saveSets() {
       updatedAt: new Date()
     }, { merge: true }).catch(function(){});
 
-    // 表示名が変わった場合、galleryの投稿を一括更新
+    // 表示名が変わった場合、galleryの投稿・コメントを一括更新
     if (nameChanged) {
       T('表示名を更新中...');
-      await updatePublicAuthorNameEverywhere(newName);
+      try {
+        if (curUser.updateProfile) {
+          await curUser.updateProfile({ displayName: newName });
+        }
+      } catch (profileErr) {
+        console.warn('updateProfile failed:', profileErr);
+      }
+      var commentUpdated = 0;
+      try {
+        var res = await updatePublicAuthorNameEverywhere(newName);
+        commentUpdated = (res && res.commentCount) || 0;
+      } catch (e) {
+        T('コメントの表示名更新に失敗しました。Firestoreルール（authorName）を確認してください');
+      }
       // みんなのギャラリーのキャッシュも更新
       publicApps.forEach(function(a) {
         if (a.uid === curUser.uid) a.authorName = newName;
       });
+      CM('sm');
+      T(nameChanged
+        ? (commentUpdated > 0
+          ? '設定を保存しました（作品とコメント' + commentUpdated + '件の表示名を更新）✓'
+          : '設定を保存しました（作者名を更新しました）✓')
+        : '設定を保存しました ✓');
+      localStorage.setItem('pt_mode', aiMode);
+      updateNavBadge();
+      return;
     }
   }
 
   localStorage.setItem('pt_mode', aiMode);
   updateNavBadge();
   CM('sm');
-  T(nameChanged ? '設定を保存しました（作者名を更新しました）✓' : '設定を保存しました ✓');
+  T('設定を保存しました ✓');
 }
 function handleAv(e) {
   var f = e.target.files[0]; if (!f) return;

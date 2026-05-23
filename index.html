@@ -495,7 +495,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .app-cmt-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
 .app-cmt-author{font-size:12px;font-weight:600;color:var(--ac2)}
 .app-cmt-time{font-size:10px;color:var(--t3)}
-.app-cmt-del{margin-left:auto;padding:2px 8px;font-size:10px;color:var(--t3);background:transparent;border:1px solid var(--br);border-radius:6px;cursor:pointer;font-family:var(--f)}
+.app-cmt-actions{margin-left:auto;display:flex;gap:4px}
+.app-cmt-edit,.app-cmt-del{padding:2px 8px;font-size:10px;color:var(--t3);background:transparent;border:1px solid var(--br);border-radius:6px;cursor:pointer;font-family:var(--f)}
+.app-cmt-edit:hover{color:var(--ac2);border-color:var(--ac)}
 .app-cmt-del:hover{color:var(--rd);border-color:var(--rd)}
 .app-cmt-body{font-size:12px;color:#edf2f7;line-height:1.55;white-space:pre-wrap;word-break:break-word}
 .app-cmt-empty,.app-cmt-loading{font-size:12px;color:var(--t3);text-align:center;padding:24px 12px}
@@ -1261,6 +1263,23 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div class="mbs">
       <button class="mbb can" onclick="CM('rename-app-modal')">キャンセル</button>
       <button class="mbb ok" onclick="submitRenameApp()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- コメント編集 -->
+<div id="edit-comment-modal" class="mo">
+  <div class="mb">
+    <div class="mt">
+      コメントを編集
+      <button class="mc" onclick="CM('edit-comment-modal')">✕</button>
+    </div>
+    <label class="fl">コメント</label>
+    <textarea id="edit-comment-input" class="fi" rows="4" placeholder="500文字以内" style="resize:vertical;min-height:88px"></textarea>
+    <div id="edit-comment-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none">コメントを入力してください（500文字以内）</div>
+    <div class="mbs">
+      <button class="mbb can" onclick="CM('edit-comment-modal')">キャンセル</button>
+      <button class="mbb ok" onclick="submitEditComment()">保存</button>
     </div>
   </div>
 </div>
@@ -2183,6 +2202,7 @@ async function delPublicApp(docId) {
 // ── みんなのギャラリー：コメント ──
 var commentsUnsub = null;
 var commentsOpen = false;
+var _editCommentId = null;
 
 function stopCommentsListener() {
   if (commentsUnsub) { commentsUnsub(); commentsUnsub = null; }
@@ -2223,6 +2243,18 @@ function formatCommentTime(ts) {
   return d.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+function commentTimeLabel(d) {
+  var label = formatCommentTime(d.createdAt);
+  if (d.updatedAt && d.createdAt) {
+    var ut = d.updatedAt.toDate ? d.updatedAt.toDate() : new Date(d.updatedAt);
+    var ct = d.createdAt.toDate ? d.createdAt.toDate() : new Date(d.createdAt);
+    if (!isNaN(ut.getTime()) && !isNaN(ct.getTime()) && ut.getTime() > ct.getTime() + 500) {
+      label += '（編集済み）';
+    }
+  }
+  return label;
+}
+
 function renderCommentsList(snap) {
   var list = document.getElementById('app-comments-list');
   var cntEl = document.getElementById('comment-cnt');
@@ -2239,13 +2271,18 @@ function renderCommentsList(snap) {
   snap.forEach(function(doc) {
     var d = doc.data();
     var isOwn = curUser && d.uid === curUser.uid;
-    html += '<div class="app-cmt-item">' +
+    html += '<div class="app-cmt-item" data-comment-id="' + E(doc.id) + '">' +
       '<div class="app-cmt-head">' +
         '<span class="app-cmt-author">' + E(d.authorName || '名無しのポテト') + '</span>' +
-        '<span class="app-cmt-time">' + E(formatCommentTime(d.createdAt)) + '</span>' +
-        (isOwn ? '<button type="button" class="app-cmt-del" onclick="deleteComment(\'' + doc.id + '\')">削除</button>' : '') +
+        '<span class="app-cmt-time">' + E(commentTimeLabel(d)) + '</span>' +
+        (isOwn
+          ? '<span class="app-cmt-actions">' +
+              '<button type="button" class="app-cmt-edit" onclick="openEditComment(\'' + doc.id + '\')">編集</button>' +
+              '<button type="button" class="app-cmt-del" onclick="deleteComment(\'' + doc.id + '\')">削除</button>' +
+            '</span>'
+          : '') +
       '</div>' +
-      '<div class="app-cmt-body">' + E(d.text || '') + '</div>' +
+      '<div class="app-cmt-body" id="cmt-body-' + doc.id + '">' + E(d.text || '') + '</div>' +
     '</div>';
   });
   list.innerHTML = html;
@@ -2298,6 +2335,43 @@ async function postComment() {
     T('コメントの投稿に失敗しました');
   }
   if (btn) btn.disabled = !curUser;
+}
+
+function openEditComment(commentId) {
+  if (!curUser || !curPublicDocId) return;
+  var body = document.getElementById('cmt-body-' + commentId);
+  var text = body ? body.textContent : '';
+  _editCommentId = commentId;
+  document.getElementById('edit-comment-input').value = text;
+  document.getElementById('edit-comment-err').style.display = 'none';
+  document.getElementById('edit-comment-modal').classList.add('on');
+  setTimeout(function() { document.getElementById('edit-comment-input').focus(); }, 120);
+}
+
+async function submitEditComment() {
+  if (!curUser || !curPublicDocId || !_editCommentId) return;
+  var val = document.getElementById('edit-comment-input').value.trim();
+  var errEl = document.getElementById('edit-comment-err');
+  if (!val || val.length > 500) {
+    if (errEl) {
+      errEl.textContent = val.length > 500 ? 'コメントは500文字以内にしてください' : 'コメントを入力してください';
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  try {
+    await db.collection('gallery').doc(curPublicDocId).collection('comments').doc(_editCommentId).update({
+      text: val,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    CM('edit-comment-modal');
+    _editCommentId = null;
+    T('コメントを更新しました');
+  } catch (e) {
+    console.warn('submitEditComment failed:', e);
+    T('コメントの更新に失敗しました');
+  }
 }
 
 async function deleteComment(commentId) {

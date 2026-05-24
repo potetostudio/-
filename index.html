@@ -1457,7 +1457,7 @@ var tkTimer;
 
 // #region agent log
 function _agentDbg(location, message, data, hypothesisId) {
-  fetch('http://127.0.0.1:7380/ingest/90b4e790-ca5c-4cfd-8011-3160a3dc93a3',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'80b200'},body:JSON.stringify({sessionId:'80b200',location:location,message:message,data:data||{},hypothesisId:hypothesisId||'',timestamp:Date.now()})}).catch(function(){});
+  // 開発用デバッグログ（本番では無効）
 }
 // #endregion
 
@@ -2498,7 +2498,7 @@ async function postComment() {
   try {
     await db.collection('gallery').doc(curPublicDocId).collection('comments').add({
       uid: curUser.uid,
-      authorName: (curUser.displayName) || (prof.name) || '名無しのポテト',
+      authorName: (prof.name) || (curUser.displayName) || '名無しのポテト',
       text: text,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -2784,6 +2784,7 @@ function wrapCode(code) {
 
 function startWS(code, label, type, skipAutoSave) {
   cur = code;
+  curPublicDocId = null; // フォーク後のワークスペースではgallery由来フラグをリセット
   isTemplate = !!skipAutoSave; // テンプレート起動時はtrue
   document.getElementById('launchpad').style.display = 'none';
   document.getElementById('workspace').style.display = 'flex';
@@ -4407,25 +4408,32 @@ async function doPublishToGallery() {
   var surlEl = document.getElementById('surl');
   if (surlEl) surlEl.textContent = newShareUrl;
 
+  curPublicDocId = null; // 公開完了後はフォーク由来フラグをリセット
   CM('shm'); exitWorkspace(); nav('gallery');
   T(authorChanged ? '🎉 みんなのギャラリーに公開しました！（作者名も更新）' : '🎉 みんなのギャラリーに公開しました！');
 }
 
 function pubGallery() {
   requireTitle(function(title) {
-    // テンプレートの場合は code 一致チェックをスキップして必ず新規保存
-    var ex = isTemplate ? null : apps.find(function(a){ return a.code === cur; });
+    // コード一致ではなくIDで自分のエントリを探す（フォーク元と同じコードでも別エントリとして扱う）
+    var ex = isTemplate ? null : apps.find(function(a){
+      if (a.code !== cur) return false;
+      if (a.uid && curUser && a.uid !== curUser.uid) return false;
+      return true;
+    });
     if (ex) {
       ex.title = title; ex.author = prof.name||''; ex.avatar = prof.avatar||'';
       localStorage.setItem('pt_apps', JSON.stringify(apps));
-      autoSaveToFirestore(title, ex.id);
+      autoSaveToFirestore(title, ex.urlId || ex.id);
       CM('shm'); T('マイギャラリーに保存しました'); return;
     }
-    var newApp = { id: Date.now(), title: title, code: cur, likes: 0, createdAt: Date.now(), author: prof.name||'', avatar: prof.avatar||'' };
+    var freshId = generateId(10);
+    var localId = Date.now();
+    var newApp = { id: localId, urlId: freshId, title: title, code: cur, likes: 0, createdAt: localId, author: prof.name||'', avatar: prof.avatar||'', uid: curUser ? curUser.uid : '' };
     apps.push(newApp);
     localStorage.setItem('pt_apps', JSON.stringify(apps));
-    autoSaveToFirestore(title, newApp.id);
-    isTemplate = false; // 保存済みになったのでフラグをリセット
+    autoSaveToFirestore(title, freshId);
+    isTemplate = false;
     CM('shm'); exitWorkspace(); nav('gallery'); T('マイギャラリーに保存しました！');
   });
 }
@@ -4433,7 +4441,7 @@ function pubGallery() {
 // gallery コレクションに公開データを保存する関数
 async function saveGalleryToFirestore(label, appId, isPublic) {
   if (!curUser) return;
-  var authorName = (curUser.displayName) || (prof.name) || '名無しのポテト';
+  var authorName = (prof.name) || (curUser.displayName) || '名無しのポテト';
   var id = String(appId || Date.now());
   try {
     // 既存ドキュメントを確認
@@ -4496,7 +4504,7 @@ async function saveGalleryToFirestore(label, appId, isPublic) {
 // ════════════════════════════════════════════
 function autoSaveToFirestore(label, appId) {
   if (!curUser) return;
-  var authorName = (curUser.displayName) || (prof.name) || '名無しのポテト';
+  var authorName = (prof.name) || (curUser.displayName) || '名無しのポテト';
   var id = String(appId || Date.now());
   db.collection('users').doc(curUser.uid).collection('apps').doc(id).set({
     code: cur, label: label, urlId: id, updatedAt: new Date(), uid: curUser.uid,

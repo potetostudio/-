@@ -583,22 +583,40 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <div id="auth-gate" class="on">
   <div class="auth-gate-card">
     <div class="auth-gate-logo"><span>🥔</span> Poteto STUDIO</div>
-    <p class="auth-gate-sub">アプリの作成・保存・ギャラリー利用には<br>アカウント登録（無料）が必要です</p>
-    <ul class="auth-gate-features">
-      <li>作ったゲームをマイギャラリーに保存</li>
-      <li>みんなのギャラリーへの公開・いいね</li>
-      <li>チャット履歴とクラウド同期</li>
-    </ul>
-    <label class="fl">メールアドレス</label>
-    <input type="email" id="auth-gate-email" class="fi" placeholder="you@example.com" autocomplete="email">
-    <label class="fl">パスワード</label>
-    <input type="password" id="auth-gate-pw" class="fi" placeholder="6文字以上" autocomplete="new-password">
-    <button type="button" class="auth-forgot" onclick="openResetPasswordModal()">パスワードをお忘れですか？</button>
-    <div id="auth-gate-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
-    <div class="mbs">
-      <button class="mbb can" onclick="doLogin()">ログイン</button>
-      <button class="mbb ok" onclick="doSignup()">新規登録</button>
+
+    <!-- ログインパネル -->
+    <div id="auth-gate-login-panel">
+      <p class="auth-gate-sub">アプリの作成・保存・ギャラリー利用には<br>アカウント登録（無料）が必要です</p>
+      <ul class="auth-gate-features">
+        <li>作ったゲームをマイギャラリーに保存</li>
+        <li>みんなのギャラリーへの公開・いいね</li>
+        <li>チャット履歴とクラウド同期</li>
+      </ul>
+      <label class="fl">メールアドレス</label>
+      <input type="email" id="auth-gate-email" class="fi" placeholder="you@example.com" autocomplete="email">
+      <label class="fl">パスワード</label>
+      <input type="password" id="auth-gate-pw" class="fi" placeholder="6文字以上" autocomplete="new-password">
+      <button type="button" class="auth-forgot" onclick="showAuthGateReset()">パスワードをお忘れですか？</button>
+      <div id="auth-gate-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
+      <div class="mbs">
+        <button class="mbb can" onclick="doLogin()">ログイン</button>
+        <button class="mbb ok" onclick="doSignup()">新規登録</button>
+      </div>
     </div>
+
+    <!-- パスワードリセットパネル（auth-gate内） -->
+    <div id="auth-gate-reset-panel" style="display:none">
+      <p class="auth-gate-sub" style="margin-bottom:16px">登録したメールアドレスを入力してください。<br>パスワード再設定用のリンクをお送りします。</p>
+      <label class="fl">メールアドレス</label>
+      <input type="email" id="auth-gate-reset-email" class="fi" placeholder="you@example.com" autocomplete="email">
+      <div id="auth-gate-reset-ok" style="display:none;font-size:11px;color:var(--gr);background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:8px;padding:10px 12px;margin-bottom:10px;line-height:1.6"></div>
+      <div id="auth-gate-reset-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
+      <div class="mbs">
+        <button class="mbb can" onclick="hideAuthGateReset()">← 戻る</button>
+        <button class="mbb ok" id="auth-gate-reset-btn" onclick="sendAuthGatePasswordReset()">再設定メールを送信</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -4334,14 +4352,72 @@ function getAuthEmailValue() {
 }
 
 function openResetPasswordModal() {
-  var inp = document.getElementById('reset-pw-email');
-  var err = document.getElementById('reset-pw-err');
-  var ok = document.getElementById('reset-pw-ok');
-  if (inp) inp.value = getAuthEmailValue();
+  // ログイン済みの場合は従来のモーダルを使う
+  if (curUser) {
+    var inp = document.getElementById('reset-pw-email');
+    var err = document.getElementById('reset-pw-err');
+    var ok = document.getElementById('reset-pw-ok');
+    if (inp) inp.value = getAuthEmailValue();
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+    if (ok) { ok.style.display = 'none'; ok.textContent = ''; }
+    document.getElementById('reset-pw-modal').classList.add('on');
+    setTimeout(function() { if (inp) inp.focus(); }, 120);
+  } else {
+    showAuthGateReset();
+  }
+}
+
+// auth-gate内のパスワードリセットパネルを表示
+function showAuthGateReset() {
+  var loginPanel = document.getElementById('auth-gate-login-panel');
+  var resetPanel = document.getElementById('auth-gate-reset-panel');
+  var emailInp = document.getElementById('auth-gate-reset-email');
+  var err = document.getElementById('auth-gate-reset-err');
+  var ok = document.getElementById('auth-gate-reset-ok');
+  // ログインフォームのメールアドレスを引き継ぐ
+  var loginEmail = (document.getElementById('auth-gate-email') || {}).value || '';
+  if (emailInp) emailInp.value = loginEmail.trim();
   if (err) { err.style.display = 'none'; err.textContent = ''; }
   if (ok) { ok.style.display = 'none'; ok.textContent = ''; }
-  document.getElementById('reset-pw-modal').classList.add('on');
-  setTimeout(function() { if (inp) inp.focus(); }, 120);
+  if (loginPanel) loginPanel.style.display = 'none';
+  if (resetPanel) resetPanel.style.display = '';
+  setTimeout(function() { if (emailInp) emailInp.focus(); }, 80);
+}
+
+// auth-gate内のパスワードリセットパネルを閉じてログインパネルに戻る
+function hideAuthGateReset() {
+  var loginPanel = document.getElementById('auth-gate-login-panel');
+  var resetPanel = document.getElementById('auth-gate-reset-panel');
+  if (resetPanel) resetPanel.style.display = 'none';
+  if (loginPanel) loginPanel.style.display = '';
+}
+
+// auth-gate内からパスワード再設定メールを送信
+async function sendAuthGatePasswordReset() {
+  var email = (document.getElementById('auth-gate-reset-email').value || '').trim();
+  var errEl = document.getElementById('auth-gate-reset-err');
+  var okEl = document.getElementById('auth-gate-reset-ok');
+  var btn = document.getElementById('auth-gate-reset-btn');
+  if (!email) {
+    if (errEl) { errEl.textContent = 'メールアドレスを入力してください。'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (okEl) okEl.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = '送信中...'; }
+  try {
+    var continueUrl = (typeof SITE_BASE_URL !== 'undefined' ? SITE_BASE_URL : (location.origin + location.pathname)).replace(/\/?$/, '/');
+    await auth.sendPasswordResetEmail(email, { url: continueUrl, handleCodeInApp: false });
+    if (okEl) {
+      okEl.textContent = '再設定用のメールを送信しました。メール内のリンクから新しいパスワードを設定してください。（届かない場合は迷惑メールフォルダもご確認ください）';
+      okEl.style.display = 'block';
+    }
+    T('パスワード再設定メールを送信しました');
+  } catch (e) {
+    console.warn('sendAuthGatePasswordReset failed:', e);
+    if (errEl) { errEl.textContent = formatAuthError(e); errEl.style.display = 'block'; }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '再設定メールを送信'; }
 }
 
 async function sendPasswordReset() {
@@ -4404,6 +4480,8 @@ function updateAuthGate() {
     CM('auth-modal');
     CM('reset-pw-modal');
     CM('sm');
+    // auth-gate内のリセットパネルを閉じてログインパネルに戻す
+    hideAuthGateReset();
   }
 }
 
@@ -5000,6 +5078,12 @@ window.addEventListener('DOMContentLoaded', function() {
   if (resetEmailEl) {
     resetEmailEl.addEventListener('keydown', function(ev) {
       if (ev.key === 'Enter') { ev.preventDefault(); sendPasswordReset(); }
+    });
+  }
+  var gateResetEmailEl = document.getElementById('auth-gate-reset-email');
+  if (gateResetEmailEl) {
+    gateResetEmailEl.addEventListener('keydown', function(ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); sendAuthGatePasswordReset(); }
     });
   }
 });

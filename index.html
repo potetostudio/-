@@ -2299,6 +2299,23 @@ async function delPublicApp(docId) {
   if (!curUser) { T('ログインが必要です'); return; }
   if (!confirm('みんなのギャラリーから削除しますか？')) return;
   try {
+    // 削除前にドキュメントのuidを確認（ルール違反でないか検証）
+    var docSnap = await db.collection('gallery').doc(docId).get();
+    if (!docSnap.exists) {
+      // すでに存在しないならキャッシュだけ消す
+      publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
+      renderGallery();
+      T('削除しました');
+      return;
+    }
+    var docData = docSnap.data();
+    console.log('delPublicApp: doc uid=' + docData.uid + ', curUser.uid=' + curUser.uid);
+    if (docData.uid && docData.uid !== curUser.uid) {
+      T('この作品はあなたの投稿ではないため削除できません（uid不一致）');
+      console.warn('delPublicApp: uid mismatch. doc.uid=' + docData.uid + ' curUser.uid=' + curUser.uid);
+      return;
+    }
+    // コメントサブコレクションを削除
     var csnap = await db.collection('gallery').doc(docId).collection('comments').get();
     if (!csnap.empty) {
       var batch = db.batch();
@@ -2309,7 +2326,16 @@ async function delPublicApp(docId) {
     publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
     renderGallery();
     T('削除しました');
-  } catch(e) { T('削除に失敗しました'); }
+  } catch(e) {
+    console.error('delPublicApp error:', e);
+    var code = e && e.code ? e.code : '';
+    var msg  = e && e.message ? e.message : String(e);
+    if (code === 'permission-denied') {
+      T('削除に失敗しました（権限エラー）。Firestoreルールで自分のドキュメントの削除が許可されているか確認してください。');
+    } else {
+      T('削除に失敗しました: ' + (code || msg));
+    }
+  }
 }
 
 // ── みんなのギャラリー：コメント ──
@@ -4212,16 +4238,31 @@ async function doPublishToGallery() {
     }
   }
 
-  // マイギャラリーにも保存（テンプレートはコード一致チェックをスキップ）
-  var ex = isTemplate ? null : apps.find(function(a){ return a.code === cur; });
+  // マイギャラリーにも保存
+  // コード一致ではなく「自分のエントリかつgallery上も自分のUID」のものだけ再利用する
+  // フォーク由来（curPublicDocIdがある）は必ず新IDを発行
+  var isForkFromPublic = !!curPublicDocId;
+  var ex = (isTemplate || isForkFromPublic) ? null : apps.find(function(a){
+    if (a.code !== cur) return false;
+    // uidが付いている場合は自分のものだけ
+    if (a.uid && a.uid !== curUser.uid) return false;
+    // galleryコレクション上で他人のuidが紐づいているエントリは再利用しない
+    var pub = publicApps.find(function(p){ return String(p._docId) === String(a.urlId || a.id); });
+    if (pub && pub.uid && pub.uid !== curUser.uid) return false;
+    // 元々フォーク元（他アカウント）のマイギャラリーエントリを参照していないか確認
+    // urlIdがgallery上に存在して、かつそれが他人のドキュメントなら除外
+    return true;
+  });
   var appId;
   if (ex) {
     ex.title = title;
     localStorage.setItem('pt_apps', JSON.stringify(apps));
     appId = ex.urlId || ex.id;
   } else {
+    // 新規IDを発行（必ずgenerateIdで衝突しないランダムIDを使う）
+    var freshId = generateId(10);
     var localId = Date.now();
-    var newApp = { id: localId, urlId: urlId || String(localId), title: title, code: cur, likes: 0, createdAt: localId, author: prof.name||'', avatar: prof.avatar||'' };
+    var newApp = { id: localId, urlId: freshId, title: title, code: cur, likes: 0, createdAt: localId, author: prof.name||'', avatar: prof.avatar||'', uid: curUser.uid };
     apps.push(newApp);
     localStorage.setItem('pt_apps', JSON.stringify(apps));
     appId = newApp.urlId;
@@ -4265,17 +4306,59 @@ async function saveGalleryToFirestore(label, appId, isPublic) {
   var authorName = (curUser.displayName) || (prof.name) || '名無しのポテト';
   var id = String(appId || Date.now());
   try {
-    await db.collection('gallery').doc(id).set({
-      code: cur,
-      title: label,
-      isPublic: !!isPublic,
-      authorName: authorName,
-      uid: curUser.uid,
-      likes: 0,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }, { merge: true });
-  } catch(e) { console.warn('Gallery save failed:', e); }
+    // 既存ドキュメントを確認
+    var existSnap = await db.collection('gallery').doc(id).get();
+    if (existSnap.exists) {
+      var existData = existSnap.data();
+      if (existData.uid && existData.uid !== curUser.uid) {
+        // 他人のドキュメントIDと衝突 → 新IDで保存
+        console.warn('saveGalleryToFirestore: ID collision with another user, generating new ID');
+        id = generateId(10);
+        // ローカルのappsエントリのurlIdも更新
+        var local = apps.find(function(a){ return String(a.urlId || a.id) === String(appId); });
+        if (local) {
+          local.urlId = id;
+          localStorage.setItem('pt_apps', JSON.stringify(apps));
+          autoSaveToFirestore(label, id);
+        }
+        // 新IDで新規作成
+        await db.collection('gallery').doc(id).set({
+          code: cur, title: label, isPublic: !!isPublic,
+          authorName: authorName, uid: curUser.uid,
+          likes: 0, createdAt: new Date(), updatedAt: new Date()
+        });
+      } else {
+        // 自分のドキュメントを更新（likesは上書きしない）
+        await db.collection('gallery').doc(id).update({
+          code: cur, title: label, isPublic: !!isPublic,
+          authorName: authorName, uid: curUser.uid,
+          updatedAt: new Date()
+        });
+      }
+    } else {
+      // 新規作成
+      await db.collection('gallery').doc(id).set({
+        code: cur, title: label, isPublic: !!isPublic,
+        authorName: authorName, uid: curUser.uid,
+        likes: 0, createdAt: new Date(), updatedAt: new Date()
+      });
+    }
+    // publicAppsキャッシュに即時反映（削除ボタン表示のため）
+    var existing = publicApps.find(function(p){ return p._docId === id; });
+    if (existing) {
+      existing.uid = curUser.uid;
+      existing.authorName = authorName;
+      existing.title = label;
+    } else if (isPublic) {
+      publicApps.push({ _docId: id, uid: curUser.uid, authorName: authorName, title: label, code: cur, likes: 0, isPublic: true });
+    }
+  } catch(e) {
+    console.error('Gallery save failed:', e);
+    var code = e && e.code ? e.code : '';
+    if (code === 'permission-denied') {
+      T('ギャラリー保存に失敗しました（権限エラー）。別アカウントの作品IDと衝突している可能性があります。');
+    }
+  }
 }
 
 // ════════════════════════════════════════════
@@ -4309,8 +4392,10 @@ async function loadUserApps() {
         return;
       }
       var id = parseInt(doc.id) || Date.now();
-      if (!apps.find(function(a){ return a.code === d.code; })) {
-        apps.push({ id: id, urlId: d.urlId || doc.id, title: d.label||'保存済みアプリ', code: d.code, likes: 0, createdAt: id, author: prof.name||'', avatar: prof.avatar||'' });
+      // urlId/doc.idで重複チェック（コード一致ではなくIDで管理）
+      var docKey = d.urlId || doc.id;
+      if (!apps.find(function(a){ return String(a.urlId || a.id) === String(docKey); })) {
+        apps.push({ id: id, urlId: docKey, title: d.label||'保存済みアプリ', code: d.code, likes: 0, createdAt: id, author: prof.name||'', avatar: prof.avatar||'', uid: d.uid || curUser.uid });
       }
     });
     if (deletePromises.length) {

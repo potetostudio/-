@@ -561,6 +561,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 #auth-gate .auth-gate-sub{font-size:12px;color:var(--t2);text-align:center;line-height:1.65;margin-bottom:22px}
 #auth-gate .auth-gate-features{font-size:11px;color:#fff;background:rgba(109,90,239,.08);border:1px solid rgba(109,90,239,.2);border-radius:10px;padding:12px 14px;margin-bottom:20px;line-height:1.7;list-style:disc}
 #auth-gate .auth-gate-features li{margin-left:1.2em;color:#fff}
+.auth-forgot{display:block;width:100%;text-align:right;font-size:11px;color:var(--ac2);margin:-2px 0 10px;cursor:pointer;background:none;border:none;padding:0;font-family:var(--f);text-decoration:underline}
+.auth-forgot:hover{color:var(--t1)}
+#reset-pw-ok{display:none;font-size:11px;color:var(--gr);background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:8px;padding:10px 12px;margin-bottom:10px;line-height:1.6}
 
 @media(max-width:600px){
   .gg{grid-template-columns:1fr 1fr;gap:10px}
@@ -590,6 +593,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <input type="email" id="auth-gate-email" class="fi" placeholder="you@example.com" autocomplete="email">
     <label class="fl">パスワード</label>
     <input type="password" id="auth-gate-pw" class="fi" placeholder="6文字以上" autocomplete="new-password">
+    <button type="button" class="auth-forgot" onclick="openResetPasswordModal()">パスワードをお忘れですか？</button>
     <div id="auth-gate-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
     <div class="mbs">
       <button class="mbb can" onclick="doLogin()">ログイン</button>
@@ -1159,10 +1163,29 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <input type="email" id="auth-email" class="fi" placeholder="you@example.com">
     <label class="fl">パスワード</label>
     <input type="password" id="auth-pw" class="fi" placeholder="6文字以上">
+    <button type="button" class="auth-forgot" onclick="openResetPasswordModal()">パスワードをお忘れですか？</button>
     <div id="auth-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
     <div class="mbs">
       <button class="mbb can" onclick="doLogin()">ログイン</button>
       <button class="mbb ok" onclick="doSignup()">新規登録</button>
+    </div>
+  </div>
+</div>
+
+<!-- PASSWORD RESET MODAL -->
+<div id="reset-pw-modal" class="mo">
+  <div class="mb">
+    <div class="mt">パスワードの再設定<button class="mc" onclick="CM('reset-pw-modal')">✕</button></div>
+    <p style="font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:14px">
+      登録したメールアドレスを入力してください。パスワード再設定用のリンクをお送りします。
+    </p>
+    <label class="fl">メールアドレス</label>
+    <input type="email" id="reset-pw-email" class="fi" placeholder="you@example.com" autocomplete="email">
+    <div id="reset-pw-ok"></div>
+    <div id="reset-pw-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
+    <div class="mbs">
+      <button type="button" class="mbb can" onclick="CM('reset-pw-modal')">戻る</button>
+      <button type="button" class="mbb ok" id="reset-pw-send-btn" onclick="sendPasswordReset()">再設定メールを送信</button>
     </div>
   </div>
 </div>
@@ -4297,9 +4320,55 @@ function formatAuthError(e) {
     'auth/weak-password': 'パスワードは6文字以上にしてください。',
     'auth/too-many-requests': '試行回数が多すぎます。しばらく待ってから再試行してください。',
     'auth/network-request-failed': 'ネットワークエラーです。接続を確認してください。',
-    'auth/operation-not-allowed': 'メールでの登録が有効になっていません。'
+    'auth/operation-not-allowed': 'メールでの登録が有効になっていません。',
+    'auth/missing-email': 'メールアドレスを入力してください。',
+    'auth/invalid-continue-uri': '再設定後の戻り先URLが正しくありません。管理者に連絡してください。',
+    'auth/invalid-action-code': 'リンクの有効期限が切れているか、すでに使用されています。もう一度メールを送信してください。'
   };
   return map[code] || '認証に失敗しました。入力内容を確認してください。';
+}
+
+function getAuthEmailValue() {
+  var els = getAuthFormEls();
+  return (els.email && els.email.value || '').trim();
+}
+
+function openResetPasswordModal() {
+  var inp = document.getElementById('reset-pw-email');
+  var err = document.getElementById('reset-pw-err');
+  var ok = document.getElementById('reset-pw-ok');
+  if (inp) inp.value = getAuthEmailValue();
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+  if (ok) { ok.style.display = 'none'; ok.textContent = ''; }
+  document.getElementById('reset-pw-modal').classList.add('on');
+  setTimeout(function() { if (inp) inp.focus(); }, 120);
+}
+
+async function sendPasswordReset() {
+  var email = (document.getElementById('reset-pw-email').value || '').trim();
+  var errEl = document.getElementById('reset-pw-err');
+  var okEl = document.getElementById('reset-pw-ok');
+  var btn = document.getElementById('reset-pw-send-btn');
+  if (!email) {
+    if (errEl) { errEl.textContent = 'メールアドレスを入力してください。'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (okEl) okEl.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = '送信中...'; }
+  try {
+    var continueUrl = (typeof SITE_BASE_URL !== 'undefined' ? SITE_BASE_URL : (location.origin + location.pathname)).replace(/\/?$/, '/');
+    await auth.sendPasswordResetEmail(email, { url: continueUrl, handleCodeInApp: false });
+    if (okEl) {
+      okEl.textContent = '再設定用のメールを送信しました。メール内のリンクから新しいパスワードを設定してください。（届かない場合は迷惑メールフォルダもご確認ください）';
+      okEl.style.display = 'block';
+    }
+    T('パスワード再設定メールを送信しました');
+  } catch (e) {
+    console.warn('sendPasswordReset failed:', e);
+    if (errEl) { errEl.textContent = formatAuthError(e); errEl.style.display = 'block'; }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '再設定メールを送信'; }
 }
 
 function isAuthGateVisible() {
@@ -4333,6 +4402,7 @@ function updateAuthGate() {
     gate.classList.add('on');
     if (app) { app.style.visibility = 'hidden'; app.style.pointerEvents = 'none'; }
     CM('auth-modal');
+    CM('reset-pw-modal');
     CM('sm');
   }
 }
@@ -4926,6 +4996,12 @@ window.addEventListener('DOMContentLoaded', function() {
       if (ev.key === 'Enter') { ev.preventDefault(); doLogin(); }
     });
   });
+  var resetEmailEl = document.getElementById('reset-pw-email');
+  if (resetEmailEl) {
+    resetEmailEl.addEventListener('keydown', function(ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); sendPasswordReset(); }
+    });
+  }
 });
 </script>
 

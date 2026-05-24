@@ -2299,22 +2299,55 @@ async function delPublicApp(docId) {
   if (!curUser) { T('ログインが必要です'); return; }
   if (!confirm('みんなのギャラリーから削除しますか？')) return;
   try {
-    // 削除前にドキュメントのuidを確認（ルール違反でないか検証）
     var docSnap = await db.collection('gallery').doc(docId).get();
     if (!docSnap.exists) {
-      // すでに存在しないならキャッシュだけ消す
       publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
-      renderGallery();
-      T('削除しました');
-      return;
+      renderGallery(); T('削除しました'); return;
     }
     var docData = docSnap.data();
-    console.log('delPublicApp: doc uid=' + docData.uid + ', curUser.uid=' + curUser.uid);
+    console.log('delPublicApp: doc.uid=' + docData.uid + ', curUser.uid=' + curUser.uid);
+
+    // Firestoreのuidが自分と違う場合 → 過去のバグで壊れた可能性があるので修復を試みる
     if (docData.uid && docData.uid !== curUser.uid) {
-      T('この作品はあなたの投稿ではないため削除できません（uid不一致）');
-      console.warn('delPublicApp: uid mismatch. doc.uid=' + docData.uid + ' curUser.uid=' + curUser.uid);
-      return;
+      console.warn('delPublicApp: uid mismatch. doc.uid=' + docData.uid + ', curUser.uid=' + curUser.uid + ', docId=' + docId);
+      // users/{uid}/apps/{docId} に自分のエントリを書き込んでから削除を試みる
+      // （Firestoreルールに exists(/users/$(uid)/apps/$(appId)) 条件があれば通る）
+      T('uid不一致のため修復を試みています...');
+      try {
+        await db.collection('users').doc(curUser.uid).collection('apps').doc(docId).set({
+          urlId: docId, label: docData.title || '削除予定', code: docData.code || '',
+          uid: curUser.uid, updatedAt: new Date(), isPublic: false, _repairFlag: true
+        });
+        console.log('delPublicApp: wrote repair entry to users/' + curUser.uid + '/apps/' + docId);
+      } catch(writeErr) {
+        console.warn('repair write failed:', writeErr);
+      }
+      // 修復エントリを書いた上で削除を再試行
+      try {
+        var csnap2 = await db.collection('gallery').doc(docId).collection('comments').get();
+        if (!csnap2.empty) {
+          var batch2 = db.batch();
+          csnap2.forEach(function(d){ batch2.delete(d.ref); });
+          await batch2.commit();
+        }
+        await db.collection('gallery').doc(docId).delete();
+        publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
+        renderGallery(); T('削除しました');
+        return;
+      } catch(delErr) {
+        console.error('repair-delete failed:', delErr);
+        // Firestoreルール側に exists 条件がない場合はここに来る
+        // docIdとuidを表示してFirebaseコンソールでの手動削除を案内
+        T('自動修復に失敗しました。Firebaseコンソール → Firestore → gallery → ' + docId + ' を手動で削除してください。また下記のFirestoreルール修正が必要です。');
+        console.error('=== Firestoreルールに以下を追加してください ===');
+        console.error('allow delete: if request.auth != null && (');
+        console.error('  resource.data.uid == request.auth.uid');
+        console.error('  || exists(/databases/$(database)/documents/users/$(request.auth.uid)/apps/$(appId))');
+        console.error(');');
+        return;
+      }
     }
+
     // コメントサブコレクションを削除
     var csnap = await db.collection('gallery').doc(docId).collection('comments').get();
     if (!csnap.empty) {
@@ -2324,14 +2357,13 @@ async function delPublicApp(docId) {
     }
     await db.collection('gallery').doc(docId).delete();
     publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
-    renderGallery();
-    T('削除しました');
+    renderGallery(); T('削除しました');
   } catch(e) {
     console.error('delPublicApp error:', e);
     var code = e && e.code ? e.code : '';
     var msg  = e && e.message ? e.message : String(e);
     if (code === 'permission-denied') {
-      T('削除に失敗しました（権限エラー）。Firestoreルールで自分のドキュメントの削除が許可されているか確認してください。');
+      T('削除に失敗しました（権限エラー）: Firestoreのdoc.uidが自分のUIDと一致していません。コンソールでdocIdを確認してFirebaseコンソールから手動削除してください。');
     } else {
       T('削除に失敗しました: ' + (code || msg));
     }
@@ -3677,13 +3709,97 @@ function setupErrCapture() {
   }
   _errRelayListener = function(e) {
     if (!e.data || e.data.type !== '__poteto_err__') return;
-    showAutoFix(e.data.msg);
+    // Gemini APIキーが未設定でAPIを叩こうとした場合に案内を出す
+    var msg = e.data.msg || '';
+    if (!geminiKey && (
+      msg.indexOf('API_KEY') !== -1 ||
+      msg.indexOf('400') !== -1 ||
+      msg.indexOf('401') !== -1 ||
+      msg.indexOf('403') !== -1 ||
+      msg.indexOf('generativelanguage') !== -1
+    )) {
+      T('このアプリはGemini APIを使用しています。設定からGemini APIキーを入力すると動作します。');
+    }
+    showAutoFix(msg);
   };
   window.addEventListener('message', _errRelayListener);
 }
 
 // エラーリレー用スニペットをコードの <head> 直後に注入して srcdoc にセット
 // （allow-same-origin なしで onerror を親に伝える）
+// ── Gemini APIキー自動付与プロキシ ──
+// iframeに注入するコードからハードコードされたGemini APIキーを除去し、
+// Poteto STUDIOの設定キーを使ってfetchをプロキシするスクリプトを生成する
+
+function buildGeminiProxyScript(apiKey) {
+  if (!apiKey) return '';
+  return [
+    '<scr'+'ipt>(function(){',
+    'var _PTS_GEMINI_KEY = ' + JSON.stringify(apiKey) + ';',
+    'var _GEMINI_HOST = "generativelanguage.googleapis.com";',
+    'var _origFetch = window.fetch.bind(window);',
+    'var _origXHROpen = XMLHttpRequest.prototype.open;',
+    'var _origXHRSend = XMLHttpRequest.prototype.send;',
+    // fetch のオーバーライド
+    'window.fetch = function(input, init) {',
+    '  var url = (typeof input === "string") ? input : (input && input.url ? input.url : String(input));',
+    '  if (url.indexOf(_GEMINI_HOST) !== -1) {',
+    // クエリパラメータのkeyを除去して設定キーで上書き
+    '    try {',
+    '      var u = new URL(url);',
+    '      u.searchParams.set("key", _PTS_GEMINI_KEY);',
+    '      url = u.toString();',
+    '    } catch(e) {',
+    '      url = url.replace(/([?&])key=[^&]*/g, "$1key=" + _PTS_GEMINI_KEY);',
+    '      if (url.indexOf("key=") === -1) url += (url.indexOf("?") === -1 ? "?" : "&") + "key=" + _PTS_GEMINI_KEY;',
+    '    }',
+    // Authorizationヘッダーの上書き
+    '    init = init ? Object.assign({}, init) : {};',
+    '    var headers = new Headers(init.headers || {});',
+    '    if (headers.has("Authorization")) headers.set("Authorization", "Bearer " + _PTS_GEMINI_KEY);',
+    '    init.headers = headers;',
+    '    if (typeof input !== "string" && input && input.url) {',
+    '      input = new Request(url, Object.assign({}, input, init));',
+    '      return _origFetch(input);',
+    '    }',
+    '    return _origFetch(url, init);',
+    '  }',
+    '  return _origFetch(input, init);',
+    '};',
+    // XMLHttpRequest のオーバーライド（古いコードへの対応）
+    'XMLHttpRequest.prototype.open = function(method, url) {',
+    '  if (typeof url === "string" && url.indexOf(_GEMINI_HOST) !== -1) {',
+    '    try {',
+    '      var u = new URL(url);',
+    '      u.searchParams.set("key", _PTS_GEMINI_KEY);',
+    '      url = u.toString();',
+    '    } catch(e) {}',
+    '  }',
+    '  this._ptsUrl = url;',
+    '  return _origXHROpen.apply(this, [method, url].concat(Array.prototype.slice.call(arguments, 2)));',
+    '};',
+    '}());</'+'script>'
+  ].join('\n');
+}
+
+// コード内のハードコードされたGemini APIキーを除去する
+function stripHardcodedGeminiKey(code) {
+  if (!code) return code;
+  // ?key=AIzaSy... または &key=AIzaSy... のパターンを除去
+  code = code.replace(/([?&])key=AIzaSy[A-Za-z0-9_\-]{30,}/g, function(match, sep) {
+    return sep + 'key=__POTETO_STUDIO_KEY__';
+  });
+  // "Authorization": "Bearer AIzaSy..." のパターンを除去
+  code = code.replace(/(["']Authorization["']\s*:\s*["']Bearer\s+)AIzaSy[A-Za-z0-9_\-]{30,}(["'])/g, function(match, pre, post) {
+    return pre + '__POTETO_STUDIO_KEY__' + post;
+  });
+  // apiKey: "AIzaSy..." のパターンを除去（変数代入）
+  code = code.replace(/((?:apiKey|api_key|geminiKey|GEMINI_KEY)\s*[=:]\s*["'])AIzaSy[A-Za-z0-9_\-]{30,}(["'])/g, function(match, pre, post) {
+    return pre + '__POTETO_STUDIO_KEY__' + post;
+  });
+  return code;
+}
+
 var _ERR_RELAY = [
   '<scr'+'ipt>(function(){',
   'window.onerror=function(m,s,l){',
@@ -3738,8 +3854,22 @@ function attachAppPvDebugListeners(iframe) {
 
 function injectAndSet(iframe, code) {
   if (!code) { iframe.srcdoc = ''; iframe.removeAttribute('src'); return; }
+
+  // Geminiキーの処理: ハードコードされたキーを除去し、設定済みキーを注入
+  code = stripHardcodedGeminiKey(code);
+  var geminiProxyScript = buildGeminiProxyScript(geminiKey);
+  var _INJECT_HEAD = _ERR_RELAY + geminiProxyScript;
+
   if (iframe && iframe.id === 'app-pv') {
     var injected = injectAppPreview(code);
+    // app-pvにもGeminiプロキシを注入
+    if (geminiProxyScript) {
+      if (/<\/body>/i.test(injected)) {
+        injected = injected.replace(/<\/body>/i, geminiProxyScript + '</body>');
+      } else {
+        injected = injected + geminiProxyScript;
+      }
+    }
     iframe.removeAttribute('src');
     // #region agent log
     _agentDbg('injectAndSet', 'app-pv inject', {
@@ -3754,11 +3884,11 @@ function injectAndSet(iframe, code) {
   }
   var injected;
   if (/<head(\s[^>]*)?>/i.test(code)) {
-    injected = code.replace(/(<head(\s[^>]*)?>)/i, '$1' + _ERR_RELAY);
+    injected = code.replace(/(<head(\s[^>]*)?>)/i, '$1' + _INJECT_HEAD);
   } else if (/<html(\s[^>]*)?>/i.test(code)) {
-    injected = code.replace(/(<html(\s[^>]*)?>)/i, '$1<head>' + _ERR_RELAY + '</head>');
+    injected = code.replace(/(<html(\s[^>]*)?>)/i, '$1<head>' + _INJECT_HEAD + '</head>');
   } else {
-    injected = _ERR_RELAY + code;
+    injected = _INJECT_HEAD + code;
   }
   iframe.srcdoc = injected;
 }

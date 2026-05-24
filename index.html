@@ -1350,6 +1350,45 @@ firebase.initializeApp({
 var db   = firebase.firestore();
 var auth = firebase.auth();
 
+/** 公開サイトの正規URL（GitHub Pages） */
+var SITE_BASE_URL = 'https://potetostudio.github.io/-/';
+/** 以前のデプロイ先（共有URLの置換用） */
+var LEGACY_SITE_BASE_URLS = [
+  'https://ryomatanakamb-dotcom.github.io/-/',
+  'https://ryomatanakamb-dotcom.github.io/'
+];
+
+/** 共有リンクのベースURL（新サイト上では現在の origin、ローカルではローカルURL） */
+function getShareBaseUrl() {
+  var host = (location.hostname || '').toLowerCase();
+  var path = location.pathname || '/-/';
+  if (host === 'potetostudio.github.io') {
+    var base = location.origin + path;
+    if (!base.endsWith('/')) base = base.replace(/\/[^/]*$/, '/');
+    return base;
+  }
+  if (host === 'localhost' || host === '127.0.0.1') {
+    var localBase = location.origin + path;
+    if (!localBase.endsWith('/')) localBase = localBase.replace(/\/[^/]*$/, '/');
+    return localBase;
+  }
+  return SITE_BASE_URL;
+}
+
+function buildShareUrl(appId) {
+  var base = getShareBaseUrl().replace(/\/?$/, '/');
+  return base + '?id=' + encodeURIComponent(String(appId));
+}
+
+function normalizeLegacyShareUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  var out = url;
+  LEGACY_SITE_BASE_URLS.forEach(function(oldBase) {
+    if (out.indexOf(oldBase) === 0) out = SITE_BASE_URL + out.slice(oldBase.length);
+  });
+  return out;
+}
+
 // ════════════════════════════════════════════
 //  State
 // ════════════════════════════════════════════
@@ -3887,7 +3926,7 @@ async function createShareURL() {
       payload.passwordHash = hash;
     }
     var ref = await db.collection('apps').add(payload);
-    surl = location.origin + location.pathname + '?id=' + ref.id;
+    surl = buildShareUrl(ref.id);
     document.getElementById('surl').textContent = surl;
     document.getElementById('surlbox').style.display = 'block';
     document.getElementById('mailbtn').style.display = 'block';
@@ -3931,6 +3970,7 @@ async function submitForkPassword() {
 }
 function copyURL() {
   if (!surl) return;
+  surl = normalizeLegacyShareUrl(surl);
   navigator.clipboard.writeText(surl).then(function(){
     var b = document.getElementById('cpbtn'); b.textContent='✓'; b.classList.add('done');
     setTimeout(function(){ b.textContent='コピー'; b.classList.remove('done'); }, 2000);
@@ -3939,6 +3979,7 @@ function copyURL() {
 }
 function shareEmail() {
   if (!surl) return;
+  surl = normalizeLegacyShareUrl(surl);
   var t = document.getElementById('shtitle').value.trim() || '無題';
   location.href = 'mailto:?subject=' + encodeURIComponent('[Poteto] '+t) + '&body=' + encodeURIComponent(t+'\n\n'+surl);
 }
@@ -4149,7 +4190,8 @@ async function doPublishToGallery() {
   await saveGalleryToFirestore(title, appId, true);
 
   // シェアURLを新しく確定した urlId で即時書き換え
-  var newShareUrl = window.location.origin + window.location.pathname + '?id=' + appId;
+  var newShareUrl = buildShareUrl(appId);
+  surl = newShareUrl;
   var surlEl = document.getElementById('surl');
   if (surlEl) surlEl.textContent = newShareUrl;
 

@@ -2571,8 +2571,14 @@ function openPublicApp(a) {
   document.getElementById('lcnt').textContent = a.likes || 0;
   // いいね済みかどうかをlocalStorageで確認してハート表示を切り替える
   syncLikeHeartFromStorage();
-  forkCode = a.code;
-  sharedGatePayload = null;
+  // パスワードが設定されている場合はforkCodeを空にしてゲートを有効化
+  if (a.hasPassword && a.passwordHash && a.shareSalt) {
+    forkCode = '';
+    sharedGatePayload = { code: a.code, salt: a.shareSalt, hash: a.passwordHash };
+  } else {
+    forkCode = a.code;
+    sharedGatePayload = null;
+  }
   document.getElementById('fork-btn').style.display = 'flex';
   var cbtn = document.getElementById('comment-btn');
   if (cbtn) cbtn.style.display = 'flex';

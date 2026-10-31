@@ -400,7 +400,19 @@ var UI_EN = {
   "履歴をクリアしました。新しい会話を始めましょう！": "History cleared. Start a new conversation!",
   "コピー済み": "Copied",
   "編集": "Edit",
-  "削除": "Delete"
+  "削除": "Delete",
+  "ファイルを選択": "Choose file",
+  "ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）": "Drop a file here (HTML / CSS / JS / TXT, UTF-8, up to 5 MB)",
+  "コードを貼り付けるか、ファイルを読み込んでください": "Paste code or import a file",
+  "ファイルは1つずつ読み込んでください": "Import one file at a time",
+  "HTML / CSS / JS / TXT ファイルを選択してください": "Choose an HTML / CSS / JS / TXT file",
+  "ファイルは5MB以下にしてください": "Files must be 5 MB or smaller",
+  "ファイルを読み込み中: ": "Reading file: ",
+  "空のファイルやバイナリファイルは読み込めません": "Empty or binary files cannot be imported",
+  "入力中のコードをファイルの内容で置き換えますか？": "Replace the current code with this file’s contents?",
+  "ファイルの読み込みをキャンセルしました": "File import canceled",
+  "読み込み済み: ": "Imported: ",
+  "ファイルを読み込めませんでした。UTF-8のテキストファイルを選択してください": "Could not read the file. Choose a UTF-8 text file."
 };
 
 // Only explicitly marked application UI is localized. User content and iframe

@@ -149,6 +149,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 /* Paste area */
 #lp-code{width:100%;max-width:600px;height:130px;background:var(--s1);border:1px solid var(--br);border-radius:var(--r);padding:12px;font-family:var(--fm);font-size:11px;line-height:1.6;color:#9b8bff;outline:none;resize:none;tab-size:2;transition:border-color .15s}
 #lp-code:focus{border-color:var(--ac)}
+#code-drop-zone{width:100%;max-width:600px;padding:10px;border:1px dashed var(--brh);border-radius:var(--r);transition:border-color .15s,background .15s}
+#code-drop-zone.drag{border-color:var(--ac2);background:rgba(109,90,239,.12)}
+.code-file-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.code-file-hint{font-size:11px;color:var(--t2);line-height:1.5}
+#code-file-status{font-size:11px;color:var(--t2);line-height:1.5;overflow-wrap:anywhere;margin-top:6px}
+#code-file-status.error{color:var(--rd)}
 #lp-code::placeholder{color:var(--t3)}
 .lp-btns{display:flex;gap:10px}
 .lb{padding:10px 28px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--f);border:none;transition:all .15s}
@@ -777,7 +783,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       </div>
 
       <div class="lp-div"><span><span data-i18n="またはコードを貼り付け">またはコードを貼り付け</span></span></div>
-      <textarea id="lp-code" placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）" data-i18n-placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）"></textarea>
+      <div id="code-drop-zone">
+        <div class="code-file-controls">
+          <button type="button" class="nb" id="code-file-button" onclick="document.getElementById('code-file-input').click()"><span data-i18n="ファイルを選択">ファイルを選択</span></button>
+          <input id="code-file-input" type="file" accept=".html,.htm,.js,.css,.txt" hidden>
+          <span class="code-file-hint" id="code-file-hint" data-i18n="ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）">ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）</span>
+        </div>
+        <label for="lp-code" class="code-file-hint" data-i18n="コードを貼り付けるか、ファイルを読み込んでください">コードを貼り付けるか、ファイルを読み込んでください</label>
+        <textarea id="lp-code" placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）" data-i18n-placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）"></textarea>
+        <div id="code-file-status" role="status" aria-live="polite"></div>
+      </div>
       <div class="lp-btns">
         <button class="lb main" onclick="launchStudio()"><span data-i18n="起動する">起動する</span></button>
         <button class="lb sub" onclick="nav('gallery')"><span data-i18n="ギャラリーを見る">ギャラリーを見る</span></button>
@@ -1993,6 +2008,9 @@ function updateTopNavVisibility() {
 
 /** スタジオのコード入力画面（launchpad）へ戻る */
 function backToStudio() {
+  codeImportSequence++;
+  codeInputFileName = '';
+  document.getElementById('code-file-status').textContent = '';
   if (isFsS) toggleFS();
   if (isFsA) toggleAFS();
   clearAppPreview();
@@ -2765,6 +2783,12 @@ function toggleAFS() {
 //  Studio
 // ════════════════════════════════════════════
 function resetS() {
+  codeImportSequence++;
+  codeInputFileName = '';
+  document.getElementById('code-file-input').value = '';
+  document.getElementById('code-file-status').textContent = '';
+  document.getElementById('code-file-status').classList.remove('error');
+  document.getElementById('code-drop-zone').classList.remove('drag');
   document.getElementById('launchpad').style.display = 'flex';
   document.getElementById('workspace').style.display = 'none';
   document.getElementById('lp-code').value = '';
@@ -2783,20 +2807,113 @@ function resetS() {
   updateTopNavVisibility();
 }
 
+// File contents stay in this input until the user explicitly starts the app.
+var codeInputFileName = '';
+var codeImportSequence = 0;
+
+function showCodeFileStatus(message, name, isError) {
+  var status = document.getElementById('code-file-status');
+  status.classList.toggle('error', !!isError);
+  setUiText(status, function() { return t(message) + (name || ''); });
+}
+
+async function importCodeFiles(files) {
+  var sequence = ++codeImportSequence;
+  if (!files || !files.length) return false;
+  if (files.length !== 1) {
+    showCodeFileStatus('ファイルは1つずつ読み込んでください', '', true);
+    return false;
+  }
+  var file = files[0];
+  if (!/\.(html?|js|css|txt)$/i.test(file.name)) {
+    showCodeFileStatus('HTML / CSS / JS / TXT ファイルを選択してください', '', true);
+    return false;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showCodeFileStatus('ファイルは5MB以下にしてください', '', true);
+    return false;
+  }
+  showCodeFileStatus('ファイルを読み込み中: ', file.name);
+  try {
+    var code = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
+    if (sequence !== codeImportSequence) return false;
+    if (!code.trim() || code.indexOf('\0') !== -1) {
+      showCodeFileStatus('空のファイルやバイナリファイルは読み込めません', '', true);
+      return false;
+    }
+    var input = document.getElementById('lp-code');
+    if (input.value.trim() && input.value !== code &&
+        !confirm(t('入力中のコードをファイルの内容で置き換えますか？'))) {
+      showCodeFileStatus('ファイルの読み込みをキャンセルしました');
+      return false;
+    }
+    input.value = code;
+    codeInputFileName = file.name;
+    showCodeFileStatus('読み込み済み: ', file.name);
+    input.focus();
+    return true;
+  } catch (e) {
+    if (sequence !== codeImportSequence) return false;
+    showCodeFileStatus('ファイルを読み込めませんでした。UTF-8のテキストファイルを選択してください', '', true);
+    return false;
+  }
+}
+
+function setupCodeFileInput() {
+  var zone = document.getElementById('code-drop-zone');
+  var picker = document.getElementById('code-file-input');
+  picker.addEventListener('change', function() {
+    var files = Array.from(picker.files);
+    picker.value = ''; // Permit choosing the same file again.
+    importCodeFiles(files);
+  });
+  zone.addEventListener('dragover', function(event) {
+    if (!Array.from(event.dataTransfer.types).includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    zone.classList.add('drag');
+  });
+  zone.addEventListener('dragleave', function(event) {
+    if (!zone.contains(event.relatedTarget)) zone.classList.remove('drag');
+  });
+  zone.addEventListener('drop', function(event) {
+    if (!Array.from(event.dataTransfer.types).includes('Files')) return;
+    event.preventDefault();
+    zone.classList.remove('drag');
+    var items = Array.from(event.dataTransfer.items || []);
+    if (items.some(function(item) {
+      var entry = item.webkitGetAsEntry && item.webkitGetAsEntry();
+      return entry && entry.isDirectory;
+    })) {
+      codeImportSequence++;
+      showCodeFileStatus('ファイルは1つずつ読み込んでください', '', true);
+      return;
+    }
+    importCodeFiles(Array.from(event.dataTransfer.files));
+  });
+}
+
 function launchStudio() {
   var c = document.getElementById('lp-code').value.trim();
   if (!c) { T(t('コードを入力してください')); return; }
-  startWS(wrapCode(c), t('貼り付けコード'), 'original');
+  codeImportSequence++;
+  var extension = codeInputFileName.split('.').pop().toLowerCase();
+  startWS(wrapCode(c, extension), codeInputFileName || t('貼り付けコード'), 'original');
 }
 
-function wrapCode(code) {
+function wrapCode(code, fileType) {
   var t = code.trim();
-  if (/^<!DOCTYPE/i.test(t) || /^<html/i.test(t)) return t;
-  if (/<body[\s>]/i.test(t) || /<head[\s>]/i.test(t)) return t;
-  if (/<[a-zA-Z]/.test(t) && !t.includes('function') && !t.includes('var ')) {
+  if (fileType === 'css') {
+    return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + t + '</style></head><body></body></html>';
+  }
+  if (fileType !== 'js' && (/^<!DOCTYPE/i.test(t) || /^<html/i.test(t))) return t;
+  if (fileType !== 'js' && (/<body[\s>]/i.test(t) || /<head[\s>]/i.test(t))) return t;
+  if (fileType !== 'js' && /<[a-zA-Z]/.test(t) && !t.includes('function') && !t.includes('var ')) {
     return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:sans-serif;padding:16px;background:#fff}</style></head><body>' + t + '</body></html>';
   }
-  if (t.includes('function') || t.includes('const ') || t.includes('let ') || t.includes('var ') || t.includes('=>')) {
+  if (fileType === 'js' || t.includes('function') || t.includes('const ') || t.includes('let ') || t.includes('var ') || t.includes('=>')) {
+    // Do not let an HTML string inside JavaScript terminate the wrapper script.
+    t = t.replace(/<\/(script)/gi, '<\\/$1');
     return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' +
       '<pre id="out" style="background:#0d1117;color:#3fb950;padding:16px;font-family:monospace;font-size:13px;min-height:100vh;white-space:pre-wrap;margin:0"></pre>' +
       '<script>var _l=console.log;console.log=function(){var a=Array.from(arguments).map(String).join(" ");document.getElementById("out").textContent+=a+"\\n";_l.apply(console,arguments);};try{' + t + '}catch(e){document.getElementById("out").textContent+="Error: "+e.message;}<\/script></body></html>';
@@ -5323,6 +5440,7 @@ window.addEventListener('message', function(e) {
 });
 
 window.addEventListener('DOMContentLoaded', function() {
+  setupCodeFileInput();
   loadPrism();
   var savedMode = localStorage.getItem('pt_mode');
   if (savedMode) aiMode = savedMode;

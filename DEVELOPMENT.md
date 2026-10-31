@@ -14,9 +14,18 @@ configuration. OpenAI integration and multi-file/ZIP builds are not included.
 Persistence behavior:
 
 - `studio-state.js` saves the Create screen's input, unapplied code-editor changes,
-  selected app ID, and the last ten versions locally after a short debounce and
-  when leaving the screen/page. Restoring a draft fills the input; it never runs
-  source code automatically. Cloud saving is explicit through Save app.
+  selected app ID, and recent history after a short debounce and when leaving.
+  Create restores the latest input without running it. My Gallery's Edit opens
+  that app's saved work, including unapplied changes, even after editing other
+  apps or reloading. There is no separate Resume draft button. Unmodified local
+  snapshots yield to updated saved code; pending edits are retained.
+- `local-store.js` uses IndexedDB (`poteto-studio-local-v1`, `records`) for code,
+  gallery caches, profiles, and work records. Legacy localStorage records are
+  migrated only after a successful durable write. If IndexedDB is unavailable,
+  localStorage is the fallback. The UI reports saved only after a store commits.
+  History keeps up to ten versions within a 256 Ki-character historical-code
+  budget, deduplicates consecutive snapshots, and references the current code
+  instead of copying it. The current code itself is never truncated.
 - Browser storage keys use `pt_v2_<kind>_user_<uid>` or `pt_v2_<kind>_guest`.
   Guest work stays on the device and is separate from signed-in accounts.
   Local browser storage is not encryption or a replacement for device security.
@@ -32,8 +41,10 @@ Persistence behavior:
 - Account changes clear credentials, previews, chat state, and pending UI operations.
   Delayed asynchronous responses are discarded using an account revision guard.
   Loading apps never deletes user documents, including saved templates.
-- If browser storage is unavailable/full, the editor remains usable and a visible
-  error prompts the user to export HTML. Local drafts do not sync across devices.
+- If both stores are unavailable/full, the editor and gallery navigation remain
+  usable. Memory preserves work within the page, and a visible error prompts
+  HTML export before closing. Guest saves do not report success in this case.
+  Automatic saves stay on this browser; cloud saving is explicit via Save app.
 
 Run regression tests from the repository root:
 
@@ -60,9 +71,9 @@ Gallery behavior:
   features may therefore look different from the fully opened app. Failed
   captures show an Open to view the app fallback.
 - The editor's back button, including its fullscreen variant, returns directly
-  to the gallery after preserving the draft. Unsaved edits remain drafts; they
-  do not silently overwrite the saved gallery app. Returning to Create restores
-  the input without executing it automatically.
+  to the gallery even if persistent storage fails. Automatic work snapshots do
+  not silently overwrite the gallery app or its public version. Returning to
+  Create restores the input; Edit recovers each app's pending work.
 
 Playback preservation:
 

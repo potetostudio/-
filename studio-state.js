@@ -13,6 +13,10 @@ var restoringDraft = false;
 var cloudWriteQueues = new Map();
 var streamIntervals = new Set();
 var previewSequence = 0;
+var accountStorageLoading=false;
+var accountStorageReady=Promise.resolve();
+var workNavigationRevision=0;
+var workEditSequence=0;
 
 function accountKey(name, uid) {
   if (uid === undefined) uid = curUser ? curUser.uid : null;
@@ -24,15 +28,10 @@ function readLocalText(key, fallback) {
 function writeLocalText(key, value) {
   try {localStorage.setItem(key,value);return true;}catch(e){draftState='error';renderSaveState();return false;}
 }
-function readLocalJson(key, fallback) {
-  try {
-    var raw = localStorage.getItem(key);
-    return raw === null ? fallback : JSON.parse(raw);
-  } catch (e) { return fallback; }
-}
+function readLocalJson(key, fallback) { return readLocalRecord(key,fallback); }
 function writeLocalJson(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); return true; }
-  catch (e) { draftState = 'error'; renderSaveState(); return false; }
+  if(writeLocalRecord(key,value))return true;
+  draftState='error';renderSaveState();return false;
 }
 function persistApps() { return writeLocalJson(accountKey('apps'), apps); }
 function persistProfile() { return writeLocalJson(accountKey('profile'), prof); }
@@ -42,61 +41,104 @@ function sameAccount(uid, revision) {
 function renderSaveState() {
   var el = document.getElementById('studio-save-status');
   if (!el) return;
-  var draftLabels = { idle:'下書きはこの端末に保存されます', pending:'下書き保存中…', saved:'下書き保存済み（この端末）', error:'端末への保存に失敗しました。コードを書き出してください' };
+  var draftLabels = { idle:'作業内容をこの端末に自動保存します', pending:'自動保存中…', saved:'自動保存済み（この端末）', error:'自動保存できません。閉じる前にコードを書き出してください' };
   var cloudLabels = { saving:'クラウド保存中…', saved:'クラウド保存済み', dirty:'クラウドに未反映の変更があります', error:'クラウド保存失敗（再試行できます）' };
-  setUiText(el, function() { return t(draftLabels[draftState]) + (cloudLabels[cloudState] ? ' · ' + t(cloudLabels[cloudState]) : ''); });
+  setUiText(el, function() { return t(accountStorageLoading ? '保存した作業を読み込んでいます…' : draftLabels[draftState]) + (cloudLabels[cloudState] ? ' · ' + t(cloudLabels[cloudState]) : ''); });
   el.classList.toggle('error', draftState === 'error' || cloudState === 'error');
   document.getElementById('editing-notice').hidden = !editingAppId;
   document.getElementById('guest-login').hidden = !!curUser;
   document.getElementById('retry-cloud-save').hidden = cloudState !== 'error' || !retryCloudSave;
-  var draft = readLocalJson(accountKey('draft'), null);
-  document.getElementById('resume-draft').hidden = !draft || typeof draft.code !== 'string' || !draft.code.trim();
 }
 function captureStudioDraft() {
   var view = document.getElementById('view-studio');
   if (!view || !view.classList.contains('active')) return null;
   var workspace = document.getElementById('workspace').style.display === 'flex';
   var code = workspace ? (cpOpen ? document.getElementById('ct').value : cur) : document.getElementById('lp-code').value;
-  return { version:1, code:code, fileName:workspace ? '' : codeInputFileName,
-    editingAppId:editingAppId, title:chooseWorkTitle(code,document.getElementById('shtitle').value,codeInputFileName),
-    versions:vers.slice(0,10), updatedAt:Date.now() };
+  var app=editingAppId ? findMyAppByKey(editingAppId) : null;
+  return { version:2, code:code, fileName:workspace ? '' : codeInputFileName,
+    editingAppId:editingAppId, modified:!app || app.code!==code,
+    title:chooseWorkTitle(code,document.getElementById('shtitle').value,codeInputFileName),
+    versions:compactWorkVersions(code), updatedAt:Date.now() };
+}
+function compactWorkVersions(code) {
+  var budget=256*1024, result=[], previous=null;
+  vers.slice(0,10).forEach(function(version) {
+    if(!version || typeof version.code!=='string' || version.code===previous)return;
+    previous=version.code;
+    var item={id:version.id,label:version.label,type:version.type};
+    if(version.code===code)item.usesCurrentCode=true;
+    else {if(version.code.length>budget)return;item.code=version.code;budget-=version.code.length;}
+    result.push(item);
+  });
+  return result;
+}
+function workVersions(record) {
+  return Array.isArray(record.versions) ? record.versions.map(function(version) {
+    return version && Object.assign({},version,{code:version.usesCurrentCode ? record.code : version.code});
+  }).filter(function(version){return version && typeof version.code==='string';}) : [];
+}
+function sameWork(a,b) {
+  return a && ['code','fileName','editingAppId','modified','title','versions'].every(function(key){return JSON.stringify(a[key])===JSON.stringify(b[key]);});
 }
 function flushStudioDraft() {
-  clearTimeout(draftTimer);
-  if (restoringDraft) return true;
-  var draft = captureStudioDraft();
-  if (draft && cloudState==='saved' && draft.code!==lastCloudCode)cloudState='dirty';
-  if (!draft || !draft.code.trim()) return true; // Never erase a recoverable draft with an empty navigation reset.
-  if (!writeLocalJson(accountKey('draft'), draft)) return false;
-  draftState = 'saved'; renderSaveState(); return true;
+  clearTimeout(draftTimer);draftTimer=null;
+  if(restoringDraft || accountStorageLoading)return true;
+  var draft=captureStudioDraft();
+  if(draft && cloudState==='saved' && draft.code!==lastCloudCode)cloudState='dirty';
+  if(!draft || !draft.code.trim()){renderSaveState();return true;}
+  if(!sameWork(readLocalJson(accountKey('draft'),null),draft))writeLocalJson(accountKey('draft'),draft);
+  if(draft.editingAppId) {
+    var key=accountKey('work_'+draft.editingAppId);
+    if(!sameWork(readLocalJson(key,null),draft))writeLocalJson(key,draft);
+  }
+  renderSaveState();
+  return !localSaveStatus().error;
 }
 function scheduleStudioDraft() {
-  if (restoringDraft) return;
+  if(restoringDraft || accountStorageLoading)return;
   var next=captureStudioDraft();
-  if (!next) return;
-  var previous=readLocalJson(accountKey('draft'),null);
-  if (previous && ['code','fileName','editingAppId','title','versions'].every(function(k) { return JSON.stringify(previous[k])===JSON.stringify(next[k]); })) return;
-  if (draftState !== 'pending') {draftState = 'pending'; renderSaveState();}
-  clearTimeout(draftTimer); draftTimer = setTimeout(flushStudioDraft, 350);
+  if(!next || sameWork(readLocalJson(accountKey('draft'),null),next))return;
+  if(draftState!=='pending'){draftState='pending';renderSaveState();}
+  clearTimeout(draftTimer);draftTimer=setTimeout(flushStudioDraft,350);
 }
 function restoreStudioDraft() {
-  var draft = readLocalJson(accountKey('draft'), null);
-  if (!draft || draft.version !== 1 || typeof draft.code !== 'string' || !draft.code.trim()) { renderSaveState(); return false; }
-  restoringDraft = true;
-  document.getElementById('lp-code').value = draft.code;
-  codeInputFileName = typeof draft.fileName === 'string' ? draft.fileName : '';
-  editingAppId = draft.editingAppId && findMyAppByKey(draft.editingAppId) ? draft.editingAppId : null;
+  if(accountStorageLoading)return false;
+  var draft=readLocalJson(accountKey('draft'),null);
+  if(!draft || ![1,2].includes(draft.version) || typeof draft.code!=='string' || !draft.code.trim()){renderSaveState();return false;}
+  var app=draft.editingAppId ? findMyAppByKey(draft.editingAppId) : null;
+  if(app && draft.modified===false && draft.code!==app.code)draft=Object.assign({},draft,{code:app.code,title:app.title,versions:[]});
+  restoringDraft=true;
+  document.getElementById('lp-code').value=draft.code;
+  codeInputFileName=typeof draft.fileName==='string' ? draft.fileName : '';
+  editingAppId=app ? draft.editingAppId : null;
   if(editingAppId && findMyAppByKey(editingAppId).pendingCloud)cloudState='dirty';
-  document.getElementById('shtitle').value = chooseWorkTitle(draft.code,draft.title,draft.fileName);
-  vers = Array.isArray(draft.versions) ? draft.versions.filter(function(v) { return v && typeof v.code === 'string'; }) : [];
-  draftState = 'saved'; restoringDraft = false; renderSaveState();
-  return true; // Restoration never executes source code automatically.
+  document.getElementById('shtitle').value=chooseWorkTitle(draft.code,draft.title,draft.fileName);
+  vers=workVersions(draft);restoringDraft=false;
+  notifyLocalSaveState();return true;
 }
-function resumeStudioDraft() { nav('studio'); }
+function setWorkLoading(loading) {
+  ['lp-code','ct'].forEach(function(id){var field=document.getElementById(id);if(field)field.readOnly=loading;});
+  document.querySelectorAll('button[onclick="launchStudio()"],#code-file-button').forEach(function(button){button.disabled=loading;});
+}
+async function hydrateAccountWork(revision) {
+  await loadLocalRecords(['apps','profile','draft'].map(function(name){return accountKey(name);}));
+  if(revision!==accountRevision)return;
+  var stored=readLocalJson(accountKey('apps'),null);
+  if(Array.isArray(stored))apps=stored.filter(function(app){return app && typeof app.code==='string' && (!app.uid || (curUser && app.uid===curUser.uid));});
+  else if(apps.length)persistApps(); // Migrate positively owned legacy records.
+  var profile=readLocalJson(accountKey('profile'),null);
+  if(profile && typeof profile==='object')prof={name:typeof profile.name==='string' ? profile.name : '',avatar:typeof profile.avatar==='string' ? profile.avatar : ''};
+  accountStorageLoading=false;setWorkLoading(false);
+  if(document.getElementById('view-studio').classList.contains('active')) {
+    if(document.getElementById('workspace').style.display==='flex')flushStudioDraft();
+    else restoreStudioDraft();
+  }
+  renderGallery();renderSaveState();
+}
 function resetAccountState(user) {
   if (accountInitialized) { flushStudioDraft(); persistApps(); persistProfile(); }
   stopGalleryThumbnails(true);
-  accountRevision++; cloudSaveSequence++; clearTimeout(draftTimer);
+  accountRevision++; cloudSaveSequence++; clearTimeout(draftTimer);draftTimer=null;
   streamIntervals.forEach(function(id) {clearInterval(id);});streamIntervals.clear();
   stopThinking();showBuildLoading(false);
   var bar=document.getElementById('stream-bar');bar.style.width='0';bar.classList.remove('active');
@@ -129,20 +171,33 @@ function resetAccountState(user) {
   document.getElementById('cv-code-modal') && cvCloseCode();
   document.getElementById('image-create-options').open=false;
   document.getElementById('ai-create-options').open=false;
-  updateNavBadge(); persistApps(); renderGallery(); renderSaveState();
+  updateNavBadge();renderGallery();
+  accountStorageLoading=true;setWorkLoading(true);renderSaveState();
+  accountStorageReady=hydrateAccountWork(accountRevision);
+  return accountStorageReady;
 }
-function startGuestMode() {
+async function startGuestMode() {
   if (curUser) return;
+  var revision=accountRevision;await accountStorageReady;if(revision!==accountRevision || curUser)return;
   guestMode = true; updateAuthGate(); nav('studio');
 }
-function editMyApp(id) {
-  var app = findMyAppByKey(id);
-  if (!app || (app.uid && (!curUser || app.uid !== curUser.uid))) return;
-  var code = app.code, title = app.title, key = app.urlId || app.id;
-  nav('studio');
-  document.getElementById('shtitle').value = title;
-  startWS(code, title, 'original', true, key);
-  showCP(); flushStudioDraft();
+async function editMyApp(id) {
+  var revision=accountRevision, navigation=workNavigationRevision, request=++workEditSequence;
+  await accountStorageReady;if(revision!==accountRevision || navigation!==workNavigationRevision || request!==workEditSequence)return;
+  var app=findMyAppByKey(id);
+  if(!app || (app.uid && (!curUser || app.uid!==curUser.uid)))return;
+  var key=app.urlId || app.id;
+  await loadLocalRecords([accountKey('work_'+key)]);
+  if(revision!==accountRevision || navigation!==workNavigationRevision || request!==workEditSequence)return;
+  app=findMyAppByKey(key);if(!app)return;
+  var work=readLocalJson(accountKey('work_'+key),null);
+  var legacy=readLocalJson(accountKey('draft'),null);
+  if(!work && legacy && String(legacy.editingAppId)===String(key))work=legacy;
+  if(work && (typeof work.code!=='string' || (work.modified===false && work.code!==app.code)))work=null;
+  var code=work ? work.code : app.code,title=app.title;
+  nav('studio');startWS(code,title,'original',true,key);
+  if(work){vers=workVersions(work);renderHist();}
+  showCP();flushStudioDraft();
 }
 async function saveStudioApp(title) {
   title=chooseWorkTitle(cur,title,codeInputFileName);
@@ -156,9 +211,12 @@ async function saveStudioApp(title) {
   }
   Object.assign(app,{title:title,code:cur,author:prof.name || '',avatar:prof.avatar || '',pendingCloud:!!uid});
   editingAppId=app.urlId || app.id; isTemplate=false;
-  if (!persistApps() || !flushStudioDraft()) return false;
-  if (uid) return await autoSaveToFirestore(title, editingAppId);
-  cloudState='idle'; renderSaveState(); return revision === accountRevision;
+  var appId=editingAppId, savedCode=cur;
+  persistApps();flushStudioDraft();
+  var localOK=await waitForLocalWrites([accountKey('apps'),accountKey('draft'),accountKey('work_'+appId)]);
+  if(revision!==accountRevision)return false;
+  if (uid) return await autoSaveToFirestore(title,appId,savedCode);
+  cloudState='idle';renderSaveState();return localOK;
 }
 function saveCurrentWork() {
   var app = editingAppId ? findMyAppByKey(editingAppId) : null;
@@ -201,9 +259,10 @@ async function writeCloudSnapshot(snapshot) {
   }
 }
 function setupStudioPersistence() {
+  openLocalDatabase();
   ['lp-code','ct','shtitle'].forEach(function(id) { document.getElementById(id).addEventListener('input', scheduleStudioDraft); });
   new MutationObserver(scheduleStudioDraft).observe(document.getElementById('sif'),{attributes:true,attributeFilter:['srcdoc']});
-  window.addEventListener('beforeunload',function(e) { if (!flushStudioDraft()) { e.preventDefault();e.returnValue=''; } });
+  window.addEventListener('beforeunload',function(e) { flushStudioDraft();if(localSaveStatus().error){e.preventDefault();e.returnValue='';} });
   document.addEventListener('visibilitychange',function() { if(document.hidden)flushStudioDraft(); });
   renderSaveState();
 }

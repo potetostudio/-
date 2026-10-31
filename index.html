@@ -6,6 +6,7 @@
 <title>Poteto STUDIO v6</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="./i18n.js"></script>
+<script src="./local-store.js"></script>
 <script src="./studio-state.js"></script>
 <script src="./gallery-ui.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -692,7 +693,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   <div class="save-status-bar">
     <span id="studio-save-status" role="status" aria-live="polite"></span>
     <button type="button" class="nb" id="retry-cloud-save" hidden onclick="retryLastCloudSave()"><span data-i18n="保存を再試行">保存を再試行</span></button>
-    <button type="button" class="nb" id="resume-draft" hidden onclick="resumeStudioDraft()"><span data-i18n="下書きを再開">下書きを再開</span></button>
     <span id="editing-notice" hidden data-i18n="編集はマイギャラリーに保存されます。公開版の更新は「公開・共有」から行えます">編集はマイギャラリーに保存されます。公開版の更新は「公開・共有」から行えます</span>
     <button type="button" class="nb" id="guest-login" onclick="openAuthModal()"><span data-i18n="ログイン / 新規登録">ログイン / 新規登録</span></button>
   </div>
@@ -2115,6 +2115,7 @@ function goBack() {
 }
 
 function nav(v, opts) {
+  workNavigationRevision++;
   flushStudioDraft();
   if (!curUser && !guestMode) {
     updateAuthGate();
@@ -2934,6 +2935,7 @@ async function importCodeFiles(files) {
   showCodeFileStatus('ファイルを読み込み中: ', file.name);
   try {
     var code = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
+    await accountStorageReady;
     if (sequence !== codeImportSequence) return false;
     if (!code.trim() || code.indexOf('\0') !== -1) {
       showCodeFileStatus('空のファイルやバイナリファイルは読み込めません', '', true);
@@ -5143,6 +5145,8 @@ async function handleAuthStateChange(user) {
   if (!accountInitialized || (curUser && curUser.uid) !== (user && user.uid)) resetAccountState(user);
   else curUser = user;
   var revision=accountRevision;
+  await accountStorageReady;
+  if(revision!==accountRevision)return;
   var as = document.getElementById('auth-status');
   var lb = document.getElementById('logout-btn');
   if (user) {

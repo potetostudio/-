@@ -8,19 +8,19 @@ class PersistenceTests(StudioBrowserCase):
         self.page.locator('#lp-code').fill('<h1>Recovered input</h1>')
         self.page.wait_for_function("draftState==='saved'")
         self.page.reload()
-        self.page.evaluate("resetAccountState({uid:'test'}); nav('studio')")
+        self.page.evaluate("async()=>{await resetAccountState({uid:'test'}); nav('studio')}")
         self.assertEqual(self.page.locator('#lp-code').input_value(), '<h1>Recovered input</h1>')
         self.assertEqual(self.page.locator('#sif').get_attribute('srcdoc'), '')
-        self.assertIn('下書き保存済み', self.page.locator('#studio-save-status').text_content())
+        self.assertIn('自動保存済み', self.page.locator('#studio-save-status').text_content())
 
     def test_unapplied_editor_and_version_history_are_recoverable(self):
         self.page.evaluate("nav('studio'); startWS('<h1>Initial</h1>','Work','original'); showCP()")
         self.page.locator('#ct').fill('<h1>Applied</h1>')
         self.page.evaluate('applyCode()')
         self.page.locator('#ct').fill('<h1>Not yet applied</h1>')
-        self.page.evaluate('flushStudioDraft()')
+        self.page.evaluate("async()=>{flushStudioDraft();await waitForLocalWrites([accountKey('draft')])}")
         self.page.reload()
-        self.page.evaluate("resetAccountState({uid:'test'});nav('studio')")
+        self.page.evaluate("async()=>{await resetAccountState({uid:'test'});nav('studio')}")
         self.assertEqual(self.page.locator('#lp-code').input_value(), '<h1>Not yet applied</h1>')
         self.assertGreaterEqual(self.page.evaluate('vers.length'), 2)
         self.assertEqual(self.page.locator('#sif').get_attribute('srcdoc'), '')
@@ -47,23 +47,23 @@ class PersistenceTests(StudioBrowserCase):
         page.close()
 
     def test_account_switch_clears_credentials_views_and_separates_caches(self):
-        self.page.evaluate("""() => {
-          resetAccountState({uid:'alice'});nav('studio');
+        self.page.evaluate("""async () => {
+          await resetAccountState({uid:'alice'});nav('studio');
           apps=[{id:'alice-app',urlId:'alice-app',uid:'alice',code:'<p>Alice</p>',title:'Private'}];
           geminiKey='alice-secret';prof.name='Alice';
           document.getElementById('gemini-key-input').value=geminiKey;
           startWS('<p>Alice draft</p>','Alice','original');
-          resetAccountState({uid:'bob'});nav('studio');
+          await resetAccountState({uid:'bob'});nav('studio');
         }""")
         self.assertEqual(self.page.evaluate('apps'),[])
         self.assertEqual(self.page.evaluate('geminiKey'),'')
         self.assertEqual(self.page.locator('#gemini-key-input').input_value(),'')
         self.assertEqual(self.page.locator('#lp-code').input_value(),'')
         self.assertEqual(self.page.locator('#sif').get_attribute('srcdoc'),'')
-        self.page.evaluate("resetAccountState({uid:'alice'});nav('studio')")
+        self.page.evaluate("async()=>{await resetAccountState({uid:'alice'});nav('studio')}")
         self.assertEqual(self.page.evaluate('apps[0].title'),'Private')
         self.assertEqual(self.page.locator('#lp-code').input_value(),'<p>Alice draft</p>')
-        self.page.evaluate('resetAccountState(null);startGuestMode()')
+        self.page.evaluate('async()=>{await resetAccountState(null);await startGuestMode()}')
         self.assertEqual(self.page.evaluate('apps'),[])
         self.assertEqual(self.page.locator('#lp-code').input_value(),'')
 
@@ -130,12 +130,14 @@ class PersistenceTests(StudioBrowserCase):
         self.assertTrue(self.page.locator('#retry-cloud-save').is_hidden())
         self.assertIn('クラウド保存済み',self.page.locator('#studio-save-status').text_content())
 
-    def test_storage_quota_failure_is_visible_and_keeps_editor(self):
+    def test_localstorage_quota_does_not_prevent_durable_autosave(self):
         self.page.evaluate("nav('studio')")
         self.page.locator('#lp-code').fill('<h1>Export this</h1>')
         self.page.evaluate("() => {Storage.prototype.setItem=function(){throw new Error('quota')};}")
-        self.assertFalse(self.page.evaluate('flushStudioDraft()'))
-        self.assertIn('保存に失敗',self.page.locator('#studio-save-status').text_content())
+        self.assertTrue(self.page.evaluate("async()=>{flushStudioDraft();return await waitForLocalWrites([accountKey('draft')])}"))
+        self.assertIn('自動保存済み',self.page.locator('#studio-save-status').text_content())
+        self.page.reload()
+        self.page.evaluate("async()=>{await resetAccountState({uid:'test'});nav('studio')}")
         self.assertEqual(self.page.locator('#lp-code').input_value(),'<h1>Export this</h1>')
 
     def test_failed_old_save_cannot_update_another_accounts_status(self):
@@ -190,7 +192,7 @@ class PersistenceTests(StudioBrowserCase):
         self.assertFalse(self.page.locator('#image-create-options').evaluate('el=>el.open'))
         self.assertFalse(self.page.locator('#ai-create-options').evaluate('el=>el.open'))
         self.assertTrue(self.page.locator('#code-drop-zone').is_visible())
-        self.assertIn('Draft',self.page.locator('#studio-save-status').text_content())
+        self.assertIn('automatically',self.page.locator('#studio-save-status').text_content())
         self.page.locator('#image-create-options summary').click()
         self.assertTrue(self.page.locator('#i2c-zone').is_visible())
 

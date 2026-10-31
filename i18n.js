@@ -416,7 +416,6 @@ var UI_EN = {
   "クラウド保存・作品の公開には": "To save to the cloud or publish apps,",
   "無料のアカウント登録が必要です": "please create a free account.",
   "保存を再試行": "Retry save",
-  "下書きを再開": "Resume draft",
   "ログインせずに試す": "Try without logging in",
   "お試しでは作品をこの端末に保存できます。クラウド保存・公開にはログインが必要です": "You can save apps on this device while trying the studio. Log in to save to the cloud or publish.",
   "この作品を編集": "Edit this app",
@@ -450,7 +449,12 @@ var UI_EN = {
   "開いて画面を見る": "Open to view the app",
   "作品の実行中にエラーが発生しました": "An error occurred while running this app",
   "もう一度開く": "Open again",
-  "コードが保存されていません": "No code is saved for this app"
+  "コードが保存されていません": "No code is saved for this app",
+  "作業内容をこの端末に自動保存します": "Your work is saved automatically on this device",
+  "自動保存中…": "Saving automatically…",
+  "自動保存済み（この端末）": "Saved automatically on this device",
+  "自動保存できません。閉じる前にコードを書き出してください": "Automatic saving is unavailable. Export your code before closing.",
+  "保存した作業を読み込んでいます…": "Loading your saved work…"
 };
 
 // Only explicitly marked application UI is localized. User content and iframe

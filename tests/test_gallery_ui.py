@@ -10,10 +10,10 @@ class GalleryUITests(StudioBrowserCase):
         self.page.locator('button[onclick="launchStudio()"]').click()
         self.assertEqual(self.page.locator('#shtitle').input_value(),'星空パズル & Moon')
         self.assertEqual(self.page.evaluate('vers[0].label'),'星空パズル & Moon')
-        self.page.evaluate('flushStudioDraft()')
+        self.page.evaluate("async()=>{flushStudioDraft();await waitForLocalWrites([accountKey('draft')])}")
         self.assertEqual(self.page.evaluate("readLocalJson(accountKey('draft'),{}).title"),'星空パズル & Moon')
         self.page.reload()
-        self.page.evaluate("resetAccountState({uid:'test'});nav('studio')")
+        self.page.evaluate("async()=>{await resetAccountState({uid:'test'});nav('studio')}")
         self.assertEqual(self.page.locator('#shtitle').input_value(),'星空パズル & Moon')
 
     def test_file_name_and_heading_are_used_without_generic_name(self):

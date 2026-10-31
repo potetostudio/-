@@ -32,7 +32,7 @@ function normalizeGalleryTitles() {
   if (changed) persistApps();
 }
 function backToGallery() {
-  if (!flushStudioDraft()) return;
+  flushStudioDraft();
   if (isFsS) toggleFS();
   nav('gallery');
   document.getElementById('workspace').style.display='none';

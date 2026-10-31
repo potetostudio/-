@@ -443,7 +443,11 @@ var UI_EN = {
   "編集はマイギャラリーに保存されます。公開版の更新は「公開・共有」から行えます": "Edits are saved to My Gallery. Use Publish / Share to update the public version.",
   "ファイルを読み込むか、コードを貼り付けて起動できます": "Import a file or paste code to run your app",
   "コードを隠す": "Hide code",
-  "この版に戻す": "Restore this version"
+  "この版に戻す": "Restore this version",
+  "作品": "App",
+  "画面プレビュー": "Screen preview",
+  "プレビューを準備中": "Preparing preview",
+  "開いて画面を見る": "Open to view the app"
 };
 
 // Only explicitly marked application UI is localized. User content and iframe

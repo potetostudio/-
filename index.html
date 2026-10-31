@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="./i18n.js"></script>
 <script src="./studio-state.js"></script>
+<script src="./gallery-ui.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -72,7 +73,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
 .gc{background:var(--s1);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .2s;position:relative}
 .gc:hover{border-color:rgba(109,90,239,.5);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.5)}
-.gc-thumb{height:130px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:34px;position:relative;overflow:hidden}
+.gc-thumb{aspect-ratio:8/5;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:34px;position:relative;overflow:hidden}
 .gc-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 60%,rgba(109,90,239,.08))}
 .gc-body{padding:11px 12px}
 .gc-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
@@ -596,6 +597,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .optional-tools>summary{cursor:pointer;font-size:12px;color:var(--ac2);font-weight:600}
 .optional-tools[open]>summary{margin-bottom:14px}.optional-tools .lp-ai{margin-top:8px}
 .gc-actions{opacity:1}.gc-actions button:focus-visible{outline:2px solid var(--ac2)}
+.gc-thumb{background:#fff;isolation:isolate;font-size:12px}
+.gc-thumb::after{pointer-events:none}
+.gc-preview{display:block;width:100%;height:100%;object-fit:cover}
+.gc-preview-frame{position:absolute;top:0;left:0;width:800px;height:500px;transform-origin:top left;border:0;pointer-events:none;background:white}
+.gc-preview-note{position:relative;z-index:1;padding:5px 9px;border-radius:6px;background:rgba(7,8,13,.78);color:#edf2f7;font-size:11px}
 </style>
 </head>
 <body>
@@ -827,9 +833,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div id="workspace">
       <div id="stream-bar"></div>
       <div id="wsbar">
-        <button class="nb" onclick="backToStudio()" title="作る画面（コード入力）に戻る" style="margin-right:4px" data-i18n-title="作る画面（コード入力）に戻る">
+        <button class="nb" onclick="backToGallery()" title="ギャラリーに戻る" style="margin-right:4px" data-i18n-title="ギャラリーに戻る">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-          <span data-i18n="作るに戻る">作るに戻る</span>
+          <span data-i18n="ギャラリーに戻る">ギャラリーに戻る</span>
         </button>
         <div class="sep"></div>
         <div class="dev-group">
@@ -965,9 +971,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       </div>
 
       <!-- FS exit / back -->
-      <button id="ws-back-fs" onclick="backToStudio()" style="display:none;position:absolute;top:12px;left:12px;z-index:60;padding:8px 14px;background:rgba(7,8,13,.88);border:1px solid var(--brh);border-radius:10px;color:var(--t1);cursor:pointer;font-family:var(--f);font-size:12px;font-weight:600;align-items:center;gap:6px">
+      <button id="ws-back-fs" onclick="backToGallery()" style="display:none;position:absolute;top:12px;left:12px;z-index:60;padding:8px 14px;background:rgba(7,8,13,.88);border:1px solid var(--brh);border-radius:10px;color:var(--t1);cursor:pointer;font-family:var(--f);font-size:12px;font-weight:600;align-items:center;gap:6px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-        <span data-i18n="作るに戻る">作るに戻る</span>
+        <span data-i18n="ギャラリーに戻る">ギャラリーに戻る</span>
       </button>
       <button id="fsexit" onclick="toggleFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:60;padding:8px;background:rgba(7,8,13,.88);border:1px solid var(--brh);border-radius:10px;color:var(--t1);cursor:pointer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
@@ -1513,7 +1519,6 @@ var curUser = null;
 var appBootstrapped = false;
 var galleryTab = 'my'; // 'my' | 'public'
 var publicApps = []; // みんなのギャラリー用キャッシュ
-var ICONS = ['🎮','🎨','🌐','🧮','🎵','📊','✨','🛠','🌈','🔮','🚀','🎯'];
 var THINKS = ['コードを考え中','構造を設計中','HTMLを書いています','CSSを調整中','仕上げ中'];
 var tkTimer;
 
@@ -2103,6 +2108,7 @@ function nav(v, opts) {
     updateAuthGate();
     return;
   }
+  if(v!=='gallery')stopGalleryThumbnails();
   // app以外のビューへ移動する場合、現在のビューを記録しておく（戻るボタン用）
   var currentActive = document.querySelector('.view.active');
   if (currentActive && currentActive.id !== 'view-app') {
@@ -2228,6 +2234,8 @@ async function refreshPublicCommentCounts() {
 }
 
 function renderGallery() {
+  stopGalleryThumbnails();
+  normalizeGalleryTitles();
   var q = (document.getElementById('skw').value || '').toLowerCase();
   var g = document.getElementById('gg');
   var em = document.getElementById('g-empty');
@@ -2256,7 +2264,7 @@ function renderGallery() {
       el.onclick = function(){ openPublicApp(a); };
       var isOwn = curUser && a.uid === curUser.uid;
       el.innerHTML =
-        '<div class="gc-thumb">' + ICONS[i % ICONS.length] + '</div>' +
+        '<div class="gc-thumb"></div>' +
         '<div class="gc-body">' +
           '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">' +
             '<div class="gc-title" style="flex:1">' + E(a.title || t('無題')) + '</div>' +
@@ -2282,6 +2290,8 @@ function renderGallery() {
           '</div>' +
         '</div>';
       g.appendChild(el);
+      el.querySelector('.gc-title').title=a.title || '';
+      attachGalleryThumbnail(el.querySelector('.gc-thumb'),a,isPublicTab);
     });
 
   } else {
@@ -2301,7 +2311,7 @@ function renderGallery() {
       el.className = 'gc';
       el.onclick = function(){ openApp(a.urlId || a.id); };
       el.innerHTML =
-        '<div class="gc-thumb">' + ICONS[i % ICONS.length] + '</div>' +
+        '<div class="gc-thumb"></div>' +
         '<div class="gc-body">' +
           '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">' +
             '<div class="gc-title" style="flex:1">' + E(a.title) + '</div>' +
@@ -2320,10 +2330,12 @@ function renderGallery() {
               (a.avatar ? '<div class="gc-av"><img src="' + a.avatar + '"></div>' : '<div class="gc-av"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>') +
               '<span class="gc-name">' + E(a.author || t('匿名')) + '</span>' +
             '</div>' +
-            '<div class="gc-likes"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' + a.likes + '</div>' +
+            '<div class="gc-likes"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' + (a.likes || 0) + '</div>' +
           '</div>' +
         '</div>';
       g.appendChild(el);
+      el.querySelector('.gc-title').title=a.title || '';
+      attachGalleryThumbnail(el.querySelector('.gc-thumb'),a,isPublicTab);
     });
   }
 }
@@ -2867,6 +2879,7 @@ function resetS() {
   document.getElementById('launchpad').style.display = 'flex';
   document.getElementById('workspace').style.display = 'none';
   document.getElementById('lp-code').value = '';
+  document.getElementById('shtitle').value = '';
   document.getElementById('agi').value = '';
   document.getElementById('ag-status').style.display = 'none';
   imgBase64 = ''; imgMime = '';
@@ -2925,6 +2938,7 @@ async function importCodeFiles(files) {
     input.value = code;
     editingAppId = null;
     codeInputFileName = file.name;
+    document.getElementById('shtitle').value=inferAppTitle(code,file.name);
     flushStudioDraft();
     showCodeFileStatus('読み込み済み: ', file.name);
     input.focus();
@@ -2976,7 +2990,9 @@ function launchStudio() {
   codeImportSequence++;
   var extension = codeInputFileName.split('.').pop().toLowerCase();
   var history = vers.slice();
-  startWS(wrapCode(c, extension), codeInputFileName || t('貼り付けコード'), 'original', false, editingAppId);
+  var currentApp=editingAppId ? findMyAppByKey(editingAppId) : null;
+  var title=chooseWorkTitle(c,currentApp ? currentApp.title : document.getElementById('shtitle').value,codeInputFileName);
+  startWS(wrapCode(c, extension), title, 'original', false, editingAppId);
   if (history.length) { vers = vers.concat(history).slice(0,20); renderHist(); flushStudioDraft(); }
 }
 
@@ -3002,6 +3018,8 @@ function wrapCode(code, fileType) {
 
 function startWS(code, label, type, skipAutoSave, existingId) {
   editingAppId = existingId || null;
+  label=chooseWorkTitle(code,label,codeInputFileName);
+  document.getElementById('shtitle').value=label;
   cur = code;
   curPublicDocId = null; // フォーク後のワークスペースではgallery由来フラグをリセット
   isTemplate = !!skipAutoSave && !editingAppId; // テンプレート起動時はtrue

@@ -12,6 +12,7 @@ HTML = Path(__file__).resolve().parents[1].joinpath('index.html').read_text()
 HTML = HTML.replace('<script src="./i18n.js"></script>', '<script>\n' + Path(__file__).resolve().parents[1].joinpath('i18n.js').read_text() + '</script>')
 # Replace only the external SDKs. Execute the application's real inline code.
 HTML = HTML.replace('<script src="./studio-state.js"></script>', '<script>\n' + Path(__file__).resolve().parents[1].joinpath('studio-state.js').read_text() + '</script>')
+HTML = HTML.replace('<script src="./gallery-ui.js"></script>', '<script>\n' + Path(__file__).resolve().parents[1].joinpath('gallery-ui.js').read_text() + '</script>')
 HTML = re.sub(r'<script src="[^"]+"></script>', '', HTML)
 HTML = HTML.replace('<script>\n', '''<script>
 window.firebase = {

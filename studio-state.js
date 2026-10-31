@@ -58,7 +58,7 @@ function captureStudioDraft() {
   var workspace = document.getElementById('workspace').style.display === 'flex';
   var code = workspace ? (cpOpen ? document.getElementById('ct').value : cur) : document.getElementById('lp-code').value;
   return { version:1, code:code, fileName:workspace ? '' : codeInputFileName,
-    editingAppId:editingAppId, title:document.getElementById('shtitle').value,
+    editingAppId:editingAppId, title:chooseWorkTitle(code,document.getElementById('shtitle').value,codeInputFileName),
     versions:vers.slice(0,10), updatedAt:Date.now() };
 }
 function flushStudioDraft() {
@@ -87,7 +87,7 @@ function restoreStudioDraft() {
   codeInputFileName = typeof draft.fileName === 'string' ? draft.fileName : '';
   editingAppId = draft.editingAppId && findMyAppByKey(draft.editingAppId) ? draft.editingAppId : null;
   if(editingAppId && findMyAppByKey(editingAppId).pendingCloud)cloudState='dirty';
-  document.getElementById('shtitle').value = typeof draft.title === 'string' ? draft.title : '';
+  document.getElementById('shtitle').value = chooseWorkTitle(draft.code,draft.title,draft.fileName);
   vers = Array.isArray(draft.versions) ? draft.versions.filter(function(v) { return v && typeof v.code === 'string'; }) : [];
   draftState = 'saved'; restoringDraft = false; renderSaveState();
   return true; // Restoration never executes source code automatically.
@@ -95,6 +95,7 @@ function restoreStudioDraft() {
 function resumeStudioDraft() { nav('studio'); }
 function resetAccountState(user) {
   if (accountInitialized) { flushStudioDraft(); persistApps(); persistProfile(); }
+  stopGalleryThumbnails(true);
   accountRevision++; cloudSaveSequence++; clearTimeout(draftTimer);
   streamIntervals.forEach(function(id) {clearInterval(id);});streamIntervals.clear();
   stopThinking();showBuildLoading(false);
@@ -144,6 +145,7 @@ function editMyApp(id) {
   showCP(); flushStudioDraft();
 }
 async function saveStudioApp(title) {
+  title=chooseWorkTitle(cur,title,codeInputFileName);
   if (cpOpen && document.getElementById('workspace').style.display === 'flex' && document.getElementById('ct').value!==cur) applyCode();
   var uid = curUser ? curUser.uid : null, revision = accountRevision;
   var app = editingAppId ? findMyAppByKey(editingAppId) : null;

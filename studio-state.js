@@ -118,7 +118,7 @@ function restoreStudioDraft() {
 }
 function setWorkLoading(loading) {
   ['lp-code','ct'].forEach(function(id){var field=document.getElementById(id);if(field)field.readOnly=loading;});
-  document.querySelectorAll('button[onclick="launchStudio()"],#code-file-button').forEach(function(button){button.disabled=loading;});
+  document.querySelectorAll('button[onclick="launchStudio()"],#code-file-button,#code-clear-button').forEach(function(button){button.disabled=loading;});
 }
 async function hydrateAccountWork(revision) {
   try {await loadLocalRecords(['apps','profile','draft'].map(function(name){return accountKey(name);}));}

@@ -10,6 +10,10 @@ The studio accepts one UTF-8 HTML, CSS, JS, or TXT file at a time, up to 5 MiB.
 Files are read locally; running, saving an app, and publishing are separate actions.
 AI generation and image generation remain optional, with their original provider
 configuration. OpenAI integration and multi-file/ZIP builds are not included.
+The Create input's Clear all code button empties the input in one click, cancels
+pending file reads, and persists an empty recovery state. It resets the imported
+file type/title and edit target so replacement code starts a new app; saved gallery
+apps and their per-app work records are retained.
 
 Persistence behavior:
 

@@ -402,6 +402,8 @@ var UI_EN = {
   "編集": "Edit",
   "削除": "Delete",
   "ファイルを選択": "Choose file",
+  "コードをすべて削除": "Clear all code",
+  "コードをすべて削除しました": "All code cleared",
   "ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）": "Drop a file here (HTML / CSS / JS / TXT, UTF-8, up to 5 MB)",
   "コードを貼り付けるか、ファイルを読み込んでください": "Paste code or import a file",
   "ファイルは1つずつ読み込んでください": "Import one file at a time",

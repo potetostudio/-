@@ -118,3 +118,50 @@ class CodeImportTests(StudioBrowserCase):
         self.page.evaluate("finishRead(new TextEncoder().encode('<p>Old</p>').buffer); pendingImport")
         self.assertEqual(self.page.locator('#lp-code').input_value(), '')
         self.assertEqual(self.page.locator('#code-file-status').text_content(), '')
+
+    def test_clear_stays_empty_after_navigation_and_reload(self):
+        self.page.locator('#lp-code').fill('<h1>Old recovered code</h1>')
+        self.page.wait_for_function("draftState==='saved'")
+        self.page.locator('#lp-code').fill('<h1>Newer input with autosave pending</h1>')
+        self.page.locator('#code-clear-button').click()
+        self.assertEqual(self.page.locator('#lp-code').input_value(), '')
+        self.assertTrue(self.page.locator('#lp-code').evaluate('el=>el===document.activeElement'))
+        self.page.evaluate("nav('gallery');nav('studio')")
+        self.assertEqual(self.page.locator('#lp-code').input_value(), '')
+        self.page.evaluate("waitForLocalWrites([accountKey('draft')])")
+        self.page.reload()
+        self.page.evaluate("async()=>{await resetAccountState({uid:'test'});nav('studio')}")
+        self.assertEqual(self.page.locator('#lp-code').input_value(), '')
+
+    def test_clear_detaches_existing_app_before_replacement_is_saved(self):
+        self.page.evaluate("async()=>{await editMyApp('testID');backToGallery();nav('studio')}")
+        self.assertEqual(self.page.evaluate('editingAppId'), 'testID')
+        self.page.locator('#code-clear-button').click()
+        self.page.locator('#lp-code').fill('<h1>Replacement app</h1>')
+        self.page.locator('button[onclick="launchStudio()"]').click()
+        self.assertEqual(self.page.frame_locator('#sif').locator('h1').inner_text(), 'Replacement app')
+        self.assertEqual(self.page.locator('#shtitle').input_value(), 'Replacement app')
+        self.assertTrue(self.page.evaluate("saveStudioApp('Replacement app')"))
+        self.assertNotEqual(self.page.evaluate('editingAppId'), 'testID')
+        self.assertEqual(self.page.evaluate("apps.find(app=>app.id==='testID').code"), '<h1>Saved code</h1>')
+        self.assertEqual(self.page.evaluate('apps.length'), 2)
+
+    def test_clear_cancels_pending_import_and_resets_file_type_in_both_languages(self):
+        self.choose('theme.css', 'body { color:red }')
+        self.page.evaluate("""()=>{
+          window.pendingImport=importCodeFiles([{name:'old.html',size:1,
+            arrayBuffer:()=>new Promise(resolve=>{window.finishRead=resolve})}]);
+          setLanguage('en');
+        }""")
+        self.assertEqual(self.page.locator('#code-clear-button').inner_text(), 'Clear all code')
+        self.page.locator('#code-clear-button').click()
+        self.page.evaluate("finishRead(new TextEncoder().encode('<h1>Late file</h1>').buffer);pendingImport")
+        self.assertEqual(self.page.locator('#lp-code').input_value(), '')
+        self.assertEqual(self.page.evaluate('codeInputFileName'), '')
+        self.assertEqual(self.page.locator('#code-file-status').inner_text(), 'All code cleared')
+        self.page.evaluate("setLanguage('ja')")
+        self.assertEqual(self.page.locator('#code-clear-button').inner_text(), 'コードをすべて削除')
+        self.assertEqual(self.page.locator('#code-file-status').inner_text(), 'コードをすべて削除しました')
+        self.page.locator('#lp-code').fill('<h1>New HTML</h1>')
+        self.page.locator('button[onclick="launchStudio()"]').click()
+        self.assertEqual(self.page.frame_locator('#sif').locator('h1').inner_text(), 'New HTML')

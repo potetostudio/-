@@ -121,7 +121,8 @@ function setWorkLoading(loading) {
   document.querySelectorAll('button[onclick="launchStudio()"],#code-file-button').forEach(function(button){button.disabled=loading;});
 }
 async function hydrateAccountWork(revision) {
-  await loadLocalRecords(['apps','profile','draft'].map(function(name){return accountKey(name);}));
+  try {await loadLocalRecords(['apps','profile','draft'].map(function(name){return accountKey(name);}));}
+  catch(e){console.warn('Saved work unavailable:',e);}
   if(revision!==accountRevision)return;
   var stored=readLocalJson(accountKey('apps'),null);
   if(Array.isArray(stored))apps=stored.filter(function(app){return app && typeof app.code==='string' && (!app.uid || (curUser && app.uid===curUser.uid));});

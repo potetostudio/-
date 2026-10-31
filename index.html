@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Poteto STUDIO v6</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="./i18n.js"></script>
-<script src="./local-store.js"></script>
-<script src="./studio-state.js"></script>
-<script src="./gallery-ui.js"></script>
+<script src="./i18n.js?v=20261031-auth2"></script>
+<script src="./local-store.js?v=20261031-auth2"></script>
+<script src="./studio-state.js?v=20261031-auth2"></script>
+<script src="./gallery-ui.js?v=20261031-auth2"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -5076,7 +5076,9 @@ function updateAuthGate() {
 }
 
 async function finishAppBootstrap() {
-  var loaded = await loadShared();
+  var revision=accountRevision, navigation=workNavigationRevision;
+  var loaded = await loadShared(navigation);
+  if(revision!==accountRevision || navigation!==workNavigationRevision)return;
   if (!loaded) nav('gallery');
 }
 
@@ -5145,21 +5147,20 @@ async function handleAuthStateChange(user) {
   if (!accountInitialized || (curUser && curUser.uid) !== (user && user.uid)) resetAccountState(user);
   else curUser = user;
   var revision=accountRevision;
-  await accountStorageReady;
-  if(revision!==accountRevision)return;
+  // Authentication controls the gate; optional cache/network work must not.
+  updateAuthGate();
+  syncCommentFormState();
   var as = document.getElementById('auth-status');
   var lb = document.getElementById('logout-btn');
+  var bootstrapTask=null;
   if (user) {
     as.textContent = '✓ ' + (user.email || user.uid);
     as.style.color = 'var(--gr)';
     lb.style.display = 'block';
-    loadUserApps();
-    loadUserSettings();
-    cvsSubscribe();
     if (!appBootstrapped) {
       appBootstrapped = true;
-      await finishAppBootstrap();
-      if (revision!==accountRevision) return;
+      nav('gallery');
+      bootstrapTask=finishAppBootstrap();
     }
   } else {
     setUiText(as, function(){ return t('未ログイン'); });
@@ -5171,10 +5172,18 @@ async function handleAuthStateChange(user) {
     cvsCurDocId = null;
     cvsRender();
   }
-  updateAuthGate();
-  syncCommentFormState();
+  renderSaveState();
+  // Hydrate the local cache before merging cloud records to retain offline edits.
+  await accountStorageReady;
+  if(revision!==accountRevision)return;
+  if(user) {
+    loadUserApps();
+    loadUserSettings();
+    try {cvsSubscribe();}catch(e){console.warn('Chat subscription unavailable:',e);}
+  }
   if (user) renderGallery();
   renderSaveState();
+  if(bootstrapTask)await bootstrapTask;
 }
 if (auth) auth.onAuthStateChanged(handleAuthStateChange);
 else handleAuthStateChange(null);
@@ -5665,7 +5674,7 @@ function loadTemplate(name) {
 // ════════════════════════════════════════════
 //  Shared URL load
 // ════════════════════════════════════════════
-async function loadShared() {
+async function loadShared(navigation) {
   var operationRevision=accountRevision;
   try {
   var params = new URLSearchParams(location.search);
@@ -5687,6 +5696,7 @@ async function loadShared() {
       snap = await guardAccountPromise(operationRevision, (db.collection('gallery').doc(id).get()));
       fromGallery = true;
     }
+    if(navigation!==undefined && navigation!==workNavigationRevision)return false;
     if (snap.exists) {
       var d = snap.data();
       if (fromGallery && d.isPublic !== true) return false;

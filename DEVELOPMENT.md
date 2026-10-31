@@ -41,6 +41,12 @@ Persistence behavior:
 - Account changes clear credentials, previews, chat state, and pending UI operations.
   Delayed asynchronous responses are discarded using an account revision guard.
   Loading apps never deletes user documents, including saved templates.
+- The authentication callback opens/closes the login gate immediately and shows
+  the gallery on sign-in. Local work hydration, shared-link fetches, and chat
+  subscription setup cannot keep the login overlay open. Local hydration still
+  precedes cloud-cache merging to retain unsynced edits. Shared links that finish
+  after a user navigates away cannot replace that screen. Local script URLs use
+  a release query; bump all four together when deploying related script changes.
 - If both stores are unavailable/full, the editor and gallery navigation remain
   usable. Memory preserves work within the page, and a visible error prompts
   HTML export before closing. Guest saves do not report success in this case.

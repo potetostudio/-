@@ -9,16 +9,15 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 HTML = Path(__file__).resolve().parents[1].joinpath('index.html').read_text()
-HTML = HTML.replace('<script src="./i18n.js"></script>', '<script>\n' + Path(__file__).resolve().parents[1].joinpath('i18n.js').read_text() + '</script>')
+# Embed the real local modules, including URLs with deployment cache versions.
+HTML = re.sub(r'<script src="\./(i18n|local-store|studio-state|gallery-ui)\.js(?:\?[^\"]*)?"></script>',
+              lambda match: '<script>\n' + Path(__file__).resolve().parents[1].joinpath(match[1]+'.js').read_text() + '</script>', HTML)
 # Replace only the external SDKs. Execute the application's real inline code.
-HTML = HTML.replace('<script src="./studio-state.js"></script>', '<script>\n' + Path(__file__).resolve().parents[1].joinpath('studio-state.js').read_text() + '</script>')
-HTML = HTML.replace('<script src="./gallery-ui.js"></script>', '<script>\n' + Path(__file__).resolve().parents[1].joinpath('gallery-ui.js').read_text() + '</script>')
-HTML = HTML.replace('<script src="./local-store.js"></script>', '<script>\n' + Path(__file__).resolve().parents[1].joinpath('local-store.js').read_text() + '</script>')
 HTML = re.sub(r'<script src="[^"]+"></script>', '', HTML)
 HTML = HTML.replace('<script>\n', '''<script>
 window.firebase = {
   initializeApp() {}, firestore() { return {}; },
-  auth() { return { onAuthStateChanged() {} }; }
+  auth() { return { onAuthStateChanged(callback) { window.testAuthListener=callback; } }; }
 };
 </script><script>\n''', 1)
 

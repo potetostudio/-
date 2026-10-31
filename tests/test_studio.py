@@ -11,6 +11,7 @@ from playwright.sync_api import sync_playwright
 HTML = Path(__file__).resolve().parents[1].joinpath('index.html').read_text()
 HTML = HTML.replace('<script src="./i18n.js"></script>', '<script>\n' + Path(__file__).resolve().parents[1].joinpath('i18n.js').read_text() + '</script>')
 # Replace only the external SDKs. Execute the application's real inline code.
+HTML = HTML.replace('<script src="./studio-state.js"></script>', '<script>\n' + Path(__file__).resolve().parents[1].joinpath('studio-state.js').read_text() + '</script>')
 HTML = re.sub(r'<script src="[^"]+"></script>', '', HTML)
 HTML = HTML.replace('<script>\n', '''<script>
 window.firebase = {
@@ -31,6 +32,7 @@ FIXTURE = """() => {
       collection: name => ref(path + '/' + name),
       doc: id => ref(path + '/' + id),
       orderBy: () => ref(path), limit: () => ref(path),
+      onSnapshot: fn => { Promise.resolve().then(() => fn({forEach() {}})); return () => {}; },
       get: async () => {
         getPaths.push(path);
         if (path === 'users/test/apps') return {forEach: fn => cloudDocs.forEach(fn)};

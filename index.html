@@ -6,6 +6,7 @@
 <title>Poteto STUDIO v6</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="./i18n.js"></script>
+<script src="./studio-state.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -587,6 +588,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 #nav .language-picker{margin:0;flex-shrink:0}
 #nav .language-picker>span{display:none}
 @media(max-width:800px){#nav{overflow-x:auto}.logo{flex-shrink:0}#nbg{flex-shrink:0}.ai-badge{display:none}}
+.save-status-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:7px 16px;border-bottom:1px solid var(--br);font-size:11px;color:var(--t2)}
+.save-status-bar .error{color:var(--rd)}
+.save-status-bar [hidden]{display:none!important}
+.guest-start{width:100%;margin-bottom:8px}.auth-gate-card .code-file-hint{margin-bottom:16px}
+.optional-tools{width:100%;max-width:600px;border:1px solid var(--brh);border-radius:10px;padding:12px}
+.optional-tools>summary{cursor:pointer;font-size:12px;color:var(--ac2);font-weight:600}
+.optional-tools[open]>summary{margin-bottom:14px}.optional-tools .lp-ai{margin-top:8px}
+.gc-actions{opacity:1}.gc-actions button:focus-visible{outline:2px solid var(--ac2)}
 </style>
 </head>
 <body>
@@ -601,12 +610,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 
     <!-- ログインパネル -->
     <div id="auth-gate-login-panel">
-      <p class="auth-gate-sub"><span data-i18n="アプリの作成・保存・ギャラリー利用には">アプリの作成・保存・ギャラリー利用には</span><br><span data-i18n="アカウント登録（無料）が必要です">アカウント登録（無料）が必要です</span></p>
+      <p class="auth-gate-sub"><span data-i18n="クラウド保存・作品の公開には">クラウド保存・作品の公開には</span><br><span data-i18n="無料のアカウント登録が必要です">無料のアカウント登録が必要です</span></p>
       <ul class="auth-gate-features">
         <li><span data-i18n="作ったゲームをマイギャラリーに保存">作ったゲームをマイギャラリーに保存</span></li>
         <li><span data-i18n="みんなのギャラリーへの公開・いいね">みんなのギャラリーへの公開・いいね</span></li>
         <li><span data-i18n="チャット履歴とクラウド同期">チャット履歴とクラウド同期</span></li>
       </ul>
+      <button type="button" class="mbb ok guest-start" onclick="startGuestMode()"><span data-i18n="ログインせずに試す">ログインせずに試す</span></button>
+      <p class="code-file-hint" data-i18n="お試しでは作品をこの端末に保存できます。クラウド保存・公開にはログインが必要です">お試しでは作品をこの端末に保存できます。クラウド保存・公開にはログインが必要です</p>
       <label class="fl"><span data-i18n="メールアドレス">メールアドレス</span></label>
       <input type="email" id="auth-gate-email" class="fi" placeholder="you@example.com" autocomplete="email">
       <label class="fl"><span data-i18n="パスワード">パスワード</span></label>
@@ -669,6 +680,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     </div>
   </div>
 
+  <div class="save-status-bar">
+    <span id="studio-save-status" role="status" aria-live="polite"></span>
+    <button type="button" class="nb" id="retry-cloud-save" hidden onclick="retryLastCloudSave()"><span data-i18n="保存を再試行">保存を再試行</span></button>
+    <button type="button" class="nb" id="resume-draft" hidden onclick="resumeStudioDraft()"><span data-i18n="下書きを再開">下書きを再開</span></button>
+    <span id="editing-notice" hidden data-i18n="編集はマイギャラリーに保存されます。公開版の更新は「公開・共有」から行えます">編集はマイギャラリーに保存されます。公開版の更新は「公開・共有」から行えます</span>
+    <button type="button" class="nb" id="guest-login" onclick="openAuthModal()"><span data-i18n="ログイン / 新規登録">ログイン / 新規登録</span></button>
+  </div>
+
   <!-- GALLERY -->
   <div id="view-gallery" class="view active">
     <!-- タブ切り替え -->
@@ -707,9 +726,41 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div id="launchpad">
       <div class="lp-head">
         <h1>🥔 HTML Sandbox</h1>
-        <p id="lp-sub"><span data-i18n="ローカルAI（Ollama）でコードを生成・編集">ローカルAI（Ollama）でコードを生成・編集</span></p>
+        <p data-i18n="ファイルを読み込むか、コードを貼り付けて起動できます">ファイルを読み込むか、コードを貼り付けて起動できます</p>
       </div>
 
+      <div class="lp-div"><span><span data-i18n="コードを持ち込んで作る">コードを持ち込んで作る</span></span></div>
+      <div id="code-drop-zone">
+        <div class="code-file-controls">
+          <button type="button" class="nb" id="code-file-button" onclick="document.getElementById('code-file-input').click()"><span data-i18n="ファイルを選択">ファイルを選択</span></button>
+          <input id="code-file-input" type="file" accept=".html,.htm,.js,.css,.txt" hidden>
+          <span class="code-file-hint" id="code-file-hint" data-i18n="ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）">ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）</span>
+        </div>
+        <label for="lp-code" class="code-file-hint" data-i18n="コードを貼り付けるか、ファイルを読み込んでください">コードを貼り付けるか、ファイルを読み込んでください</label>
+        <textarea id="lp-code" placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）" data-i18n-placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）"></textarea>
+        <div id="code-file-status" role="status" aria-live="polite"></div>
+      </div>
+      <div class="lp-btns">
+        <button class="lb main" onclick="launchStudio()"><span data-i18n="起動する">起動する</span></button>
+        <button class="lb sub" onclick="nav('gallery')"><span data-i18n="ギャラリーを見る">ギャラリーを見る</span></button>
+      </div>
+      <!-- テンプレート -->
+      <div style="width:100%;max-width:600px;">
+        <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:8px;display:flex;align-items:center;gap:5px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span data-i18n="テンプレートから始める">テンプレートから始める</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px;">
+          <button onclick="loadTemplate('breakout')" class="tpl-btn"><span data-i18n="🎮 ブロック崩し">🎮 ブロック崩し</span></button>
+          <button onclick="loadTemplate('timer')" class="tpl-btn"><span data-i18n="⏱ タイマー">⏱ タイマー</span></button>
+          <button onclick="loadTemplate('paint')" class="tpl-btn"><span data-i18n="🎨 お絵かき">🎨 お絵かき</span></button>
+          <button onclick="loadTemplate('calc')" class="tpl-btn"><span data-i18n="🧮 電卓">🧮 電卓</span></button>
+          <button onclick="loadTemplate('clock')" class="tpl-btn"><span data-i18n="🕐 時計">🕐 時計</span></button>
+        </div>
+      </div>
+
+      <details class="optional-tools" id="ai-create-options"><summary data-i18n="AIにコードを作ってもらう">AIにコードを作ってもらう</summary>
+        <p id="lp-sub"><span data-i18n="ローカルAI（Ollama）でコードを生成・編集">ローカルAI（Ollama）でコードを生成・編集</span></p>
       <!-- AI Generate -->
       <div class="lp-ai">
         <div class="lp-ai-lbl">
@@ -726,21 +777,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         </div>
       </div>
 
-      <!-- テンプレート -->
-      <div style="width:100%;max-width:600px;">
-        <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:8px;display:flex;align-items:center;gap:5px;">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          <span data-i18n="テンプレートから始める">テンプレートから始める</span>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:7px;">
-          <button onclick="loadTemplate('breakout')" class="tpl-btn"><span data-i18n="🎮 ブロック崩し">🎮 ブロック崩し</span></button>
-          <button onclick="loadTemplate('timer')" class="tpl-btn"><span data-i18n="⏱ タイマー">⏱ タイマー</span></button>
-          <button onclick="loadTemplate('paint')" class="tpl-btn"><span data-i18n="🎨 お絵かき">🎨 お絵かき</span></button>
-          <button onclick="loadTemplate('calc')" class="tpl-btn"><span data-i18n="🧮 電卓">🧮 電卓</span></button>
-          <button onclick="loadTemplate('clock')" class="tpl-btn"><span data-i18n="🕐 時計">🕐 時計</span></button>
-        </div>
-      </div>
-
+      </details>
+      <details class="optional-tools" id="image-create-options"><summary data-i18n="画像から画面を作る">画像から画面を作る</summary>
       <!-- Image to Code -->
       <div class="lp-div"><span><span data-i18n="または画像からコードを生成（llama3.2-vision）">または画像からコードを生成（llama3.2-vision）</span></span></div>
       <div style="width:100%;max-width:600px;display:flex;flex-direction:column;gap:10px;">
@@ -782,21 +820,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         </div>
       </div>
 
-      <div class="lp-div"><span><span data-i18n="またはコードを貼り付け">またはコードを貼り付け</span></span></div>
-      <div id="code-drop-zone">
-        <div class="code-file-controls">
-          <button type="button" class="nb" id="code-file-button" onclick="document.getElementById('code-file-input').click()"><span data-i18n="ファイルを選択">ファイルを選択</span></button>
-          <input id="code-file-input" type="file" accept=".html,.htm,.js,.css,.txt" hidden>
-          <span class="code-file-hint" id="code-file-hint" data-i18n="ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）">ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）</span>
-        </div>
-        <label for="lp-code" class="code-file-hint" data-i18n="コードを貼り付けるか、ファイルを読み込んでください">コードを貼り付けるか、ファイルを読み込んでください</label>
-        <textarea id="lp-code" placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）" data-i18n-placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）"></textarea>
-        <div id="code-file-status" role="status" aria-live="polite"></div>
-      </div>
-      <div class="lp-btns">
-        <button class="lb main" onclick="launchStudio()"><span data-i18n="起動する">起動する</span></button>
-        <button class="lb sub" onclick="nav('gallery')"><span data-i18n="ギャラリーを見る">ギャラリーを見る</span></button>
-      </div>
+      </details>
     </div>
 
     <!-- Workspace -->
@@ -829,9 +853,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <span data-i18n="チャット">チャット</span>
         </button>
+        <button class="nb pri" id="save-work-btn" onclick="saveCurrentWork()"><span data-i18n="作品を保存">作品を保存</span></button>
         <button class="nb" onclick="dlCode()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span data-i18n="保存">保存</span>
+          <span data-i18n="HTMLを書き出す">HTMLを書き出す</span>
         </button>
         <button class="nb" onclick="toggleHistory()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
@@ -1114,6 +1139,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <span data-i18n="⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名と、あなたが投稿したコメントの表示名もすべて更新されます。">⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名と、あなたが投稿したコメントの表示名もすべて更新されます。</span>
     </div>
     <div class="div1"></div>
+    <details class="optional-tools" id="advanced-ai-settings"><summary data-i18n="AIの詳細設定">AIの詳細設定</summary>
     <!-- Ollama設定 -->
     <!-- モード切替 -->
     <label class="fl"><span data-i18n="AI モード">AI モード</span></label>
@@ -1188,6 +1214,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <button onclick="checkNanoAvailability()" style="width:100%;padding:8px;background:var(--s3);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--f);margin-bottom:4px"><span data-i18n="🔷 Chrome AI の利用可否を確認">🔷 Chrome AI の利用可否を確認</span></button>
     </div>
     <div class="div1"></div>
+    </details>
     <!-- Firebase Auth -->
     <label class="fl"><span data-i18n="アカウント">アカウント</span></label>
     <div id="auth-status" style="font-size:12px;color:var(--t2);margin-bottom:10px"><span data-i18n="未ログイン">未ログイン</span></div>
@@ -1243,7 +1270,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div class="mt"><span data-i18n="公開・共有">公開・共有</span><button class="mc" onclick="CM('shm')">✕</button></div>
     <label class="fl"><span data-i18n="アプリのタイトル">アプリのタイトル</span></label>
     <input type="text" id="shtitle" class="fi" placeholder="My Awesome App">
-    <label class="fl"><span data-i18n="共有URLのフォーク保護">共有URLのフォーク保護</span></label>
+    <label class="fl"><span data-i18n="フォーク操作の確認用パスワード">フォーク操作の確認用パスワード</span></label>
+    <p class="code-file-hint" data-i18n="このパスワードはフォーク操作の確認用です。表示されるコードのコピーを防ぐものではありません">このパスワードはフォーク操作の確認用です。表示されるコードのコピーを防ぐものではありません</p>
     <div class="spw-share-opt" style="margin-bottom:4px">
       <label><input type="radio" name="share-pw-mode" value="0" checked onchange="syncSharePwUI()"> <span data-i18n="パスワードなし（URLを開いた人がそのままプレビュー・フォーク可）">パスワードなし（URLを開いた人がそのままプレビュー・フォーク可）</span></label>
       <label><input type="radio" name="share-pw-mode" value="1" onchange="syncSharePwUI()"> <span data-i18n="パスワードあり（プレビューは誰でも可／">パスワードあり（プレビューは誰でも可／</span><strong><span data-i18n="フォーク">フォーク</span></strong><span data-i18n="時のみパスワード）">時のみパスワード）</span></label>
@@ -1410,6 +1438,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 // ════════════════════════════════════════════
 //  Firebase
 // ════════════════════════════════════════════
+var db = null, auth = null;
+if (typeof firebase !== 'undefined') {
+try {
 firebase.initializeApp({
   apiKey:'AIzaSyBSZNHnNcui0Q1VkRshaHEuiMt8wDV2zGk',
   authDomain:'poteto0107-78af7.firebaseapp.com',
@@ -1417,8 +1448,10 @@ firebase.initializeApp({
   storageBucket:'poteto0107-78af7.firebasestorage.app',
   appId:'1:208184037315:web:c220bbc24c600a011bf776'
 });
-var db   = firebase.firestore();
-var auth = firebase.auth();
+db = firebase.firestore();
+auth = firebase.auth();
+} catch (e) { console.warn('Firebase initialization unavailable'); }
+}
 
 /** 公開サイトの正規URL（GitHub Pages） */
 var SITE_BASE_URL = 'https://potetostudio.github.io/-/';
@@ -1462,9 +1495,9 @@ function normalizeLegacyShareUrl(url) {
 // ════════════════════════════════════════════
 //  State
 // ════════════════════════════════════════════
-var apps      = JSON.parse(localStorage.getItem('pt_apps') || '[]');
-var prof      = JSON.parse(localStorage.getItem('pt_prof') || '{"name":"","avatar":""}');
-var ollamaURL = localStorage.getItem('pt_ollama') || 'http://localhost:11434';
+var apps = [];
+var prof = {name:'',avatar:''};
+var ollamaURL = readLocalText('pt_ollama', null) || 'http://localhost:11434';
 var ollamaChatModel = 'qwen2.5-coder:7b';
 var ollamaBuildModel = 'deepseek-coder-v2:16b';
 var codeModel = ollamaBuildModel;
@@ -1519,9 +1552,10 @@ function normalizeGalleryPreviewCode(code) {
 
 /** ギャラリープレビュー: ビュー表示後に iframe へ注入（非表示のまま srcdoc を書く PC 不具合対策） */
 function openGalleryPreview(code) {
+  var revision=accountRevision, sequence=++previewSequence;
   var apv = document.getElementById('app-pv');
   if (!apv) return;
-  if (!curUser) { updateAuthGate(); return; }
+  if (!curUser && !guestMode) { updateAuthGate(); return; }
   var currentActive = document.querySelector('.view.active');
   if (currentActive && currentActive.id !== 'view-app') {
     _prevView = currentActive.id.replace('view-', '');
@@ -1531,6 +1565,7 @@ function openGalleryPreview(code) {
   apv.removeAttribute('src');
   apv.srcdoc = '';
   setTimeout(function() {
+    if(revision!==accountRevision || sequence!==previewSequence || !document.getElementById('view-app').classList.contains('active'))return;
     injectAndSet(apv, code);
   }, 50);
 }
@@ -1662,6 +1697,8 @@ function formatGeminiApiError(httpStatus, data, networkErr) {
 }
 
 async function callGemini(prompt, base64img, mimeType) {
+  var operationRevision=accountRevision;
+  try {
   if (!geminiKey) {
     openSettings();
     switchMode('cloud');
@@ -1673,13 +1710,13 @@ async function callGemini(prompt, base64img, mimeType) {
   var parts = [{ text: prompt }];
   if (base64img) parts.push({ inline_data: { mime_type: mimeType || 'image/png', data: base64img } });
   try {
-    var res = await fetch(url, {
+    var res = await guardAccountPromise(operationRevision, (fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: parts }] })
-    });
+    })));
     var data = {};
-    try { data = await res.json(); } catch (parseErr) { data = {}; }
+    try { data = await guardAccountPromise(operationRevision, (res.json())); } catch (parseErr) { if(operationRevision!==accountRevision)return;  data = {}; }
 
     if (!res.ok) {
       var jaMsg = formatGeminiApiError(res.status, data, null);
@@ -1701,13 +1738,18 @@ async function callGemini(prompt, base64img, mimeType) {
       return null;
     }
     return data.candidates[0].content.parts[0].text;
-  } catch (e) {
+  } catch (e) { if(operationRevision!==accountRevision)return;
     var jaNet = formatGeminiApiError(null, null, e.message);
     console.warn('Gemini fetch error:', e);
     T(jaNet);
     var agMsg2 = document.getElementById('ag-msg');
     if (agMsg2) agMsg2.textContent = '⚠ ' + jaNet;
     return null;
+  }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
   }
 }
 
@@ -1776,6 +1818,8 @@ async function checkNanoAvailability() {
 
 // Chrome Built-in AI での推論
 async function callNano(prompt, onChunk) {
+  var operationRevision=accountRevision;
+  try {
   // まず利用可否を確認
   if (!window.ai || !window.ai.languageModel) {
     T(t('⚠ Chrome 組み込み AI が利用できません。設定を確認してください'));
@@ -1783,34 +1827,39 @@ async function callNano(prompt, onChunk) {
     return null;
   }
   try {
-    var session = await window.ai.languageModel.create({
+    var session = await guardAccountPromise(operationRevision, (window.ai.languageModel.create({
       systemPrompt:
         'You are an expert HTML/CSS/JavaScript developer. ' +
         'When asked to create or modify a web app, you MUST output ONLY a complete single-file HTML document. ' +
         'Wrap the entire output inside a ```html ... ``` code block. ' +
         'Do not output any explanation, commentary, or text outside the code block.'
-    });
+    })));
     var result = '';
     // Streaming サポートがある場合
     if (session.promptStreaming) {
-      var stream = await session.promptStreaming(prompt);
+      var stream = await guardAccountPromise(operationRevision, (session.promptStreaming(prompt)));
       var reader = stream.getReader();
       while (true) {
-        var ref = await reader.read();
+        var ref = await guardAccountPromise(operationRevision, (reader.read()));
         if (ref.done) break;
         result = ref.value; // promptStreaming は累積テキストを返す
         if (onChunk) onChunk(result);
       }
     } else {
-      result = await session.prompt(prompt);
+      result = await guardAccountPromise(operationRevision, (session.prompt(prompt)));
       if (onChunk) onChunk(result);
     }
     session.destroy();
     return result;
-  } catch(e) {
+  } catch(e) { if(operationRevision!==accountRevision)return;
     T(t('Chrome AI エラー: ') + e.message);
     console.error('Nano error:', e);
     return null;
+  }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
   }
 }
 
@@ -1850,13 +1899,15 @@ function showBuildLoading(on) {
 }
 
 async function callOllamaChatStream(model, messages, onToken) {
+  var operationRevision=accountRevision;
+  try {
   var url = ollamaURL + '/api/chat';
   try {
-    var res = await fetch(url, {
+    var res = await guardAccountPromise(operationRevision, (fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: model, messages: messages, stream: true })
-    });
+    })));
     if (!res.ok) throw new Error('HTTP ' + res.status);
 
     var reader = res.body.getReader();
@@ -1864,7 +1915,7 @@ async function callOllamaChatStream(model, messages, onToken) {
     var full = '';
 
     while (true) {
-      var ref = await reader.read();
+      var ref = await guardAccountPromise(operationRevision, (reader.read()));
       if (ref.done) break;
       var lines = decoder.decode(ref.value).split('\n');
       for (var i = 0; i < lines.length; i++) {
@@ -1877,17 +1928,22 @@ async function callOllamaChatStream(model, messages, onToken) {
             full += token;
             if (onToken) onToken(full);
           }
-        } catch(e) {}
+        } catch(e) { if(operationRevision!==accountRevision)return; }
       }
     }
     return full;
-  } catch(e) {
+  } catch(e) { if(operationRevision!==accountRevision)return;
     if (e.name === 'TypeError' || e.message.includes('fetch')) {
       showOllamaErr(t('⚠ CORS設定が必要です: launchctl setenv OLLAMA_ORIGINS "*" → Ollamaを再起動'));
     } else {
       showOllamaErr('⚠ ' + e.message);
     }
     return null;
+  }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
   }
 }
 
@@ -1897,20 +1953,22 @@ async function callOllama(model, prompt, onChunk) {
 
 // マルチモーダル（画像付き）
 async function callOllamaWithImage(model, prompt, base64img) {
+  var operationRevision=accountRevision;
+  try {
   var url = ollamaURL + '/api/generate';
   try {
-    var res = await fetch(url, {
+    var res = await guardAccountPromise(operationRevision, (fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: model, prompt: prompt, images: [base64img], stream: true })
-    });
+    })));
     if (!res.ok) throw new Error('HTTP ' + res.status);
 
     var reader = res.body.getReader();
     var decoder = new TextDecoder();
     var full = '';
     while (true) {
-      var ref = await reader.read();
+      var ref = await guardAccountPromise(operationRevision, (reader.read()));
       if (ref.done) break;
       decoder.decode(ref.value).split('\n').forEach(function(line) {
         if (!line.trim()) return;
@@ -1918,9 +1976,14 @@ async function callOllamaWithImage(model, prompt, base64img) {
       });
     }
     return full;
-  } catch(e) {
+  } catch(e) { if(operationRevision!==accountRevision)return;
     showOllamaErr(t('⚠ Ollamaに接続できません。「ollama serve」で起動してください'));
     return null;
+  }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
   }
 }
 
@@ -1959,6 +2022,7 @@ function extractCode(raw) {
 
 // ストリーミングプログレスバー
 function startStreamBar() {
+  var revision=accountRevision;
   var bar = document.getElementById('stream-bar');
   bar.style.width = '0';
   bar.classList.add('active');
@@ -1967,7 +2031,8 @@ function startStreamBar() {
     w = Math.min(w + Math.random() * 3, 85);
     bar.style.width = w + '%';
   }, 200);
-  return function(){ clearInterval(iv); bar.style.width = '100%'; setTimeout(function(){ bar.classList.remove('active'); bar.style.width = '0'; }, 400); };
+  streamIntervals.add(iv);
+  return function(){ clearInterval(iv);streamIntervals.delete(iv); if(revision!==accountRevision)return; bar.style.width = '100%'; setTimeout(function(){ if(revision===accountRevision){bar.classList.remove('active'); bar.style.width = '0';} }, 400); };
 }
 
 // ════════════════════════════════════════════
@@ -1976,6 +2041,7 @@ function startStreamBar() {
 var _prevView = 'gallery'; // 戻るボタン用：直前のビュー
 
 function clearAppPreview() {
+  previewSequence++;
   var apv = document.getElementById('app-pv');
   if (apv) { apv.srcdoc = ''; apv.removeAttribute('src'); }
   forkCode = '';
@@ -2032,7 +2098,8 @@ function goBack() {
 }
 
 function nav(v, opts) {
-  if (!curUser) {
+  flushStudioDraft();
+  if (!curUser && !guestMode) {
     updateAuthGate();
     return;
   }
@@ -2041,6 +2108,7 @@ function nav(v, opts) {
   if (currentActive && currentActive.id !== 'view-app') {
     _prevView = currentActive.id.replace('view-', '');
   }
+  if(v!=='app' && currentActive && currentActive.id==='view-app')clearAppPreview();
   document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
   document.getElementById('view-' + v).classList.add('active');
   if (v === 'gallery') {
@@ -2056,6 +2124,7 @@ function nav(v, opts) {
       document.getElementById('workspace').style.display = 'none';
     } else {
       resetS();
+      restoreStudioDraft();
     }
   }
   if (v === 'app') updateAppBackLabel();
@@ -2237,6 +2306,7 @@ function renderGallery() {
           '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">' +
             '<div class="gc-title" style="flex:1">' + E(a.title) + '</div>' +
             '<div class="gc-actions">' +
+              '<button class="gc-rename" onclick="event.stopPropagation();editMyApp(\'' + (a.urlId || a.id) + '\')" title="' + E(t('この作品を編集')) + '">✎</button>' +
               '<button class="gc-rename" onclick="event.stopPropagation();openRenameApp(\'' + (a.urlId || a.id) + '\')" title="名前を変更">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
               '</button>' +
@@ -2278,6 +2348,8 @@ function openRenameApp(id) {
 }
 
 async function submitRenameApp() {
+  var operationRevision=accountRevision;
+  try {
   var val = document.getElementById('rename-app-input').value.trim();
   if (!val) {
     document.getElementById('rename-app-err').style.display = 'block';
@@ -2287,24 +2359,24 @@ async function submitRenameApp() {
   if (!a) { CM('rename-app-modal'); return; }
   var docId = String(a.urlId || a.id);
   a.title = val;
-  localStorage.setItem('pt_apps', JSON.stringify(apps));
+  persistApps();
   if (curUser) {
     try {
-      await db.collection('users').doc(curUser.uid).collection('apps').doc(docId).set({
+      await guardAccountPromise(operationRevision, (db.collection('users').doc(curUser.uid).collection('apps').doc(docId).set({
         label: val,
         updatedAt: new Date()
-      }, { merge: true });
-      var gsnap = await db.collection('gallery').doc(docId).get();
+      }, { merge: true })));
+      var gsnap = await guardAccountPromise(operationRevision, (db.collection('gallery').doc(docId).get()));
       if (gsnap.exists && gsnap.data().uid === curUser.uid) {
-        await db.collection('gallery').doc(docId).update({
+        await guardAccountPromise(operationRevision, (db.collection('gallery').doc(docId).update({
           title: val,
           updatedAt: new Date()
-        });
+        })));
         publicApps.forEach(function(p) {
           if (String(p._docId) === docId) p.title = val;
         });
       }
-    } catch (e) {
+    } catch (e) { if(operationRevision!==accountRevision)return;
       console.warn('rename failed:', e);
       T(t('名前の保存に失敗しました'));
       return;
@@ -2316,23 +2388,30 @@ async function submitRenameApp() {
     document.getElementById('app-ttl').textContent = val;
   }
   T(t('名前を変更しました'));
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 function delApp(id) {
   if (!confirm(t('削除しますか？'))) return;
   // urlId（文字列）または数値id どちらで渡されても対応
   apps = apps.filter(function(a){ return (a.urlId || String(a.id)) !== String(id) && a.id !== id; });
-  localStorage.setItem('pt_apps', JSON.stringify(apps));
+  persistApps();
   if (curUser) db.collection('users').doc(curUser.uid).collection('apps').doc(String(id)).delete().catch(function(){});
   renderGallery(); T(t('削除しました'));
 }
 
 // みんなのギャラリーの作品を削除（自分の投稿のみ）
 async function delPublicApp(docId) {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser) { T(t('ログインが必要です')); return; }
   if (!confirm(t('みんなのギャラリーから削除しますか？'))) return;
   try {
-    var docSnap = await db.collection('gallery').doc(docId).get();
+    var docSnap = await guardAccountPromise(operationRevision, (db.collection('gallery').doc(docId).get()));
     if (!docSnap.exists) {
       publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
       renderGallery(); T(t('削除しました')); return;
@@ -2340,58 +2419,19 @@ async function delPublicApp(docId) {
     var docData = docSnap.data();
     console.log('delPublicApp: doc.uid=' + docData.uid + ', curUser.uid=' + curUser.uid);
 
-    // Firestoreのuidが自分と違う場合 → 過去のバグで壊れた可能性があるので修復を試みる
-    if (docData.uid && docData.uid !== curUser.uid) {
-      console.warn('delPublicApp: uid mismatch. doc.uid=' + docData.uid + ', curUser.uid=' + curUser.uid + ', docId=' + docId);
-      // users/{uid}/apps/{docId} に自分のエントリを書き込んでから削除を試みる
-      // （Firestoreルールに exists(/users/$(uid)/apps/$(appId)) 条件があれば通る）
-      T(t('uid不一致のため修復を試みています...'));
-      try {
-        await db.collection('users').doc(curUser.uid).collection('apps').doc(docId).set({
-          urlId: docId, label: docData.title || t('削除予定'), code: docData.code || '',
-          uid: curUser.uid, updatedAt: new Date(), isPublic: false, _repairFlag: true
-        });
-        console.log('delPublicApp: wrote repair entry to users/' + curUser.uid + '/apps/' + docId);
-      } catch(writeErr) {
-        console.warn('repair write failed:', writeErr);
-      }
-      // 修復エントリを書いた上で削除を再試行
-      try {
-        var csnap2 = await db.collection('gallery').doc(docId).collection('comments').get();
-        if (!csnap2.empty) {
-          var batch2 = db.batch();
-          csnap2.forEach(function(d){ batch2.delete(d.ref); });
-          await batch2.commit();
-        }
-        await db.collection('gallery').doc(docId).delete();
-        publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
-        renderGallery(); T(t('削除しました'));
-        return;
-      } catch(delErr) {
-        console.error('repair-delete failed:', delErr);
-        // Firestoreルール側に exists 条件がない場合はここに来る
-        // docIdとuidを表示してFirebaseコンソールでの手動削除を案内
-        T(t('自動修復に失敗しました。Firebaseコンソール → Firestore → gallery → ') + docId + t(' を手動で削除してください。また下記のFirestoreルール修正が必要です。'));
-        console.error('=== Firestoreルールに以下を追加してください ===');
-        console.error('allow delete: if request.auth != null && (');
-        console.error('  resource.data.uid == request.auth.uid');
-        console.error('  || exists(/databases/$(database)/documents/users/$(request.auth.uid)/apps/$(appId))');
-        console.error(');');
-        return;
-      }
-    }
+    if (docData.uid !== curUser.uid) { T(t('他のユーザーの作品は削除できません')); return; }
 
     // コメントサブコレクションを削除
-    var csnap = await db.collection('gallery').doc(docId).collection('comments').get();
+    var csnap = await guardAccountPromise(operationRevision, (db.collection('gallery').doc(docId).collection('comments').get()));
     if (!csnap.empty) {
       var batch = db.batch();
       csnap.forEach(function(doc) { batch.delete(doc.ref); });
-      await batch.commit();
+      await guardAccountPromise(operationRevision, (batch.commit()));
     }
-    await db.collection('gallery').doc(docId).delete();
+    await guardAccountPromise(operationRevision, (db.collection('gallery').doc(docId).delete()));
     publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
     renderGallery(); T(t('削除しました'));
-  } catch(e) {
+  } catch(e) { if(operationRevision!==accountRevision)return;
     console.error('delPublicApp error:', e);
     var code = e && e.code ? e.code : '';
     var msg  = e && e.message ? e.message : String(e);
@@ -2400,6 +2440,11 @@ async function delPublicApp(docId) {
     } else {
       T(t('削除に失敗しました: ') + (code || msg));
     }
+  }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
   }
 }
 
@@ -2520,6 +2565,8 @@ function startCommentsListener(appId) {
 }
 
 async function postComment() {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser) { T(t('ログインが必要です')); return; }
   if (!curPublicDocId) return;
   var ta = document.getElementById('app-comment-input');
@@ -2529,18 +2576,23 @@ async function postComment() {
   var btn = document.getElementById('app-comment-post');
   if (btn) btn.disabled = true;
   try {
-    await db.collection('gallery').doc(curPublicDocId).collection('comments').add({
+    await guardAccountPromise(operationRevision, (db.collection('gallery').doc(curPublicDocId).collection('comments').add({
       uid: curUser.uid,
       authorName: (prof.name) || (curUser.displayName) || t('名無しのポテト'),
       text: text,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    })));
     if (ta) ta.value = '';
-  } catch (e) {
+  } catch (e) { if(operationRevision!==accountRevision)return;
     console.warn('postComment failed:', e);
     T(t('コメントの投稿に失敗しました'));
   }
   if (btn) btn.disabled = !curUser;
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 function openEditComment(commentId) {
@@ -2555,6 +2607,8 @@ function openEditComment(commentId) {
 }
 
 async function submitEditComment() {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser || !curPublicDocId || !_editCommentId) return;
   var val = document.getElementById('edit-comment-input').value.trim();
   var errEl = document.getElementById('edit-comment-err');
@@ -2567,28 +2621,40 @@ async function submitEditComment() {
   }
   if (errEl) errEl.style.display = 'none';
   try {
-    await db.collection('gallery').doc(curPublicDocId).collection('comments').doc(_editCommentId).update({
+    await guardAccountPromise(operationRevision, (db.collection('gallery').doc(curPublicDocId).collection('comments').doc(_editCommentId).update({
       text: val,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    })));
     CM('edit-comment-modal');
     _editCommentId = null;
     T(t('コメントを更新しました'));
-  } catch (e) {
+  } catch (e) { if(operationRevision!==accountRevision)return;
     console.warn('submitEditComment failed:', e);
     T(t('コメントの更新に失敗しました'));
+  }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
   }
 }
 
 async function deleteComment(commentId) {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser || !curPublicDocId) return;
   if (!confirm(t('このコメントを削除しますか？'))) return;
   try {
-    await db.collection('gallery').doc(curPublicDocId).collection('comments').doc(commentId).delete();
+    await guardAccountPromise(operationRevision, (db.collection('gallery').doc(curPublicDocId).collection('comments').doc(commentId).delete()));
     T(t('コメントを削除しました'));
-  } catch (e) {
+  } catch (e) { if(operationRevision!==accountRevision)return;
     console.warn('deleteComment failed:', e);
     T(t('削除に失敗しました'));
+  }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
   }
 }
 
@@ -2669,13 +2735,13 @@ function openApp(id) {
 
 /** いいね状態の localStorage キー（アカウント＋作品ごと） */
 function likeStorageKey() {
-  if (curPublicDocId) return 'pt_liked_' + curPublicDocId;
-  if (curAppId != null) return 'pt_liked_my_' + curAppId;
+  if (curPublicDocId) return accountKey('liked_' + curPublicDocId);
+  if (curAppId != null) return accountKey('liked_my_' + curAppId);
   return null;
 }
 function isAppLiked() {
   var key = likeStorageKey();
-  return !!(key && localStorage.getItem(key));
+  return !!(key && readLocalText(key, null));
 }
 function setLikeHeartUI(liked) {
   document.getElementById('lico').setAttribute('fill', liked ? 'currentColor' : 'none');
@@ -2685,11 +2751,13 @@ function syncLikeHeartFromStorage() {
 }
 
 async function likeApp() {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser) { T(t('ログインが必要です')); return; }
   var key = likeStorageKey();
   if (!key) return;
 
-  var liked = !!localStorage.getItem(key);
+  var liked = !!readLocalText(key, null);
 
   // ── みんなのギャラリー ──
   if (curPublicDocId) {
@@ -2701,11 +2769,11 @@ async function likeApp() {
       var next = Math.max(0, cur_cnt - 1);
       document.getElementById('lcnt').textContent = next;
       try {
-        await db.collection('gallery').doc(curPublicDocId).update({
+        await guardAccountPromise(operationRevision, (db.collection('gallery').doc(curPublicDocId).update({
           likes: firebase.firestore.FieldValue.increment(-1)
-        });
+        })));
         if (pa) pa.likes = next;
-      } catch (e) {
+      } catch (e) { if(operationRevision!==accountRevision)return;
         console.warn('unlike update failed:', e);
         localStorage.setItem(key, '1');
         setLikeHeartUI(true);
@@ -2718,11 +2786,11 @@ async function likeApp() {
       var nextUp = cur_cnt + 1;
       document.getElementById('lcnt').textContent = nextUp;
       try {
-        await db.collection('gallery').doc(curPublicDocId).update({
+        await guardAccountPromise(operationRevision, (db.collection('gallery').doc(curPublicDocId).update({
           likes: firebase.firestore.FieldValue.increment(1)
-        });
+        })));
         if (pa) pa.likes = nextUp;
-      } catch (e) {
+      } catch (e) { if(operationRevision!==accountRevision)return;
         console.warn('like update failed:', e);
         localStorage.removeItem(key);
         setLikeHeartUI(false);
@@ -2745,8 +2813,13 @@ async function likeApp() {
     a.likes = (a.likes || 0) + 1;
     setLikeHeartUI(true);
   }
-  localStorage.setItem('pt_apps', JSON.stringify(apps));
+  persistApps();
   document.getElementById('lcnt').textContent = a.likes;
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 function forkApp() {
   if (sharedGatePayload && !forkCode) {
@@ -2765,9 +2838,11 @@ function forkApp() {
   var pub = (!a && curPublicDocId) ? publicApps.find(function(x){ return x._docId === curPublicDocId; }) : null;
   var baseTitle = (a ? a.title : (pub ? pub.title : null));
   var label = (baseTitle || t('フォーク')) + t(' のフォーク');
+  var copiedCode=forkCode, revision=accountRevision;
   nav('studio');
   setTimeout(function(){
-    startWS(forkCode, label, 'original');
+    if(revision!==accountRevision)return;
+    startWS(copiedCode, label, 'original');
     T(t('フォークしました！コードを自由に編集できます ✓'));
   }, 80);
 }
@@ -2803,7 +2878,7 @@ function resetS() {
   if (chatOpen) toggleChatPanel();
   clearChat();
   hideCP(); hideAutoFix();
-  vers = []; cur = '';
+  vers = []; cur = ''; editingAppId = null;
   updateTopNavVisibility();
 }
 
@@ -2848,7 +2923,9 @@ async function importCodeFiles(files) {
       return false;
     }
     input.value = code;
+    editingAppId = null;
     codeInputFileName = file.name;
+    flushStudioDraft();
     showCodeFileStatus('読み込み済み: ', file.name);
     input.focus();
     return true;
@@ -2898,7 +2975,9 @@ function launchStudio() {
   if (!c) { T(t('コードを入力してください')); return; }
   codeImportSequence++;
   var extension = codeInputFileName.split('.').pop().toLowerCase();
-  startWS(wrapCode(c, extension), codeInputFileName || t('貼り付けコード'), 'original');
+  var history = vers.slice();
+  startWS(wrapCode(c, extension), codeInputFileName || t('貼り付けコード'), 'original', false, editingAppId);
+  if (history.length) { vers = vers.concat(history).slice(0,20); renderHist(); flushStudioDraft(); }
 }
 
 function wrapCode(code, fileType) {
@@ -2921,17 +3000,18 @@ function wrapCode(code, fileType) {
   return t;
 }
 
-function startWS(code, label, type, skipAutoSave) {
+function startWS(code, label, type, skipAutoSave, existingId) {
+  editingAppId = existingId || null;
   cur = code;
   curPublicDocId = null; // フォーク後のワークスペースではgallery由来フラグをリセット
-  isTemplate = !!skipAutoSave; // テンプレート起動時はtrue
+  isTemplate = !!skipAutoSave && !editingAppId; // テンプレート起動時はtrue
   document.getElementById('launchpad').style.display = 'none';
   document.getElementById('workspace').style.display = 'flex';
   injectAndSet(document.getElementById('sif'), cur);
   vers = [{ id: Date.now(), code: cur, label: label, type: type || 'original' }];
   renderHist(); hideCP(); hideAutoFix();
   setupErrCapture();
-  if (!skipAutoSave) autoSaveToFirestore(label);
+  flushStudioDraft();
   updateTopNavVisibility();
 }
 
@@ -2954,6 +3034,8 @@ function startThinking() {
 function stopThinking() { clearInterval(tkTimer); document.getElementById('thinking').classList.remove('on'); }
 
 async function genFromPrompt() {
+  var operationRevision=accountRevision;
+  try {
   var p = document.getElementById('agi').value.trim();
   if (!p) return;
   var btn = document.getElementById('agb'), st = document.getElementById('ag-status');
@@ -2985,15 +3067,15 @@ async function genFromPrompt() {
     var buildSys =
       'You are an expert HTML/CSS/JavaScript developer. You output one complete single-file web application. ' +
       'The full HTML must appear inside a single ```html ... ``` fenced code block. After the closing fence you may add one short Japanese sentence.';
-    raw = await callOllamaChatStream(ollamaBuildModel, [
+    raw = await guardAccountPromise(operationRevision, (callOllamaChatStream(ollamaBuildModel, [
       { role: 'system', content: buildSys },
       { role: 'user', content: prompt }
     ], function(full) {
       setUiText(document.getElementById('ag-msg'), function(){ return 'DeepSeek-16B … ' + full.length + t(' 文字を処理中'); });
-    });
+    })));
     showBuildLoading(false);
   } else {
-    raw = await callAI(prompt, null, null, function(chunk) {
+    raw = await guardAccountPromise(operationRevision, (callAI(prompt, null, null, function(chunk) {
       var now = Date.now();
       setUiText(document.getElementById('ag-msg'), function(){ return t('ストリーミング中... ') + chunk.length + t(' 文字'); });
       if (now - lastPreviewUpdate > 500) {
@@ -3003,7 +3085,7 @@ async function genFromPrompt() {
           document.getElementById('lp-code').value = partial;
         }
       }
-    });
+    })));
   }
 
   stopBar();
@@ -3020,9 +3102,16 @@ async function genFromPrompt() {
       updateTopNavVisibility();
     }
   }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 async function runAI() {
+  var operationRevision=accountRevision;
+  try {
   var p = document.getElementById('ai-inp').value.trim();
   if (!p || !cur) return;
   document.getElementById('ai-snd').disabled = true;
@@ -3036,7 +3125,7 @@ async function runAI() {
 
   var stopBar = startStreamBar();
   var lastAIUpdate = 0;
-  var raw = await callAI(prompt, null, null, function(chunk) {
+  var raw = await guardAccountPromise(operationRevision, (callAI(prompt, null, null, function(chunk) {
     var now = Date.now();
     // 800msごとにプレビューをリアルタイム更新（コードが書き換わっていく演出）
     if (now - lastAIUpdate > 800) {
@@ -3046,7 +3135,7 @@ async function runAI() {
         injectAndSet(document.getElementById('sif'), partial);
       }
     }
-  });
+  })));
   stopBar(); stopThinking();
   document.getElementById('ai-snd').disabled = false;
 
@@ -3062,6 +3151,11 @@ async function runAI() {
       T(t('AI修正完了！'));
       setupErrCapture();
     } else { T(t('コードの抽出に失敗しました')); }
+  }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
   }
 }
 
@@ -3182,6 +3276,8 @@ function copyChatWorkspaceCode() {
 }
 
 async function sendChat() {
+  var operationRevision=accountRevision;
+  try {
   var inp = document.getElementById('chat-inp');
   var p = inp.value.trim();
   if (!p) return;
@@ -3238,7 +3334,7 @@ async function sendChat() {
     var trimmedPast = trimOllamaTurns(wsOllamaMessages, 5);
     var userMsgObj = { role: 'user', content: userTurn };
     var apiMsgs = [{ role: 'system', content: WS_CHAT_SYSTEM }].concat(trimmedPast).concat([userMsgObj]);
-    raw = await callOllamaChatStream(ollamaChatModel, apiMsgs, function(full) {
+    raw = await guardAccountPromise(operationRevision, (callOllamaChatStream(ollamaChatModel, apiMsgs, function(full) {
       var txt = full.replace(/```html[\s\S]*?```/gi, t('[コードを生成中...]'));
       setUiText(thinkBubble, function(){ return txt.slice(-120) || t('生成中...'); });
       thinkBubble.className = 'cm-bubble';
@@ -3250,14 +3346,14 @@ async function sendChat() {
           injectAndSet(document.getElementById('sif'), partial);
         }
       }
-    });
+    })));
     if (raw) {
       wsOllamaMessages.push(userMsgObj);
       wsOllamaMessages.push({ role: 'assistant', content: raw });
       wsOllamaMessages = trimOllamaTurns(wsOllamaMessages, 5);
     }
   } else {
-    raw = await callAI(prompt, null, null, function(chunk) {
+    raw = await guardAccountPromise(operationRevision, (callAI(prompt, null, null, function(chunk) {
       var now = Date.now();
       var txt = chunk.replace(/```html[\s\S]*?```/gi, t('[コードを生成中...]'));
       setUiText(thinkBubble, function(){ return txt.slice(-120) || t('生成中...'); });
@@ -3269,7 +3365,7 @@ async function sendChat() {
           injectAndSet(document.getElementById('sif'), partial);
         }
       }
-    });
+    })));
   }
   stopBar();
   removeThinkingBubble();
@@ -3305,6 +3401,11 @@ async function sendChat() {
     // コードなし → 純粋な会話返答
     addChatMsg('ai', reply || raw);
   }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 // ════════════════════════════════════════════
@@ -3325,6 +3426,8 @@ function cvsToggle() {
  * cvHistory（表示ログ）と cvCode（最新コード）を丸ごと保存する。
  */
 async function cvsSaveSession() {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser) return;
   // タイトル = 最初のユーザー発言の先頭30文字
   var firstUser = cvHistory.find(function(m){ return m.role === 'user'; });
@@ -3338,17 +3441,22 @@ async function cvsSaveSession() {
   };
   try {
     if (cvsCurDocId) {
-      await db.collection('users').doc(curUser.uid)
+      await guardAccountPromise(operationRevision, (db.collection('users').doc(curUser.uid)
         .collection('cvChats').doc(cvsCurDocId)
-        .set(payload, { merge: true });
+        .set(payload, { merge: true })));
     } else {
       payload.createdAt = new Date();
-      var ref = await db.collection('users').doc(curUser.uid)
-        .collection('cvChats').add(payload);
+      var ref = await guardAccountPromise(operationRevision, (db.collection('users').doc(curUser.uid)
+        .collection('cvChats').add(payload)));
       cvsCurDocId = ref.id;
     }
     cvsRender(); // アクティブ状態を更新
-  } catch(e) { console.warn('cvsSaveSession failed:', e); }
+  } catch(e) { if(operationRevision!==accountRevision)return;  console.warn('cvsSaveSession failed:', e); }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 /** サイドバーリストをレンダリング */
@@ -3394,12 +3502,14 @@ function cvsRender() {
 /** Firestoreからチャット一覧をリアルタイム購読 */
 function cvsSubscribe() {
   if (!curUser) return;
+  var uid=curUser.uid, revision=accountRevision;
   if (cvsUnsubscribe) { cvsUnsubscribe(); cvsUnsubscribe = null; }
   cvsUnsubscribe = db.collection('users').doc(curUser.uid)
     .collection('cvChats')
     .orderBy('updatedAt', 'desc')
     .limit(50)
     .onSnapshot(function(snap) {
+      if (!sameAccount(uid,revision)) return;
       cvsChats = [];
       snap.forEach(function(doc){
         cvsChats.push(Object.assign({ id: doc.id }, doc.data()));
@@ -3410,10 +3520,12 @@ function cvsSubscribe() {
 
 /** 選択したチャットを読み込んで会話を再開 */
 async function cvsLoad(docId) {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser) return;
   try {
-    var snap = await db.collection('users').doc(curUser.uid)
-      .collection('cvChats').doc(docId).get();
+    var snap = await guardAccountPromise(operationRevision, (db.collection('users').doc(curUser.uid)
+      .collection('cvChats').doc(docId).get()));
     if (!snap.exists) { T(t('セッションが見つかりません')); return; }
     var d = snap.data();
     cvsCurDocId = docId;
@@ -3455,7 +3567,12 @@ async function cvsLoad(docId) {
     var btn = document.getElementById('cvs-hdr-btn');
     if (btn) btn.classList.add('open');
     T('「' + (d.title||t('無題')) + t('」を再開しました'));
-  } catch(e) { console.warn('cvsLoad failed:', e); T(t('読み込みに失敗しました')); }
+  } catch(e) { if(operationRevision!==accountRevision)return;  console.warn('cvsLoad failed:', e); T(t('読み込みに失敗しました')); }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 /**
@@ -3480,13 +3597,20 @@ function _cvsRenderBubble(role, text) {
 /** 新しいチャットを開始（リセット） */
 /** 新しいチャットを開始 — 現在のセッションを先に保存してからリセット */
 async function cvsNew() {
+  var operationRevision=accountRevision;
+  try {
   // 会話が1件以上あれば保存してから新規へ
   if (curUser && cvHistory.length > 0) {
-    await cvsSaveSession();
+    await guardAccountPromise(operationRevision, (cvsSaveSession()));
   }
   // cvClear内でcvsCurDocIdをnullにするので順番に注意
   cvClear();
   nav('chat');
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 /** チャットセッションを削除 */
@@ -3521,9 +3645,11 @@ function cvUpdateEngine() {
 }
 
 async function cvClear() {
+  var operationRevision=accountRevision;
+  try {
   // 会話が残っていれば先に保存
   if (curUser && cvHistory.length > 0) {
-    await cvsSaveSession();
+    await guardAccountPromise(operationRevision, (cvsSaveSession()));
   }
   cvHistory = []; cvOllamaMessages = []; cvCode = '';
   cvPendingImg = ''; cvPendingMime = '';
@@ -3536,6 +3662,11 @@ async function cvClear() {
   document.getElementById('cv-iframe').srcdoc = '';
   setUiText(document.getElementById('cv-pv-title'), function(){ return t('プレビュー — まだコードがありません'); });
   cvsRender();
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 function cvKeydown(e) {
@@ -3596,6 +3727,8 @@ function cvAddTyping() {
 }
 
 async function cvSend() {
+  var operationRevision=accountRevision;
+  try {
   var inp = document.getElementById('cv-inp');
   var p = inp.value.trim();
   var hasImg = !!cvPendingImg;
@@ -3634,7 +3767,7 @@ async function cvSend() {
       var imgPrompt =
         (p || '画像からHTMLアプリを作成してください') +
         '\n\nHTMLコードは必ず完全な1ファイルを```html ... ```で囲んで出力してください。コード後に日本語で1〜2文の説明を添えてください。';
-      fullReply = await callOllamaWithImage(imgModel, imgPrompt, sentImg);
+      fullReply = await guardAccountPromise(operationRevision, (callOllamaWithImage(imgModel, imgPrompt, sentImg)));
       if (!fullReply) throw new Error(t('画像からの応答がありませんでした'));
       // Ollama履歴には画像なしのテキスト要約として積む
       cvOllamaMessages.push({ role: 'assistant', content: fullReply });
@@ -3648,17 +3781,17 @@ async function cvSend() {
         'After any code block, reply in Japanese with a brief explanation.';
       var messages = [{ role: 'system', content: cvSys }].concat(trimOllamaTurns(cvOllamaMessages, 5));
 
-      var res = await fetch(ollamaURL + '/api/chat', {
+      var res = await guardAccountPromise(operationRevision, (fetch(ollamaURL + '/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: ollamaChatModel, messages: messages, stream: true })
-      });
+      })));
       if (!res.ok) throw new Error('HTTP ' + res.status);
 
       var reader = res.body.getReader();
       var decoder = new TextDecoder();
       while (true) {
-        var ref = await reader.read();
+        var ref = await guardAccountPromise(operationRevision, (reader.read()));
         if (ref.done) break;
         var lines = decoder.decode(ref.value).split('\n');
         for (var i = 0; i < lines.length; i++) {
@@ -3681,14 +3814,14 @@ async function cvSend() {
                 }
               }
             }
-          } catch(e) {}
+          } catch(e) { if(operationRevision!==accountRevision)return; }
         }
       }
       cvOllamaMessages.push({ role: 'assistant', content: fullReply });
       cvOllamaMessages = trimOllamaTurns(cvOllamaMessages, 5);
     }
 
-  } catch(e) {
+  } catch(e) { if(operationRevision!==accountRevision)return;
     stopBar();
     var tyElErr = document.getElementById('cv-typing');
     if (tyElErr) tyElErr.remove();
@@ -3727,6 +3860,11 @@ async function cvSend() {
     cvAddMsg('ai', reply || fullReply.trim());
   }
   cvsSaveSession();
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 function cvAttachImg(e) {
@@ -3810,6 +3948,8 @@ function loadImgFile(file) {
 }
 
 async function generateFromImage() {
+  var operationRevision=accountRevision;
+  try {
   if (!imgBase64) return;
   var btn = document.getElementById('i2c-btn'), st = document.getElementById('i2c-status');
   btn.disabled = true; st.style.display = 'flex';
@@ -3824,7 +3964,7 @@ async function generateFromImage() {
     'Output HTML code only, no explanation. Start with <!DOCTYPE html>.';
 
   var stopBar = startStreamBar();
-  var raw = await callAI(prompt, imgBase64, imgMime, null);
+  var raw = await guardAccountPromise(operationRevision, (callAI(prompt, imgBase64, imgMime, null)));
   stopBar();
   btn.disabled = false; st.style.display = 'none';
 
@@ -3832,6 +3972,11 @@ async function generateFromImage() {
     var code = extractCode(raw);
     if (code) { startWS(code, t('画像から生成'), 'ai'); T(t('画像からアプリを生成しました！')); }
     else { T(t('コードの抽出に失敗しました')); }
+  }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
   }
 }
 
@@ -4041,6 +4186,8 @@ function hideAutoFix() {
   lastError = '';
 }
 async function runAutoFix() {
+  var operationRevision=accountRevision;
+  try {
   if (!lastError || !cur) return;
   var btn = document.getElementById('autofix-btn');
   setUiText(btn, function(){ return t('🔧 修復中...'); }); btn.disabled = true;
@@ -4054,7 +4201,7 @@ async function runAutoFix() {
 
   var stopBar = startStreamBar();
   var lastAIUpdate = 0;
-  var raw = await callAI(prompt, null, null, function(chunk) {
+  var raw = await guardAccountPromise(operationRevision, (callAI(prompt, null, null, function(chunk) {
     var now = Date.now();
     // 800msごとにプレビューをリアルタイム更新（コードが書き換わっていく演出）
     if (now - lastAIUpdate > 800) {
@@ -4064,7 +4211,7 @@ async function runAutoFix() {
         injectAndSet(document.getElementById('sif'), partial);
       }
     }
-  });
+  })));
   stopBar(); stopThinking();
   btn.disabled = false;
   var fixLabel = aiMode === 'nano' ? t('🔷 Chrome AI でエラーを修復') : aiMode === 'cloud' ? t('☁ Gemini でエラーを修復') : t('🤖 Qwen AI でエラーを修復');
@@ -4082,6 +4229,11 @@ async function runAutoFix() {
       setupErrCapture();
     } else { T(t('修復に失敗しました')); }
   }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 // ════════════════════════════════════════════
@@ -4090,16 +4242,17 @@ async function runAutoFix() {
 function hideCP() {
   cpOpen = false;
   document.getElementById('cp').style.display = 'none';
-  var b = document.getElementById('ctbtn'); if (b) b.textContent = '< > コードを表示';
+  var b = document.getElementById('ctbtn'); if (b) setUiText(b,function(){return '< > '+t('コードを表示');});
 }
 function showCP() {
   cpOpen = true;
   document.getElementById('cp').style.display = 'flex';
   document.getElementById('ct').value = cur; onCI();
-  var b = document.getElementById('ctbtn'); if (b) b.textContent = '< > コードを隠す';
+  var b = document.getElementById('ctbtn'); if (b) setUiText(b,function(){return '< > '+t('コードを隠す');});
 }
 function toggleCodePanel() { if (cpOpen) hideCP(); else showCP(); }
 function onCI() {
+  scheduleStudioDraft();
   var ta = document.getElementById('ct'), el = document.querySelector('#ch code');
   if (!el) return;
   el.textContent = ta.value;
@@ -4124,7 +4277,7 @@ function applyCode() {
   cur = document.getElementById('ct').value;
   injectAndSet(document.getElementById('sif'), cur);
   vers.unshift({ id: Date.now(), code: cur, label: t('コード編集'), type: 'manual' });
-  renderHist(); T(t('✓ 適用しました'));
+  renderHist(); flushStudioDraft(); T(t('✓ 適用しました'));
 }
 
 // ════════════════════════════════════════════
@@ -4167,7 +4320,7 @@ function renderHist() {
     return '<div class="vc'+(i===0?' cur':'')+'">'+
       '<div class="vt">'+(tl[v.type]||'')+' '+E(v.label)+'</div>'+
       '<div class="vm"><span class="vtime">'+new Date(v.id).toLocaleTimeString(uiLanguage === 'en' ? 'en-US' : 'ja-JP')+'</span>'+
-        '<div class="vbs"><button class="vb ok" onclick="restoreV('+i+')">戻す</button></div>'+
+        '<div class="vbs"><button class="vb ok" onclick="restoreV('+i+')"><span data-i18n="この版に戻す">この版に戻す</span></button></div>'+
       '</div></div>';
   }).join('');
 }
@@ -4214,6 +4367,9 @@ function openShareModal() {
   document.getElementById('shm').classList.add('on');
 }
 async function createShareURL() {
+  var operationRevision=accountRevision;
+  try {
+  if (!curUser) { openAuthModal();T(t('ログインが必要です'));return; }
   // タイトル未入力チェック
   var existingTitle = document.getElementById('shtitle').value.trim();
   if (!existingTitle) {
@@ -4243,8 +4399,8 @@ async function createShareURL() {
       for (var i = 0; i < arr.length; i++) salt += ('0' + arr[i].toString(16)).slice(-2);
       var hash;
       try {
-        hash = await sha256Hex(salt + raw);
-      } catch (ex) {
+        hash = await guardAccountPromise(operationRevision, (sha256Hex(salt + raw)));
+      } catch (ex) { if(operationRevision!==accountRevision)return;
         T(t('この環境ではパスワード付き共有が使えません（HTTPSまたはlocalhostで開いてください）'));
         btn.disabled = false;
         setUiText(btn, function(){ return t('🔗 URLを作成してコピー'); });
@@ -4254,14 +4410,19 @@ async function createShareURL() {
       payload.shareSalt = salt;
       payload.passwordHash = hash;
     }
-    var ref = await db.collection('apps').add(payload);
+    var ref = await guardAccountPromise(operationRevision, (db.collection('apps').add(payload)));
     surl = buildShareUrl(ref.id);
     document.getElementById('surl').textContent = surl;
     document.getElementById('surlbox').style.display = 'block';
     document.getElementById('mailbtn').style.display = 'block';
-    await navigator.clipboard.writeText(surl);
+    await guardAccountPromise(operationRevision, (navigator.clipboard.writeText(surl)));
     setUiText(btn, function(){ return t('✓ コピー済み'); }); T(t('URLをコピーしました！'));
-  } catch(e) { T(t('URL作成に失敗しました')); btn.disabled=false; setUiText(btn, function(){ return t('🔗 URLを作成してコピー'); }); }
+  } catch(e) { if(operationRevision!==accountRevision)return;  T(t('URL作成に失敗しました')); btn.disabled=false; setUiText(btn, function(){ return t('🔗 URLを作成してコピー'); }); }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 function syncSharePwUI() {
   var row = document.getElementById('share-pw-row');
@@ -4270,6 +4431,8 @@ function syncSharePwUI() {
   row.style.display = r && r.value === '1' ? 'block' : 'none';
 }
 async function submitForkPassword() {
+  var operationRevision=accountRevision;
+  try {
   var err = document.getElementById('fork-pw-verify-err');
   if (err) { err.style.display = 'none'; err.textContent = ''; }
   var inputEl = document.getElementById('fork-pw-verify');
@@ -4281,7 +4444,7 @@ async function submitForkPassword() {
   var p = sharedGatePayload;
   if (!p) return;
   try {
-    var h = await sha256Hex(p.salt + input);
+    var h = await guardAccountPromise(operationRevision, (sha256Hex(p.salt + input)));
     if (h !== p.hash) {
       if (err) { setUiText(err, function(){ return t('パスワードが正しくありません'); }); err.style.display = 'block'; }
       return;
@@ -4291,10 +4454,16 @@ async function submitForkPassword() {
     if (inputEl) inputEl.value = '';
     CM('fork-pw-modal');
     T(t('認証しました'));
+    var verifiedCode=forkCode;
     nav('studio');
-    setTimeout(function(){ document.getElementById('lp-code').value = forkCode; T(t('フォークしました！コードを編集して起動してください')); }, 100);
-  } catch (ex) {
+    setTimeout(function(){ if(operationRevision!==accountRevision)return; editingAppId=null;codeInputFileName='';document.getElementById('lp-code').value = verifiedCode;flushStudioDraft();T(t('フォークしました！コードを編集して起動してください')); }, 100);
+  } catch (ex) { if(operationRevision!==accountRevision)return;
     if (err) { setUiText(err, function(){ return t('認証処理に失敗しました'); }); err.style.display = 'block'; }
+  }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
   }
 }
 function copyURL() {
@@ -4309,8 +4478,8 @@ function copyURL() {
 function shareEmail() {
   if (!surl) return;
   surl = normalizeLegacyShareUrl(surl);
-  var t = document.getElementById('shtitle').value.trim() || t('無題');
-  location.href = 'mailto:?subject=' + encodeURIComponent('[Poteto] '+t) + '&body=' + encodeURIComponent(t+'\n\n'+surl);
+  var title = document.getElementById('shtitle').value.trim() || t('無題');
+  location.href = 'mailto:?subject=' + encodeURIComponent('[Poteto] '+title) + '&body=' + encodeURIComponent(title+'\n\n'+surl);
 }
 // タイトルが未入力なら入力モーダルを出し、入力完了後にcallbackを実行する
 var _titleCallback = null;
@@ -4371,6 +4540,8 @@ function openPublishConfirm() {
 
 // セットアップモーダルの「決定して公開へ進む」
 async function submitPublishSetup() {
+  var operationRevision=accountRevision;
+  try {
   var needTitle  = document.getElementById('psetup-title-row').style.display  !== 'none';
   var needAuthor = document.getElementById('psetup-author-row').style.display !== 'none';
   var titleVal  = document.getElementById('psetup-title-input').value.trim();
@@ -4395,8 +4566,8 @@ async function submitPublishSetup() {
   // 表示名を保存（Firestoreにも）
   if (needAuthor) {
     prof.name = authorVal;
-    localStorage.setItem('pt_prof', JSON.stringify(prof));
-    await saveAuthorNameToFirestore(authorVal);
+    persistProfile();
+    await guardAccountPromise(operationRevision, (saveAuthorNameToFirestore(authorVal)));
   }
 
   CM('publish-setup-modal');
@@ -4404,6 +4575,11 @@ async function submitPublishSetup() {
     document.getElementById('shtitle').value.trim(),
     prof.name || authorVal
   );
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 // 確認モーダルを実際に開く内部関数
@@ -4445,7 +4621,10 @@ function generateId(len) {
 }
 
 async function doPublishToGallery() {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser) { T(t('ログインが必要です')); return; }
+  var publishedCode=cur;
   var title = document.getElementById('shtitle').value.trim() || t('無題のアプリ');
   var inp = document.getElementById('publish-confirm-author-input');
   var newAuthor = inp.value.trim();
@@ -4460,14 +4639,14 @@ async function doPublishToGallery() {
   // 作者名が変わっていたら保存・一括更新
   if (authorChanged) {
     prof.name = newAuthor;
-    localStorage.setItem('pt_prof', JSON.stringify(prof));
-    await saveAuthorNameToFirestore(newAuthor);
+    persistProfile();
+    await guardAccountPromise(operationRevision, (saveAuthorNameToFirestore(newAuthor)));
     try {
-      var pubRes = await updatePublicAuthorNameEverywhere(newAuthor);
+      var pubRes = await guardAccountPromise(operationRevision, (updatePublicAuthorNameEverywhere(newAuthor)));
       if (pubRes && pubRes.commentCount > 0) {
         T(t('コメント ') + pubRes.commentCount + t(' 件の表示名も更新しました'));
       }
-    } catch (e) {
+    } catch (e) { if(operationRevision!==accountRevision)return;
       T(t('コメントの表示名更新に失敗しました。Firestoreルールを確認してください'));
     }
     // キャッシュも更新
@@ -4488,7 +4667,7 @@ async function doPublishToGallery() {
   }
   if (urlId) {
     try {
-      var snap = await db.collection('apps').doc(urlId).get();
+      var snap = await guardAccountPromise(operationRevision, (db.collection('apps').doc(urlId).get()));
       if (snap.exists) {
         var snapData = snap.data();
         // uid が自分のものでも null でもない場合 ＝ 完全に他人の作品
@@ -4496,7 +4675,7 @@ async function doPublishToGallery() {
           urlId = generateId(10); // 新しいIDを発行してフォークとして保存
         }
       }
-    } catch(e) {
+    } catch(e) { if(operationRevision!==accountRevision)return;
       urlId = generateId(10); // 取得失敗時も安全のため新IDを発行
     }
   }
@@ -4505,8 +4684,8 @@ async function doPublishToGallery() {
   // コード一致ではなく「自分のエントリかつgallery上も自分のUID」のものだけ再利用する
   // フォーク由来（curPublicDocIdがある）は必ず新IDを発行
   var isForkFromPublic = !!curPublicDocId;
-  var ex = (isTemplate || isForkFromPublic) ? null : apps.find(function(a){
-    if (a.code !== cur) return false;
+  var ex = editingAppId ? findMyAppByKey(editingAppId) : (isTemplate || isForkFromPublic) ? null : apps.find(function(a){
+    if (a.code !== publishedCode) return false;
     // uidが付いている場合は自分のものだけ
     if (a.uid && a.uid !== curUser.uid) return false;
     // galleryコレクション上で他人のuidが紐づいているエントリは再利用しない
@@ -4518,21 +4697,24 @@ async function doPublishToGallery() {
   });
   var appId;
   if (ex) {
-    ex.title = title;
-    localStorage.setItem('pt_apps', JSON.stringify(apps));
+    ex.title = title; ex.code = publishedCode;
+    persistApps();
     appId = ex.urlId || ex.id;
   } else {
     // 新規IDを発行（必ずgenerateIdで衝突しないランダムIDを使う）
     var freshId = generateId(10);
     var localId = Date.now();
-    var newApp = { id: freshId, urlId: freshId, title: title, code: cur, likes: 0, createdAt: localId, author: prof.name||'', avatar: prof.avatar||'', uid: curUser.uid };
+    var newApp = { id: freshId, urlId: freshId, title: title, code: publishedCode, likes: 0, createdAt: localId, author: prof.name||'', avatar: prof.avatar||'', uid: curUser.uid };
     apps.push(newApp);
-    localStorage.setItem('pt_apps', JSON.stringify(apps));
+    persistApps();
     appId = newApp.urlId;
-    autoSaveToFirestore(title, appId);
   }
   isTemplate = false; // 保存済みになったのでフラグをリセット
-  appId = await saveGalleryToFirestore(title, appId, true);
+  var localApp=findMyAppByKey(appId);
+  if(localApp){localApp.pendingCloud=true;persistApps();}
+  var privateSave=autoSaveToFirestore(title,appId,publishedCode);
+  appId = await guardAccountPromise(operationRevision, (saveGalleryToFirestore(title, appId, true, publishedCode)));
+  await guardAccountPromise(operationRevision, privateSave);
   if (!appId) return;
 
   // シェアURLを新しく確定した urlId で即時書き換え
@@ -4542,86 +4724,83 @@ async function doPublishToGallery() {
   if (surlEl) surlEl.textContent = newShareUrl;
 
   curPublicDocId = null; // 公開完了後はフォーク由来フラグをリセット
-  CM('shm'); exitWorkspace(); nav('gallery');
+  CM('shm');
+  if(cur===publishedCode && (!cpOpen || document.getElementById('ct').value===publishedCode)){
+    editingAppId=appId;flushStudioDraft();exitWorkspace();nav('gallery');
+  }
   T(authorChanged ? t('🎉 みんなのギャラリーに公開しました！（作者名も更新）') : t('🎉 みんなのギャラリーに公開しました！'));
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 function pubGallery() {
-  requireTitle(function(title) {
-    // コード一致ではなくIDで自分のエントリを探す（フォーク元と同じコードでも別エントリとして扱う）
-    var ex = isTemplate ? null : apps.find(function(a){
-      if (a.code !== cur) return false;
-      if (a.uid && curUser && a.uid !== curUser.uid) return false;
-      return true;
-    });
-    if (ex) {
-      ex.title = title; ex.author = prof.name||''; ex.avatar = prof.avatar||'';
-      localStorage.setItem('pt_apps', JSON.stringify(apps));
-      autoSaveToFirestore(title, ex.urlId || ex.id);
-      CM('shm'); T(t('マイギャラリーに保存しました')); return;
-    }
-    var freshId = generateId(10);
-    var localId = Date.now();
-    var newApp = { id: freshId, urlId: freshId, title: title, code: cur, likes: 0, createdAt: localId, author: prof.name||'', avatar: prof.avatar||'', uid: curUser ? curUser.uid : '' };
-    apps.push(newApp);
-    localStorage.setItem('pt_apps', JSON.stringify(apps));
-    autoSaveToFirestore(title, freshId);
-    isTemplate = false;
-    CM('shm'); exitWorkspace(); nav('gallery'); T(t('マイギャラリーに保存しました！'));
+  requireTitle(async function(title) {
+    var revision=accountRevision;
+    if (!await saveStudioApp(title) || revision!==accountRevision) return;
+    CM('shm'); nav('gallery');
+    T(t(curUser ? 'マイギャラリーに保存しました' : 'この端末に作品を保存しました'));
   });
 }
 
 // gallery コレクションに公開データを保存する関数
-async function saveGalleryToFirestore(label, appId, isPublic) {
+async function saveGalleryToFirestore(label, appId, isPublic, sourceCode) {
   if (!curUser) { T(t('ログインが必要です')); return null; }
+  var code=typeof sourceCode==='string' ? sourceCode : cur;
+  var uid=curUser.uid, revision=accountRevision;
   var authorName = (prof.name) || (curUser.displayName) || t('名無しのポテト');
   var id = String(appId || Date.now());
   try {
     // 既存ドキュメントを確認
     var existSnap = await db.collection('gallery').doc(id).get();
+    if (!sameAccount(uid,revision)) return null;
     if (existSnap.exists) {
       var existData = existSnap.data();
-      if (existData.uid && existData.uid !== curUser.uid) {
+      if (existData.uid && existData.uid !== uid) {
         // 他人のドキュメントIDと衝突 → 新IDで保存
         console.warn('saveGalleryToFirestore: ID collision with another user, generating new ID');
         id = generateId(10);
         // 新IDで新規作成
         await db.collection('gallery').doc(id).set({
-          code: cur, title: label, isPublic: !!isPublic,
-          authorName: authorName, uid: curUser.uid,
+          code: code, title: label, isPublic: !!isPublic,
+          authorName: authorName, uid: uid,
           likes: 0, createdAt: new Date(), updatedAt: new Date()
         });
+        if (!sameAccount(uid,revision)) return null;
         // ローカルのappsエントリのurlIdも更新
         var local = apps.find(function(a){ return String(a.urlId || a.id) === String(appId); });
         if (local) {
           local.urlId = id;
-          localStorage.setItem('pt_apps', JSON.stringify(apps));
-          autoSaveToFirestore(label, id);
+          persistApps();
+          autoSaveToFirestore(label, id, code);
         }
       } else {
         // 自分のドキュメントを更新（likesは上書きしない）
         await db.collection('gallery').doc(id).update({
-          code: cur, title: label, isPublic: !!isPublic,
-          authorName: authorName, uid: curUser.uid,
+          code: code, title: label, isPublic: !!isPublic,
+          authorName: authorName, uid: uid,
           updatedAt: new Date()
         });
       }
     } else {
       // 新規作成
       await db.collection('gallery').doc(id).set({
-        code: cur, title: label, isPublic: !!isPublic,
-        authorName: authorName, uid: curUser.uid,
+        code: code, title: label, isPublic: !!isPublic,
+        authorName: authorName, uid: uid,
         likes: 0, createdAt: new Date(), updatedAt: new Date()
       });
     }
+    if (!sameAccount(uid,revision)) return null;
     // publicAppsキャッシュに即時反映（削除ボタン表示のため）
     var existing = publicApps.find(function(p){ return p._docId === id; });
     if (existing) {
-      existing.uid = curUser.uid;
+      existing.uid = uid;
       existing.authorName = authorName;
-      existing.title = label;
+      existing.title = label; existing.code=code; existing.isPublic=!!isPublic;
     } else if (isPublic) {
-      publicApps.push({ _docId: id, uid: curUser.uid, authorName: authorName, title: label, code: cur, likes: 0, isPublic: true });
+      publicApps.push({ _docId: id, uid: uid, authorName: authorName, title: label, code: code, likes: 0, isPublic: true });
     }
     return id;
   } catch(e) {
@@ -4639,48 +4818,39 @@ async function saveGalleryToFirestore(label, appId, isPublic) {
 // ════════════════════════════════════════════
 //  Firebase: Firestore Auto-Save
 // ════════════════════════════════════════════
-function autoSaveToFirestore(label, appId) {
-  if (!curUser) return;
-  var authorName = (prof.name) || (curUser.displayName) || t('名無しのポテト');
-  var id = String(appId || Date.now());
-  db.collection('users').doc(curUser.uid).collection('apps').doc(id).set({
-    code: cur, label: label, urlId: id, updatedAt: new Date(), uid: curUser.uid,
-    authorName: authorName, isPublic: false
-  }).catch(function(e){ console.warn('Firestore save failed:', e); });
+function autoSaveToFirestore(label, appId, sourceCode) {
+  if (!curUser) return Promise.resolve(false);
+  var id=String(appId || editingAppId || generateId(10));
+  return writeCloudSnapshot({ uid:curUser.uid, id:id, payload:{
+    code:typeof sourceCode==='string' ? sourceCode : cur, label:label, urlId:id, updatedAt:new Date(), uid:curUser.uid,
+    authorName:prof.name || curUser.displayName || t('名無しのポテト')
+  }});
 }
 
 async function loadUserApps() {
   if (!curUser) return;
+  var uid = curUser.uid, revision = accountRevision;
   try {
-    // テンプレートコードの一覧を取得（除外フィルタ用）
-    var templateCodes = ['breakout','timer','paint','calc','clock'].map(function(n){
-      return getTemplate(n);
-    }).filter(Boolean);
-
-    var snap = await db.collection('users').doc(curUser.uid).collection('apps').orderBy('updatedAt','desc').limit(30).get();
-    var deletePromises = [];
+    var snap = await db.collection('users').doc(uid).collection('apps').orderBy('updatedAt','desc').limit(30).get();
+    if (!sameAccount(uid, revision)) return;
     snap.forEach(function(doc) {
       var d = doc.data();
-      // テンプレートと完全一致するコードはFirestoreから削除してスキップ
-      if (templateCodes.indexOf(d.code) !== -1) {
-        deletePromises.push(doc.ref.delete());
-        return;
-      }
+      if (d.uid && d.uid!==uid) return;
+      var savedAt=d.updatedAt && d.updatedAt.toMillis ? d.updatedAt.toMillis() : Number(new Date(d.updatedAt)) || 0;
       var id = d.urlId || doc.id;
       // urlId/doc.idで重複チェック（コード一致ではなくIDで管理）
       var docKey = d.urlId || doc.id;
       var existing = apps.find(function(a){ return String(a.urlId || a.id) === String(docKey); });
       if (existing) {
         existing.id = id;
+        if(!existing.pendingCloud && savedAt>(existing.savedAt || 0) && typeof d.code==='string'){
+          existing.code=d.code;existing.title=d.label || existing.title;existing.savedAt=savedAt;
+        }
       } else {
-        apps.push({ id: id, urlId: docKey, title: d.label||t('保存済みアプリ'), code: d.code, likes: 0, createdAt: d.updatedAt && d.updatedAt.toMillis ? d.updatedAt.toMillis() : 0, author: prof.name||'', avatar: prof.avatar||'', uid: d.uid || curUser.uid });
+        apps.push({ id: id, urlId: docKey, title: d.label||t('保存済みアプリ'), code: d.code, likes: 0, createdAt:savedAt,savedAt:savedAt, author: prof.name||'', avatar: prof.avatar||'', uid: d.uid || curUser.uid });
       }
     });
-    if (deletePromises.length) {
-      await Promise.all(deletePromises);
-      console.log('テンプレートの不正保存エントリを' + deletePromises.length + '件削除しました');
-    }
-    localStorage.setItem('pt_apps', JSON.stringify(apps));
+    persistApps();
     renderGallery();
     T(t('クラウドからアプリを読み込みました'));
   } catch(e) { console.warn('Firestore load failed:', e); }
@@ -4834,7 +5004,7 @@ function updateAuthGate() {
   var gate = document.getElementById('auth-gate');
   var app = document.getElementById('app');
   if (!gate) return;
-  if (curUser) {
+  if (curUser || guestMode) {
     gate.classList.remove('on');
     if (app) { app.style.visibility = ''; app.style.pointerEvents = ''; }
   } else {
@@ -4855,6 +5025,7 @@ async function finishAppBootstrap() {
 
 function openAuthModal() {
   if (!curUser) {
+    flushStudioDraft(); guestMode=false;
     updateAuthGate();
     var em = document.getElementById('auth-gate-email');
     if (em) em.focus();
@@ -4864,6 +5035,7 @@ function openAuthModal() {
 }
 
 async function doLogin() {
+  if (!auth) { T(t('認証サービスに接続できません。しばらくしてから再試行してください')); return; }
   var els = getAuthFormEls();
   var email = (els.email && els.email.value || '').trim();
   var pw = els.pw ? els.pw.value : '';
@@ -4883,6 +5055,7 @@ async function doLogin() {
 }
 
 async function doSignup() {
+  if (!auth) { T(t('認証サービスに接続できません。しばらくしてから再試行してください')); return; }
   var els = getAuthFormEls();
   var email = (els.email && els.email.value || '').trim();
   var pw = els.pw ? els.pw.value : '';
@@ -4911,8 +5084,10 @@ async function doLogout() {
   T(t('ログアウトしました'));
 }
 
-auth.onAuthStateChanged(async function(user) {
-  curUser = user;
+async function handleAuthStateChange(user) {
+  if (!accountInitialized || (curUser && curUser.uid) !== (user && user.uid)) resetAccountState(user);
+  else curUser = user;
+  var revision=accountRevision;
   var as = document.getElementById('auth-status');
   var lb = document.getElementById('logout-btn');
   if (user) {
@@ -4925,6 +5100,7 @@ auth.onAuthStateChanged(async function(user) {
     if (!appBootstrapped) {
       appBootstrapped = true;
       await finishAppBootstrap();
+      if (revision!==accountRevision) return;
     }
   } else {
     setUiText(as, function(){ return t('未ログイン'); });
@@ -4939,7 +5115,10 @@ auth.onAuthStateChanged(async function(user) {
   updateAuthGate();
   syncCommentFormState();
   if (user) renderGallery();
-});
+  renderSaveState();
+}
+if (auth) auth.onAuthStateChanged(handleAuthStateChange);
+else handleAuthStateChange(null);
 
 
 // ════════════════════════════════════════════
@@ -5023,31 +5202,47 @@ function toggleGeminiKeyVis() {
 
 // 表示名をFirestoreのusers/{uid}に保存
 async function saveAuthorNameToFirestore(name) {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser) return;
   try {
-    await db.collection('users').doc(curUser.uid).set({
+    await guardAccountPromise(operationRevision, (db.collection('users').doc(curUser.uid).set({
       authorName: name, updatedAt: new Date()
-    }, { merge: true });
-  } catch(e) { console.warn('authorName save failed:', e); }
+    }, { merge: true })));
+  } catch(e) { if(operationRevision!==accountRevision)return;  console.warn('authorName save failed:', e); }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 // 表示名変更時：galleryコレクションの自分の投稿をすべて更新
 async function updateGalleryAuthorName(newName) {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser) return;
   try {
-    var snap = await db.collection('gallery')
+    var snap = await guardAccountPromise(operationRevision, (db.collection('gallery')
       .where('uid', '==', curUser.uid)
-      .get();
+      .get()));
     var batch = db.batch();
     snap.forEach(function(doc) {
       batch.update(doc.ref, { authorName: newName });
     });
-    await batch.commit();
-  } catch(e) { console.warn('Gallery authorName update failed:', e); }
+    await guardAccountPromise(operationRevision, (batch.commit()));
+  } catch(e) { if(operationRevision!==accountRevision)return;  console.warn('Gallery authorName update failed:', e); }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 /** コメント authorName 更新をバッチで実行 */
 async function _commitCommentAuthorNameUpdates(refs, newName) {
+  var operationRevision=accountRevision;
+  try {
   if (!refs.length) return 0;
   var batch = db.batch();
   var ops = 0;
@@ -5062,47 +5257,68 @@ async function _commitCommentAuthorNameUpdates(refs, newName) {
     }
   });
   if (ops > 0) commits.push(batch.commit());
-  await Promise.all(commits);
+  await guardAccountPromise(operationRevision, (Promise.all(commits)));
   return refs.length;
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 /** collectionGroup で自分のコメントを一括更新（要インデックス） */
 async function _updateCommentsAuthorNameViaGroup(newName) {
-  var snap = await db.collectionGroup('comments').where('uid', '==', curUser.uid).get();
+  var operationRevision=accountRevision;
+  try {
+  var snap = await guardAccountPromise(operationRevision, (db.collectionGroup('comments').where('uid', '==', curUser.uid).get()));
   var refs = [];
   snap.forEach(function(doc) { refs.push(doc.ref); });
   return _commitCommentAuthorNameUpdates(refs, newName);
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 /** 各ギャラリー作品の comments を走査して更新（インデックス不要） */
 async function _updateCommentsAuthorNameViaGalleryScan(newName) {
+  var operationRevision=accountRevision;
+  try {
   var idMap = {};
-  var pubSnap = await db.collection('gallery').where('isPublic', '==', true).get();
+  var pubSnap = await guardAccountPromise(operationRevision, (db.collection('gallery').where('isPublic', '==', true).get()));
   pubSnap.forEach(function(d) { idMap[d.id] = true; });
-  var mineSnap = await db.collection('gallery').where('uid', '==', curUser.uid).get();
+  var mineSnap = await guardAccountPromise(operationRevision, (db.collection('gallery').where('uid', '==', curUser.uid).get()));
   mineSnap.forEach(function(d) { idMap[d.id] = true; });
   publicApps.forEach(function(a) { if (a._docId) idMap[a._docId] = true; });
 
   var refs = [];
   var ids = Object.keys(idMap);
   for (var i = 0; i < ids.length; i++) {
-    var csnap = await db.collection('gallery').doc(ids[i]).collection('comments')
-      .where('uid', '==', curUser.uid).get();
+    var csnap = await guardAccountPromise(operationRevision, (db.collection('gallery').doc(ids[i]).collection('comments')
+      .where('uid', '==', curUser.uid).get()));
     csnap.forEach(function(cdoc) { refs.push(cdoc.ref); });
   }
   return _commitCommentAuthorNameUpdates(refs, newName);
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 /** 表示名変更時：自分が投稿したコメント（全作品）の authorName を更新 */
 async function updateGalleryCommentsAuthorName(newName) {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser || !newName) return 0;
   try {
-    var n = await _updateCommentsAuthorNameViaGroup(newName);
+    var n = await guardAccountPromise(operationRevision, (_updateCommentsAuthorNameViaGroup(newName)));
     // #region agent log
     _agentDbg('updateGalleryCommentsAuthorName', 'collectionGroup ok', { count: n, newName: newName }, 'H1');
     // #endregion
     return n;
-  } catch (e) {
+  } catch (e) { if(operationRevision!==accountRevision)return;
     // #region agent log
     _agentDbg('updateGalleryCommentsAuthorName', 'collectionGroup failed, fallback', {
       code: e.code || '', message: e.message || String(e)
@@ -5110,12 +5326,12 @@ async function updateGalleryCommentsAuthorName(newName) {
     // #endregion
     console.warn('collectionGroup comments update failed, trying per-gallery scan:', e);
     try {
-      var n2 = await _updateCommentsAuthorNameViaGalleryScan(newName);
+      var n2 = await guardAccountPromise(operationRevision, (_updateCommentsAuthorNameViaGalleryScan(newName)));
       // #region agent log
       _agentDbg('updateGalleryCommentsAuthorName', 'gallery scan ok', { count: n2, newName: newName }, 'H2');
       // #endregion
       return n2;
-    } catch (e2) {
+    } catch (e2) { if(operationRevision!==accountRevision)return;
       // #region agent log
       _agentDbg('updateGalleryCommentsAuthorName', 'gallery scan failed', {
         code: e2.code || '', message: e2.message || String(e2)
@@ -5125,30 +5341,51 @@ async function updateGalleryCommentsAuthorName(newName) {
       throw e2;
     }
   }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 /** 公開側の作者名を作品・コメントの両方で一括更新 */
 async function updatePublicAuthorNameEverywhere(newName) {
-  await updateGalleryAuthorName(newName);
-  var commentCount = await updateGalleryCommentsAuthorName(newName);
+  var operationRevision=accountRevision;
+  try {
+  await guardAccountPromise(operationRevision, (updateGalleryAuthorName(newName)));
+  var commentCount = await guardAccountPromise(operationRevision, (updateGalleryCommentsAuthorName(newName)));
   return { commentCount: commentCount };
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 async function saveGeminiKeyToFirestore(key) {
+  var operationRevision=accountRevision;
+  try {
   if (!curUser) return;
   try {
-    await db.collection('users').doc(curUser.uid).set({
+    await guardAccountPromise(operationRevision, (db.collection('users').doc(curUser.uid).set({
       geminiApiKey: key,
       selectedMode: aiMode,
       updatedAt: new Date()
-    }, { merge: true });
-  } catch(e) { console.warn('Firestore save failed:', e); }
+    }, { merge: true })));
+  } catch(e) { if(operationRevision!==accountRevision)return;  console.warn('Firestore save failed:', e); }
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 async function loadUserSettings() {
   if (!curUser) return;
+  var uid=curUser.uid, revision=accountRevision;
   try {
-    var snap = await db.collection('users').doc(curUser.uid).get();
+    var snap = await db.collection('users').doc(uid).get();
+    if (!sameAccount(uid,revision)) return;
     if (snap.exists) {
       var d = snap.data();
       if (d.geminiApiKey) {
@@ -5163,7 +5400,7 @@ async function loadUserSettings() {
       // 表示名をアカウントから引き継ぎ
       if (d.authorName) {
         prof.name = d.authorName;
-        localStorage.setItem('pt_prof', JSON.stringify(prof));
+        persistProfile();
         var pnameEl = document.getElementById('pname');
         if (pnameEl) pnameEl.value = d.authorName;
       }
@@ -5184,7 +5421,7 @@ function onPnameInput() {
 }
 
 function openSettings() {
-  if (!curUser) { updateAuthGate(); return; }
+  if (!curUser && !guestMode) { updateAuthGate(); return; }
   document.getElementById('pname').value = prof.name || '';
   document.getElementById('pname-change-warn').style.display = 'none';
   document.getElementById('ollama-url').value = ollamaURL;
@@ -5199,14 +5436,16 @@ function openSettings() {
 }
 
 async function saveSets() {
+  var operationRevision=accountRevision;
+  try {
   var newName = document.getElementById('pname').value.trim();
   var oldName = prof.name || '';
   var nameChanged = newName && newName !== oldName;
 
   prof.name = newName;
-  localStorage.setItem('pt_prof', JSON.stringify(prof));
+  persistProfile();
   ollamaURL = document.getElementById('ollama-url').value.trim() || 'http://localhost:11434';
-  localStorage.setItem('pt_ollama', ollamaURL);
+  writeLocalText('pt_ollama', ollamaURL);
 
   var gki = document.getElementById('gemini-key-input');
   if (gki && gki.value.trim()) {
@@ -5231,16 +5470,16 @@ async function saveSets() {
       T(t('表示名を更新中...'));
       try {
         if (curUser.updateProfile) {
-          await curUser.updateProfile({ displayName: newName });
+          await guardAccountPromise(operationRevision, (curUser.updateProfile({ displayName: newName })));
         }
-      } catch (profileErr) {
+      } catch (profileErr) { if(operationRevision!==accountRevision)return;
         console.warn('updateProfile failed:', profileErr);
       }
       var commentUpdated = 0;
       try {
-        var res = await updatePublicAuthorNameEverywhere(newName);
+        var res = await guardAccountPromise(operationRevision, (updatePublicAuthorNameEverywhere(newName)));
         commentUpdated = (res && res.commentCount) || 0;
-      } catch (e) {
+      } catch (e) { if(operationRevision!==accountRevision)return;
         T(t('コメントの表示名更新に失敗しました。Firestoreルール（authorName）を確認してください'));
       }
       // みんなのギャラリーのキャッシュも更新
@@ -5253,23 +5492,28 @@ async function saveSets() {
           ? t('設定を保存しました（作品とコメント') + commentUpdated + t('件の表示名を更新）✓')
           : t('設定を保存しました（作者名を更新しました）✓'))
         : t('設定を保存しました ✓'));
-      localStorage.setItem('pt_mode', aiMode);
+      writeLocalText('pt_mode', aiMode);
       updateNavBadge();
       return;
     }
   }
 
-  localStorage.setItem('pt_mode', aiMode);
+  writeLocalText('pt_mode', aiMode);
   updateNavBadge();
   CM('sm');
   T(t('設定を保存しました ✓'));
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 function handleAv(e) {
   var f = e.target.files[0]; if (!f) return;
   var r = new FileReader();
   r.onload = function(ev) {
     prof.avatar = ev.target.result;
-    localStorage.setItem('pt_prof', JSON.stringify(prof));
+    persistProfile();
     var i = document.getElementById('avimg'); i.src = prof.avatar; i.style.display = 'block';
   };
   r.readAsDataURL(f);
@@ -5355,7 +5599,7 @@ function loadTemplate(name) {
   var before = apps.length;
   apps = apps.filter(function(a){ return templateCodes.indexOf(a.code) === -1; });
   if (apps.length !== before) {
-    localStorage.setItem('pt_apps', JSON.stringify(apps));
+    persistApps();
   }
 })();
 
@@ -5363,6 +5607,8 @@ function loadTemplate(name) {
 //  Shared URL load
 // ════════════════════════════════════════════
 async function loadShared() {
+  var operationRevision=accountRevision;
+  try {
   var params = new URLSearchParams(location.search);
   var id = params.get('id');
   if (!id) return false;
@@ -5372,14 +5618,14 @@ async function loadShared() {
     var snap;
     if (!fromGallery) {
       try {
-        snap = await db.collection('apps').doc(id).get();
-      } catch (e) {
+        snap = await guardAccountPromise(operationRevision, (db.collection('apps').doc(id).get()));
+      } catch (e) { if(operationRevision!==accountRevision)return;
         if (e.code !== 'permission-denied') throw e;
       }
     }
     // 旧形式の公開URLも扱う。明示的な共有データがあればそちらを優先する。
     if (!snap || !snap.exists) {
-      snap = await db.collection('gallery').doc(id).get();
+      snap = await guardAccountPromise(operationRevision, (db.collection('gallery').doc(id).get()));
       fromGallery = true;
     }
     if (snap.exists) {
@@ -5409,8 +5655,13 @@ async function loadShared() {
       openGalleryPreview(sharedPreview);
       return true;
     }
-  } catch(e) { console.error(e); }
+  } catch(e) { if(operationRevision!==accountRevision)return;  console.error(e); }
   return false;
+
+  } catch (accountError) {
+    if (operationRevision !== accountRevision) return null;
+    throw accountError;
+  }
 }
 
 // ════════════════════════════════════════════
@@ -5441,8 +5692,9 @@ window.addEventListener('message', function(e) {
 
 window.addEventListener('DOMContentLoaded', function() {
   setupCodeFileInput();
+  setupStudioPersistence();
   loadPrism();
-  var savedMode = localStorage.getItem('pt_mode');
+  var savedMode = readLocalText('pt_mode', null);
   if (savedMode) aiMode = savedMode;
   updateNavBadge();
   updateAuthGate();

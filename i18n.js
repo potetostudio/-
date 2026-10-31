@@ -412,7 +412,38 @@ var UI_EN = {
   "入力中のコードをファイルの内容で置き換えますか？": "Replace the current code with this file’s contents?",
   "ファイルの読み込みをキャンセルしました": "File import canceled",
   "読み込み済み: ": "Imported: ",
-  "ファイルを読み込めませんでした。UTF-8のテキストファイルを選択してください": "Could not read the file. Choose a UTF-8 text file."
+  "ファイルを読み込めませんでした。UTF-8のテキストファイルを選択してください": "Could not read the file. Choose a UTF-8 text file.",
+  "クラウド保存・作品の公開には": "To save to the cloud or publish apps,",
+  "無料のアカウント登録が必要です": "please create a free account.",
+  "保存を再試行": "Retry save",
+  "下書きを再開": "Resume draft",
+  "ログインせずに試す": "Try without logging in",
+  "お試しでは作品をこの端末に保存できます。クラウド保存・公開にはログインが必要です": "You can save apps on this device while trying the studio. Log in to save to the cloud or publish.",
+  "この作品を編集": "Edit this app",
+  "作品を保存": "Save app",
+  "HTMLを書き出す": "Export HTML",
+  "コードを持ち込んで作る": "Create with your code",
+  "AIにコードを作ってもらう": "Generate code with AI",
+  "画像から画面を作る": "Create from an image",
+  "AIの詳細設定": "Advanced AI settings",
+  "フォーク操作の確認用パスワード": "Password to confirm forking",
+  "このパスワードはフォーク操作の確認用です。表示されるコードのコピーを防ぐものではありません": "This password confirms the fork action. It does not prevent copying the displayed code.",
+  "下書きはこの端末に保存されます": "Drafts are saved on this device",
+  "下書き保存中…": "Saving draft…",
+  "下書き保存済み（この端末）": "Draft saved on this device",
+  "端末への保存に失敗しました。コードを書き出してください": "Could not save on this device. Export your code.",
+  "クラウド保存中…": "Saving to cloud…",
+  "クラウド保存済み": "Saved to cloud",
+  "クラウド保存失敗（下書きは端末に保持）": "Cloud save failed (draft retained on this device)",
+  "他のユーザーの作品は削除できません": "You cannot delete another user’s app",
+  "この端末に作品を保存しました": "App saved on this device",
+  "認証サービスに接続できません。しばらくしてから再試行してください": "The sign-in service is unavailable. Please try again later.",
+  "クラウドに未反映の変更があります": "Changes have not been saved to the cloud",
+  "クラウド保存失敗（再試行できます）": "Cloud save failed (you can retry)",
+  "編集はマイギャラリーに保存されます。公開版の更新は「公開・共有」から行えます": "Edits are saved to My Gallery. Use Publish / Share to update the public version.",
+  "ファイルを読み込むか、コードを貼り付けて起動できます": "Import a file or paste code to run your app",
+  "コードを隠す": "Hide code",
+  "この版に戻す": "Restore this version"
 };
 
 // Only explicitly marked application UI is localized. User content and iframe
@@ -475,7 +506,7 @@ function setLanguage(language) {
   });
   applyUiTranslations(document.documentElement);
   // Rerender only gallery chrome; never translate users' titles or comments.
-  if (typeof renderGallery === 'function' && typeof curUser !== 'undefined' && curUser) renderGallery();
+  if (typeof renderGallery === 'function' && typeof curUser !== 'undefined' && (curUser || (typeof guestMode!=='undefined' && guestMode))) renderGallery();
   if (typeof updateNavBadge === 'function' && typeof aiMode !== 'undefined') updateNavBadge();
   applyUiTranslations(document.documentElement);
 }

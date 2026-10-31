@@ -112,6 +112,14 @@ function buildThumbnailDocument(code, token, allowAppScripts) {
     content.querySelectorAll('script').forEach(function(el){el.remove();});
     content.querySelectorAll('*').forEach(function(el){Array.from(el.attributes).forEach(function(attr){if(/^on/i.test(attr.name))el.removeAttribute(attr.name);});});
   }
+  // Do not rely on a meta policy alone to stop speculative resource preloads.
+  content.querySelectorAll('script[src]').forEach(function(el){el.remove();});
+  content.querySelectorAll('[src],[srcset],[poster],[background]').forEach(function(el) {
+    el.removeAttribute('srcset');
+    ['src','poster','background'].forEach(function(attr) {
+      if(el.hasAttribute(attr) && !/^(data:image\/|blob:)/i.test(el.getAttribute(attr)))el.removeAttribute(attr);
+    });
+  });
   var html=content.querySelector('[data-pts-structure="html"]');
   var head=content.querySelector('[data-pts-structure="head"]');
   var body=content.querySelector('[data-pts-structure="body"]');

@@ -63,3 +63,21 @@ Gallery behavior:
   to the gallery after preserving the draft. Unsaved edits remain drafts; they
   do not silently overwrite the saved gallery app. Returning to Create restores
   the input without executing it automatically.
+
+Playback preservation:
+
+- Opening a gallery app creates a fresh, equally sandboxed iframe after making
+  the app view visible. This avoids a valid but non-rendering document retained
+  by a previously hidden srcdoc frame. Old playback requests remain guarded by
+  the account revision and preview sequence.
+- Gallery playback never splits source at a doctype or inserts scripts at a
+  closing body tag: those strings can occur inside normal app JavaScript.
+  A header-only lexical scan places trusted instrumentation without serializing
+  the application or changing its original head attributes/standards mode.
+- Legacy editor wrappers are unwrapped only when an actual code-area textarea,
+  game-frame iframe, and launcher script are present. Encoded textarea HTML is
+  decoded through its value. Other documents are preserved as supplied.
+- Runtime errors and empty saved code produce a visible playback message with
+  Retry/Close controls. Messages are accepted only from the current iframe and
+  playback token. Public playback still receives no viewer API key and has no
+  same-origin privileges.

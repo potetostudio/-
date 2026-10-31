@@ -447,7 +447,10 @@ var UI_EN = {
   "作品": "App",
   "画面プレビュー": "Screen preview",
   "プレビューを準備中": "Preparing preview",
-  "開いて画面を見る": "Open to view the app"
+  "開いて画面を見る": "Open to view the app",
+  "作品の実行中にエラーが発生しました": "An error occurred while running this app",
+  "もう一度開く": "Open again",
+  "コードが保存されていません": "No code is saved for this app"
 };
 
 // Only explicitly marked application UI is localized. User content and iframe

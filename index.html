@@ -602,6 +602,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .gc-preview{display:block;width:100%;height:100%;object-fit:cover}
 .gc-preview-frame{position:absolute;top:0;left:0;width:800px;height:500px;transform-origin:top left;border:0;pointer-events:none;background:white}
 .gc-preview-note{position:relative;z-index:1;padding:5px 9px;border-radius:6px;background:rgba(7,8,13,.78);color:#edf2f7;font-size:11px}
+.playback-error{position:absolute;top:60px;left:16px;right:16px;margin:0 auto;max-width:600px;z-index:30;padding:16px;border:1px solid var(--am);border-radius:12px;background:rgba(13,16,24,.97);color:var(--t1);font-size:12px}
+.playback-error[hidden]{display:none}
+.playback-error p{white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0;line-height:1.6}
 </style>
 </head>
 <body>
@@ -1076,6 +1079,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   <!-- APP VIEW -->
   <div id="view-app" class="view" style="position:relative">
     <iframe id="app-pv" sandbox="allow-scripts allow-forms allow-pointer-lock"></iframe>
+    <div id="app-playback-error" class="playback-error" role="alert" hidden>
+      <strong data-i18n="作品の実行中にエラーが発生しました">作品の実行中にエラーが発生しました</strong>
+      <p id="app-playback-error-text"></p>
+      <div style="display:flex;gap:8px">
+        <button class="nb" type="button" onclick="reloadPlayingApp()"><span data-i18n="もう一度開く">もう一度開く</span></button>
+        <button class="nb" type="button" onclick="document.getElementById('app-playback-error').hidden=true"><span data-i18n="閉じる">閉じる</span></button>
+      </div>
+    </div>
     <div id="hud">
       <div class="hp2 app-back-main" onclick="goBack()" title="ギャラリーに戻る" data-i18n-title="ギャラリーに戻る">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
@@ -1511,6 +1522,8 @@ var imgModel  = 'llama3.2-vision';
 var vers = [], cur = '', curAppId = null, cpOpen = false, isTemplate = false;
 var isFsS = false, isFsA = false, surl = '', forkCode = '';
 var sharedGatePayload = null;
+var playingAppCode = '';
+var activePlaybackToken = null;
 var imgBase64 = '', imgMime = '';
 var aiMode = 'local'; // 'local' | 'cloud'
 var geminiKey = '';
@@ -1528,29 +1541,19 @@ function _agentDbg(location, message, data, hypothesisId) {
 }
 // #endregion
 
-/** ギャラリー作品がエディタ+game-frame(Blob)ラッパーのとき、textarea内の実ゲームHTMLを取り出す */
+/** Only unwrap verified legacy editors; HTML examples inside scripts are app data. */
 function normalizeGalleryPreviewCode(code) {
-  if (!code || typeof code !== 'string') return code || '';
-  var hasTextarea = /<textarea/i.test(code);
-  var isStudioWrapper = hasTextarea && (
-    /id\s*=\s*["']game-frame["']/i.test(code) ||
-    /createObjectURL/i.test(code) ||
-    /function\s+runGame\s*\(/i.test(code)
-  );
-  if (isStudioWrapper) {
-    var m = code.match(/<textarea[^>]*\bid\s*=\s*["']code-area["'][^>]*>([\s\S]*?)<\/textarea>/i);
-    if (!m) m = code.match(/<textarea[^>]*>([\s\S]*?)<\/textarea>/i);
-    if (m) {
-      var inner = m[1].trim();
-      if (inner && (/<html/i.test(inner) || /<!DOCTYPE/i.test(inner) || /<canvas/i.test(inner) || /<body/i.test(inner))) {
-        return inner;
-      }
-    }
-  }
-  var dtCount = (code.match(/<!DOCTYPE\s+html/gi) || []).length;
-  if (dtCount > 1) {
-    var last = code.lastIndexOf('<!DOCTYPE');
-    if (last > 0) return code.slice(last);
+  if (typeof code !== 'string' || !code) return '';
+  if(!code.includes('code-area') || !code.includes('game-frame'))return code;
+  var template=document.createElement('template');template.innerHTML=code;
+  var area=template.content.querySelector('textarea#code-area');
+  var frame=template.content.querySelector('iframe#game-frame');
+  var launcher=Array.from(template.content.querySelectorAll('script')).some(function(script) {
+    return /createObjectURL|function\s+runGame\s*\(/.test(script.textContent || '');
+  });
+  if (area && frame && launcher) {
+    var inner=area.value.trim();
+    if (/^(?:<!DOCTYPE\s+html\b|<html\b|<body\b|<canvas\b)/i.test(inner)) return inner;
   }
   return code;
 }
@@ -1565,12 +1568,19 @@ function openGalleryPreview(code) {
   if (currentActive && currentActive.id !== 'view-app') {
     _prevView = currentActive.id.replace('view-', '');
   }
+  playingAppCode=code || '';activePlaybackToken=revision+':'+sequence;
+  document.getElementById('app-playback-error').hidden=true;
   updateAppBackLabel();
   nav('app');
-  apv.removeAttribute('src');
-  apv.srcdoc = '';
+  // A previously hidden srcdoc frame can retain a non-rendering document even
+  // with valid DOM and a nonzero viewport. Create its browsing context while
+  // the app view is visible, preserving the exact same sandbox permissions.
+  var fresh=apv.cloneNode(false);
+  fresh.removeAttribute('src');fresh.removeAttribute('srcdoc');
+  apv.replaceWith(fresh);apv=fresh;
+  if(!playingAppCode.trim()){showPlaybackError(t('コードが保存されていません'));return;}
   setTimeout(function() {
-    if(revision!==accountRevision || sequence!==previewSequence || !document.getElementById('view-app').classList.contains('active'))return;
+    if(revision!==accountRevision || sequence!==previewSequence || !apv.isConnected || !document.getElementById('view-app').classList.contains('active'))return;
     injectAndSet(apv, code);
   }, 50);
 }
@@ -2046,7 +2056,9 @@ function startStreamBar() {
 var _prevView = 'gallery'; // 戻るボタン用：直前のビュー
 
 function clearAppPreview() {
-  previewSequence++;
+  previewSequence++;playingAppCode='';activePlaybackToken=null;
+  document.getElementById('app-playback-error').hidden=true;
+  document.getElementById('app-playback-error-text').textContent='';
   var apv = document.getElementById('app-pv');
   if (apv) { apv.srcdoc = ''; apv.removeAttribute('src'); }
   forkCode = '';
@@ -2673,9 +2685,7 @@ async function deleteComment(commentId) {
 // みんなのギャラリーの作品を開く
 var curPublicDocId = null; // 現在開いている公開アプリのFirestoreドキュメントID
 function openPublicApp(a) {
-  // 前のゲームをクリアしてから新しいコードをセット
-  var apv = document.getElementById('app-pv');
-  if (apv) apv.srcdoc = '';
+  // The shared playback path replaces the old browsing context before loading.
   curPublicDocId = a._docId || null;
   curAppId = null;
   document.getElementById('app-ttl').textContent = a.title || t('無題のアプリ');
@@ -4104,11 +4114,12 @@ function stripHardcodedGeminiKey(code) {
 
 var _ERR_RELAY = [
   '<scr'+'ipt>(function(){',
+  'var token=__POTETO_PLAYBACK_TOKEN__;',
   'window.onerror=function(m,s,l){',
-  'try{parent.postMessage({type:"__poteto_err__",msg:m+(l?" (line "+l+")":"")}, "*");}catch(ex){}',
+  'try{parent.postMessage({type:"__poteto_err__",token:token,msg:m+(l?" (line "+l+")":"")}, "*");}catch(ex){}',
   'return true;};',
   'window.addEventListener("unhandledrejection",function(e){',
-  'try{parent.postMessage({type:"__poteto_err__",msg:"Promise: "+(e.reason&&e.reason.message?e.reason.message:String(e.reason))}, "*");}catch(ex){}',
+  'try{parent.postMessage({type:"__poteto_err__",token:token,msg:"Promise: "+(e.reason&&e.reason.message?e.reason.message:String(e.reason))}, "*");}catch(ex){}',
   '});',
   '}());</'+'script>'
 ].join('');
@@ -4122,11 +4133,44 @@ var _RENDER_PROBE = [
   '})();</'+'script>'
 ].join('');
 
-function injectAppPreview(code) {
-  var tail = _ERR_RELAY + _RENDER_PROBE;
-  if (/<\/body>/i.test(code)) return code.replace(/<\/body>/i, tail + '</body>');
-  return code + tail;
+// Scan only document-header tags. Never search app script/style/text content for
+// a head/body tag, and never serialize the application's original source.
+function injectPreviewPrelude(code, prelude) {
+  var tags=/\x3c!--[\s\S]*?(?:-->|$)|<!doctype\b(?:"[^"]*"|'[^']*'|[^'">])*>|<(\/?)([a-z][\w:-]*)\b(?:"[^"]*"|'[^']*'|[^'">])*>/gi;
+  var match, htmlOffset=0, doctypeOffset=0;
+  while((match=tags.exec(code))) {
+    if(match[0].startsWith('<'+'!--'))continue;
+    if(/^<!doctype/i.test(match[0])){doctypeOffset=tags.lastIndex;continue;}
+    var name=(match[2] || '').toLowerCase();
+    if(match[1])break;
+    if(name==='head')return code.slice(0,tags.lastIndex)+'\n'+prelude+'\n'+code.slice(tags.lastIndex);
+    if(name==='html'){htmlOffset=tags.lastIndex;continue;}
+    if(name!=='meta' && name!=='link')break;
+  }
+  var offset=htmlOffset || doctypeOffset;
+  var inserted=htmlOffset ? '<head>'+prelude+'</head>' : prelude;
+  return code.slice(0,offset)+'\n'+inserted+'\n'+code.slice(offset);
 }
+function errorRelayFor(token) {
+  return _ERR_RELAY.replace('__POTETO_PLAYBACK_TOKEN__',JSON.stringify(token));
+}
+function injectAppPreview(code) {
+  return injectPreviewPrelude(code,errorRelayFor(activePlaybackToken)+_RENDER_PROBE);
+}
+function showPlaybackError(message) {
+  var text=String(message || '').slice(0,600);
+  setUiText(document.getElementById('app-playback-error-text'),function(){return text;});
+  document.getElementById('app-playback-error').hidden=false;
+}
+function reloadPlayingApp() {
+  if(playingAppCode)openGalleryPreview(playingAppCode);
+}
+window.addEventListener('message',function(event) {
+  var frame=document.getElementById('app-pv');
+  if(!frame || event.source!==frame.contentWindow || !event.data || event.data.type!=='__poteto_err__')return;
+  if(!document.getElementById('view-app').classList.contains('active') || event.data.token!==activePlaybackToken)return;
+  showPlaybackError(event.data.msg);
+});
 
 function attachAppPvDebugListeners(iframe) {
   iframe.addEventListener('load', function onAppPvLoad() {
@@ -4160,7 +4204,7 @@ function injectAndSet(iframe, code) {
   // Geminiキーの処理: ハードコードされたキーを除去し、設定済みキーを注入
   code = stripHardcodedGeminiKey(code);
   var geminiProxyScript = buildGeminiProxyScript(geminiKey);
-  var _INJECT_HEAD = _ERR_RELAY + geminiProxyScript;
+  var _INJECT_HEAD = errorRelayFor(null) + geminiProxyScript;
 
   if (iframe && iframe.id === 'app-pv') {
     var injected = injectAppPreview(code);
@@ -4168,7 +4212,7 @@ function injectAndSet(iframe, code) {
     iframe.removeAttribute('src');
     // #region agent log
     _agentDbg('injectAndSet', 'app-pv inject', {
-      branch: 'body-tail',
+      branch: 'document-head',
       codeLen: code.length,
       injectedLen: injected.length
     }, 'B');
@@ -4177,14 +4221,7 @@ function injectAndSet(iframe, code) {
     iframe.srcdoc = injected;
     return;
   }
-  var injected;
-  if (/<head(\s[^>]*)?>/i.test(code)) {
-    injected = code.replace(/(<head(\s[^>]*)?>)/i, '$1' + _INJECT_HEAD);
-  } else if (/<html(\s[^>]*)?>/i.test(code)) {
-    injected = code.replace(/(<html(\s[^>]*)?>)/i, '$1<head>' + _INJECT_HEAD + '</head>');
-  } else {
-    injected = _INJECT_HEAD + code;
-  }
+  var injected=injectPreviewPrelude(code,_INJECT_HEAD);
   iframe.srcdoc = injected;
 }
 function showAutoFix(msg) {

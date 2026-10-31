@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Poteto STUDIO v6</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="./i18n.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -575,6 +576,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   #cp{width:100%;min-width:0;position:absolute;inset:0;z-index:35}
   #aibar{width:calc(100% - 20px)}
 }
+.language-picker{display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:11px;color:var(--t2);margin-bottom:12px}
+.language-picker select{background:var(--s2);color:var(--t1);border:1px solid var(--brh);border-radius:7px;padding:6px;font:inherit;cursor:pointer}
+#nav .language-picker{margin:0;flex-shrink:0}
+#nav .language-picker>span{display:none}
+@media(max-width:800px){#nav{overflow-x:auto}.logo{flex-shrink:0}#nbg{flex-shrink:0}.ai-badge{display:none}}
 </style>
 </head>
 <body>
@@ -584,36 +590,39 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   <div class="auth-gate-card">
     <div class="auth-gate-logo"><span>🥔</span> Poteto STUDIO</div>
 
+    <label class="language-picker"><span data-i18n="言語 / Language">言語 / Language</span>
+      <select data-language-select aria-label="Language / 言語"><option value="ja">日本語</option><option value="en">English</option></select></label>
+
     <!-- ログインパネル -->
     <div id="auth-gate-login-panel">
-      <p class="auth-gate-sub">アプリの作成・保存・ギャラリー利用には<br>アカウント登録（無料）が必要です</p>
+      <p class="auth-gate-sub"><span data-i18n="アプリの作成・保存・ギャラリー利用には">アプリの作成・保存・ギャラリー利用には</span><br><span data-i18n="アカウント登録（無料）が必要です">アカウント登録（無料）が必要です</span></p>
       <ul class="auth-gate-features">
-        <li>作ったゲームをマイギャラリーに保存</li>
-        <li>みんなのギャラリーへの公開・いいね</li>
-        <li>チャット履歴とクラウド同期</li>
+        <li><span data-i18n="作ったゲームをマイギャラリーに保存">作ったゲームをマイギャラリーに保存</span></li>
+        <li><span data-i18n="みんなのギャラリーへの公開・いいね">みんなのギャラリーへの公開・いいね</span></li>
+        <li><span data-i18n="チャット履歴とクラウド同期">チャット履歴とクラウド同期</span></li>
       </ul>
-      <label class="fl">メールアドレス</label>
+      <label class="fl"><span data-i18n="メールアドレス">メールアドレス</span></label>
       <input type="email" id="auth-gate-email" class="fi" placeholder="you@example.com" autocomplete="email">
-      <label class="fl">パスワード</label>
-      <input type="password" id="auth-gate-pw" class="fi" placeholder="6文字以上" autocomplete="new-password">
-      <button type="button" class="auth-forgot" onclick="showAuthGateReset()">パスワードをお忘れですか？</button>
+      <label class="fl"><span data-i18n="パスワード">パスワード</span></label>
+      <input type="password" id="auth-gate-pw" class="fi" placeholder="6文字以上" autocomplete="new-password" data-i18n-placeholder="6文字以上">
+      <button type="button" class="auth-forgot" onclick="showAuthGateReset()"><span data-i18n="パスワードをお忘れですか？">パスワードをお忘れですか？</span></button>
       <div id="auth-gate-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
       <div class="mbs">
-        <button class="mbb can" onclick="doLogin()">ログイン</button>
-        <button class="mbb ok" onclick="doSignup()">新規登録</button>
+        <button class="mbb can" onclick="doLogin()"><span data-i18n="ログイン">ログイン</span></button>
+        <button class="mbb ok" onclick="doSignup()"><span data-i18n="新規登録">新規登録</span></button>
       </div>
     </div>
 
     <!-- パスワードリセットパネル（auth-gate内） -->
     <div id="auth-gate-reset-panel" style="display:none">
-      <p class="auth-gate-sub" style="margin-bottom:16px">登録したメールアドレスを入力してください。<br>パスワード再設定用のリンクをお送りします。</p>
-      <label class="fl">メールアドレス</label>
+      <p class="auth-gate-sub" style="margin-bottom:16px"><span data-i18n="登録したメールアドレスを入力してください。">登録したメールアドレスを入力してください。</span><br><span data-i18n="パスワード再設定用のリンクをお送りします。">パスワード再設定用のリンクをお送りします。</span></p>
+      <label class="fl"><span data-i18n="メールアドレス">メールアドレス</span></label>
       <input type="email" id="auth-gate-reset-email" class="fi" placeholder="you@example.com" autocomplete="email">
       <div id="auth-gate-reset-ok" style="display:none;font-size:11px;color:var(--gr);background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:8px;padding:10px 12px;margin-bottom:10px;line-height:1.6"></div>
       <div id="auth-gate-reset-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
       <div class="mbs">
-        <button class="mbb can" onclick="hideAuthGateReset()">← 戻る</button>
-        <button class="mbb ok" id="auth-gate-reset-btn" onclick="sendAuthGatePasswordReset()">再設定メールを送信</button>
+        <button class="mbb can" onclick="hideAuthGateReset()"><span data-i18n="← 戻る">← 戻る</span></button>
+        <button class="mbb ok" id="auth-gate-reset-btn" onclick="sendAuthGatePasswordReset()"><span data-i18n="再設定メールを送信">再設定メールを送信</span></button>
       </div>
     </div>
 
@@ -632,22 +641,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <span class="ai-dot"></span>
       Local AI Mode (Qwen 7B &amp; DeepSeek 16B)
     </div>
+    <label class="language-picker"><span data-i18n="言語 / Language">言語 / Language</span>
+      <select data-language-select aria-label="Language / 言語"><option value="ja">日本語</option><option value="en">English</option></select></label>
     <div id="nbg" style="display:flex;align-items:center;gap:8px">
       <button class="nb" onclick="openSettings()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        設定
+        <span data-i18n="設定">設定</span>
       </button>
       <button class="nb" id="nav-gallery-btn" onclick="nav('gallery')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        ギャラリー
+        <span data-i18n="ギャラリー">ギャラリー</span>
       </button>
       <button class="nb" onclick="nav('chat')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        チャット
+        <span data-i18n="チャット">チャット</span>
       </button>
       <button class="nb pri" onclick="nav('studio')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-        作る
+        <span data-i18n="作る">作る</span>
       </button>
     </div>
   </div>
@@ -658,29 +669,29 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div id="g-tabs">
       <button class="g-tab active" id="tab-my" onclick="switchGalleryTab('my')">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        マイギャラリー
+        <span data-i18n="マイギャラリー">マイギャラリー</span>
       </button>
       <button class="g-tab" id="tab-public" onclick="switchGalleryTab('public')">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        みんなのギャラリー
+        <span data-i18n="みんなのギャラリー">みんなのギャラリー</span>
       </button>
     </div>
     <div id="g-search">
       <div class="sw">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input id="skw" placeholder="アプリを検索..." oninput="renderGallery()" autocomplete="off">
+        <input id="skw" placeholder="アプリを検索..." oninput="renderGallery()" autocomplete="off" data-i18n-placeholder="アプリを検索...">
       </div>
       <span id="gcnt" style="font-size:11px;color:var(--t3);white-space:nowrap"></span>
     </div>
     <div id="g-body">
       <div id="g-login-banner">
-        <a onclick="openAuthModal()" style="cursor:pointer;text-decoration:underline">ログイン</a>すると、作ったアプリが自動保存されます
+        <a onclick="openAuthModal()" style="cursor:pointer;text-decoration:underline"><span data-i18n="ログイン">ログイン</span></a><span data-i18n="すると、作ったアプリが自動保存されます">すると、作ったアプリが自動保存されます</span>
       </div>
       <div id="gg" class="gg"></div>
       <div id="g-empty">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <p style="font-size:14px;margin-bottom:8px" id="g-empty-msg">まだアプリがありません</p>
-        <button onclick="nav('studio')" style="font-size:12px;color:var(--ac2);background:none;border:none;cursor:pointer;text-decoration:underline">作ってみる →</button>
+        <p style="font-size:14px;margin-bottom:8px" id="g-empty-msg"><span data-i18n="まだアプリがありません">まだアプリがありません</span></p>
+        <button onclick="nav('studio')" style="font-size:12px;color:var(--ac2);background:none;border:none;cursor:pointer;text-decoration:underline"><span data-i18n="作ってみる →">作ってみる →</span></button>
       </div>
     </div>
   </div>
@@ -690,22 +701,22 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div id="launchpad">
       <div class="lp-head">
         <h1>🥔 HTML Sandbox</h1>
-        <p id="lp-sub">ローカルAI（Ollama）でコードを生成・編集</p>
+        <p id="lp-sub"><span data-i18n="ローカルAI（Ollama）でコードを生成・編集">ローカルAI（Ollama）でコードを生成・編集</span></p>
       </div>
 
       <!-- AI Generate -->
       <div class="lp-ai">
         <div class="lp-ai-lbl">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-          <span id="lp-ai-lbl-text">AI でコードを一発生成（deepseek-coder-v2:16b）</span>
+          <span id="lp-ai-lbl-text"><span data-i18n="AI でコードを一発生成（deepseek-coder-v2:16b）">AI でコードを一発生成（deepseek-coder-v2:16b）</span></span>
         </div>
         <div class="lp-row">
-          <input id="agi" placeholder="例: ブロック崩し / カラフルな電卓 / タイマーアプリ">
-          <button id="agb" onclick="genFromPrompt()">生成する</button>
+          <input id="agi" placeholder="例: ブロック崩し / カラフルな電卓 / タイマーアプリ" data-i18n-placeholder="例: ブロック崩し / カラフルな電卓 / タイマーアプリ">
+          <button id="agb" onclick="genFromPrompt()"><span data-i18n="生成する">生成する</span></button>
         </div>
         <div id="ag-status">
           <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-          <span id="ag-msg">AIがコードを生成中...</span>
+          <span id="ag-msg"><span data-i18n="AIがコードを生成中...">AIがコードを生成中...</span></span>
         </div>
       </div>
 
@@ -713,19 +724,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div style="width:100%;max-width:600px;">
         <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:8px;display:flex;align-items:center;gap:5px;">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          テンプレートから始める
+          <span data-i18n="テンプレートから始める">テンプレートから始める</span>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:7px;">
-          <button onclick="loadTemplate('breakout')" class="tpl-btn">🎮 ブロック崩し</button>
-          <button onclick="loadTemplate('timer')" class="tpl-btn">⏱ タイマー</button>
-          <button onclick="loadTemplate('paint')" class="tpl-btn">🎨 お絵かき</button>
-          <button onclick="loadTemplate('calc')" class="tpl-btn">🧮 電卓</button>
-          <button onclick="loadTemplate('clock')" class="tpl-btn">🕐 時計</button>
+          <button onclick="loadTemplate('breakout')" class="tpl-btn"><span data-i18n="🎮 ブロック崩し">🎮 ブロック崩し</span></button>
+          <button onclick="loadTemplate('timer')" class="tpl-btn"><span data-i18n="⏱ タイマー">⏱ タイマー</span></button>
+          <button onclick="loadTemplate('paint')" class="tpl-btn"><span data-i18n="🎨 お絵かき">🎨 お絵かき</span></button>
+          <button onclick="loadTemplate('calc')" class="tpl-btn"><span data-i18n="🧮 電卓">🧮 電卓</span></button>
+          <button onclick="loadTemplate('clock')" class="tpl-btn"><span data-i18n="🕐 時計">🕐 時計</span></button>
         </div>
       </div>
 
       <!-- Image to Code -->
-      <div class="lp-div"><span>または画像からコードを生成（llama3.2-vision）</span></div>
+      <div class="lp-div"><span><span data-i18n="または画像からコードを生成（llama3.2-vision）">または画像からコードを生成（llama3.2-vision）</span></span></div>
       <div style="width:100%;max-width:600px;display:flex;flex-direction:column;gap:10px;">
         <!-- ドロップエリア（クリックでファイル選択） -->
         <div id="i2c-zone"
@@ -736,39 +747,40 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
              style="border:2px dashed var(--br);border-radius:var(--r);padding:18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s1);">
           <input type="file" id="i2c-file" accept="image/*" style="display:none" onchange="handleImgSelect(event)">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" style="margin:0 auto 8px;display:block"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-          <div style="font-size:13px;font-weight:600;color:var(--t2)">画像をドロップ、またはクリックして選択</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:3px">ワイヤーフレーム・スクリーンショット・手書きUI対応</div>
+          <div style="font-size:13px;font-weight:600;color:var(--t2)"><span data-i18n="画像をドロップ、またはクリックして選択">画像をドロップ、またはクリックして選択</span></div>
+          <div style="font-size:11px;color:var(--t3);margin-top:3px"><span data-i18n="ワイヤーフレーム・スクリーンショット・手書きUI対応">ワイヤーフレーム・スクリーンショット・手書きUI対応</span></div>
           <img id="i2c-preview" style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;margin-top:10px;display:none;border:1px solid var(--br)">
         </div>
         <!-- 画像読み込み後に表示される追加指示エリア -->
         <div id="i2c-extra" style="display:none;flex-direction:column;gap:8px;">
           <textarea id="i2c-prompt" placeholder="追加の指示を入力（任意）&#10;例: ダークモードにして / ボタンを大きくして / スマホ対応にして"
             style="width:100%;height:72px;background:rgba(0,0,0,.3);border:1px solid var(--brh);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--t1);outline:none;font-family:var(--f);resize:none;line-height:1.5;transition:border-color .15s;"
-            onfocus="this.style.borderColor='var(--tl)'" onblur="this.style.borderColor='var(--brh)'"></textarea>
+            onfocus="this.style.borderColor='var(--tl)'" onblur="this.style.borderColor='var(--brh)'" data-i18n-placeholder="追加の指示を入力（任意）
+例: ダークモードにして / ボタンを大きくして / スマホ対応にして"></textarea>
           <!-- ステータス表示 -->
           <div id="i2c-status" style="display:none;font-size:11px;color:var(--tl);align-items:center;gap:6px">
             <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-            <span id="i2c-msg">画像を解析中...</span>
+            <span id="i2c-msg"><span data-i18n="画像を解析中...">画像を解析中...</span></span>
           </div>
           <!-- 生成ボタン（ゾーンの外に独立） -->
           <button id="i2c-btn" onclick="generateFromImage()"
             style="width:100%;padding:11px;border-radius:9px;border:none;cursor:pointer;font-family:var(--f);font-size:13px;font-weight:700;color:white;background:linear-gradient(135deg,#0ea5e9,#38bdf8);box-shadow:0 4px 14px rgba(14,165,233,.35);transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-            この画像からアプリを生成（Vision AI）
+            <span data-i18n="この画像からアプリを生成（Vision AI）">この画像からアプリを生成（Vision AI）</span>
           </button>
         </div>
         <!-- 画像未選択時のステータス -->
         <div id="i2c-status-pre" style="display:none;font-size:11px;color:var(--tl);align-items:center;gap:6px">
           <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-          <span id="i2c-msg">画像を解析中...</span>
+          <span id="i2c-msg"><span data-i18n="画像を解析中...">画像を解析中...</span></span>
         </div>
       </div>
 
-      <div class="lp-div"><span>またはコードを貼り付け</span></div>
-      <textarea id="lp-code" placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）"></textarea>
+      <div class="lp-div"><span><span data-i18n="またはコードを貼り付け">またはコードを貼り付け</span></span></div>
+      <textarea id="lp-code" placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）" data-i18n-placeholder="HTML / CSS / JavaScript を貼り付けてください（種類を自動判定して実行します）"></textarea>
       <div class="lp-btns">
-        <button class="lb main" onclick="launchStudio()">起動する</button>
-        <button class="lb sub" onclick="nav('gallery')">ギャラリーを見る</button>
+        <button class="lb main" onclick="launchStudio()"><span data-i18n="起動する">起動する</span></button>
+        <button class="lb sub" onclick="nav('gallery')"><span data-i18n="ギャラリーを見る">ギャラリーを見る</span></button>
       </div>
     </div>
 
@@ -776,19 +788,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div id="workspace">
       <div id="stream-bar"></div>
       <div id="wsbar">
-        <button class="nb" onclick="backToStudio()" title="作る画面（コード入力）に戻る" style="margin-right:4px">
+        <button class="nb" onclick="backToStudio()" title="作る画面（コード入力）に戻る" style="margin-right:4px" data-i18n-title="作る画面（コード入力）に戻る">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-          作るに戻る
+          <span data-i18n="作るに戻る">作るに戻る</span>
         </button>
         <div class="sep"></div>
         <div class="dev-group">
-          <button class="dev-btn" id="dev-desktop" onclick="setDevice('desktop')" style="background:rgba(109,90,239,.3);color:white" title="デスクトップ">
+          <button class="dev-btn" id="dev-desktop" onclick="setDevice('desktop')" style="background:rgba(109,90,239,.3);color:white" title="デスクトップ" data-i18n-title="デスクトップ">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
           </button>
-          <button class="dev-btn" id="dev-tablet" onclick="setDevice('tablet')" style="background:transparent;color:var(--t3)" title="タブレット横向き">
+          <button class="dev-btn" id="dev-tablet" onclick="setDevice('tablet')" style="background:transparent;color:var(--t3)" title="タブレット横向き" data-i18n-title="タブレット横向き">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="18" r="1" fill="currentColor"/></svg>
           </button>
-          <button class="dev-btn" id="dev-mobile" onclick="setDevice('mobile')" style="background:transparent;color:var(--t3)" title="スマホ横向き">
+          <button class="dev-btn" id="dev-mobile" onclick="setDevice('mobile')" style="background:transparent;color:var(--t3)" title="スマホ横向き" data-i18n-title="スマホ横向き">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1" fill="currentColor"/></svg>
           </button>
         </div>
@@ -796,30 +808,30 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <div class="sep"></div>
         <button class="nb" id="ctbtn" onclick="toggleCodePanel()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          コードを表示
+          <span data-i18n="コードを表示">コードを表示</span>
         </button>
         <button class="nb" id="chat-toggle-btn" onclick="toggleChatPanel()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          チャット
+          <span data-i18n="チャット">チャット</span>
         </button>
         <button class="nb" onclick="dlCode()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          保存
+          <span data-i18n="保存">保存</span>
         </button>
         <button class="nb" onclick="toggleHistory()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
-          履歴
+          <span data-i18n="履歴">履歴</span>
           <span id="hbadge" style="display:none;background:var(--ac);color:white;font-size:9px;padding:1px 5px;border-radius:8px"></span>
         </button>
-        <button class="nb" onclick="reloadPreview()" title="リロード">
+        <button class="nb" onclick="reloadPreview()" title="リロード" data-i18n-title="リロード">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
         </button>
         <div class="sep"></div>
         <button class="nb pri" onclick="openShareModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-          公開・共有
+          <span data-i18n="公開・共有">公開・共有</span>
         </button>
-        <button class="ni" onclick="toggleFS()" title="全画面">
+        <button class="ni" onclick="toggleFS()" title="全画面" data-i18n-title="全画面">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
         </button>
       </div>
@@ -830,25 +842,25 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <div id="chat-panel">
           <div id="chat-hdr">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ac2)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span id="chat-hdr-title">AIチャット</span>
-            <button id="chat-clear" onclick="clearChat()" title="会話ログをすべて削除">チャット履歴をクリア</button>
-            <button class="xbtn" onclick="toggleChatPanel()" title="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+            <span id="chat-hdr-title"><span data-i18n="AIチャット">AIチャット</span></span>
+            <button id="chat-clear" onclick="clearChat()" title="会話ログをすべて削除" data-i18n-title="会話ログをすべて削除"><span data-i18n="チャット履歴をクリア">チャット履歴をクリア</span></button>
+            <button class="xbtn" onclick="toggleChatPanel()" title="閉じる" data-i18n-title="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
           </div>
           <div id="chat-msgs">
             <div class="cm ai">
               <span class="cm-role">AI</span>
-              <div class="cm-bubble">👋 こんにちは！アプリについて何でも聞いてください。<br>「背景を青にして」「スコアを追加して」など自由に話しかけると、コードを修正してプレビューに反映します。</div>
+              <div class="cm-bubble"><span data-i18n="👋 こんにちは！アプリについて何でも聞いてください。">👋 こんにちは！アプリについて何でも聞いてください。</span><br><span data-i18n="「背景を青にして」「スコアを追加して」など自由に話しかけると、コードを修正してプレビューに反映します。">「背景を青にして」「スコアを追加して」など自由に話しかけると、コードを修正してプレビューに反映します。</span></div>
             </div>
           </div>
           <div id="chat-inp-wrap">
-            <textarea id="chat-inp" rows="2" placeholder="AIに話しかける... （Shift+Enterで送信）" onkeydown="chatKeydown(event)"></textarea>
+            <textarea id="chat-inp" rows="2" placeholder="AIに話しかける... （Shift+Enterで送信）" onkeydown="chatKeydown(event)" data-i18n-placeholder="AIに話しかける... （Shift+Enterで送信）"></textarea>
             <div id="chat-send-row">
               <button id="chat-snd" onclick="sendChat()">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:middle"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                送信
+                <span data-i18n="送信">送信</span>
               </button>
             </div>
-            <button type="button" id="chat-copy-code" class="nb" style="width:100%;padding:7px 10px;font-size:11px;font-weight:600;justify-content:center" onclick="copyChatWorkspaceCode()" title="現在プレビュー中のHTMLをクリップボードにコピー">📋 コードをコピー</button>
+            <button type="button" id="chat-copy-code" class="nb" style="width:100%;padding:7px 10px;font-size:11px;font-weight:600;justify-content:center" onclick="copyChatWorkspaceCode()" title="現在プレビュー中のHTMLをクリップボードにコピー" data-i18n-title="現在プレビュー中のHTMLをクリップボードにコピー"><span data-i18n="📋 コードをコピー">📋 コードをコピー</span></button>
             <div id="chat-mode-lbl"></div>
           </div>
         </div>
@@ -858,8 +870,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
             <div class="bl-grid"></div>
             <div class="bl-core">
               <div class="bl-icon">🏗</div>
-              <div class="bl-title">DeepSeek-16Bがコードを建築中…（しばらくお待ちください）</div>
-              <div class="bl-sub">大規模モデルが単一HTMLを仕上げています。プレビューは完成後に一発表示されます。</div>
+              <div class="bl-title"><span data-i18n="DeepSeek-16Bがコードを建築中…（しばらくお待ちください）">DeepSeek-16Bがコードを建築中…（しばらくお待ちください）</span></div>
+              <div class="bl-sub"><span data-i18n="大規模モデルが単一HTMLを仕上げています。プレビューは完成後に一発表示されます。">大規模モデルが単一HTMLを仕上げています。プレビューは完成後に一発表示されます。</span></div>
               <div class="bl-bar"><i></i></div>
             </div>
           </div>
@@ -879,7 +891,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
             <pre id="ch"><code class="language-markup"></code></pre>
             <textarea id="ct" spellcheck="false" oninput="onCI()" onscroll="syncCS()" onkeydown="ck(event)"></textarea>
           </div>
-          <div id="cp-foot"><button onclick="applyCode()">✓ 適用してプレビューに反映</button></div>
+          <div id="cp-foot"><button onclick="applyCode()"><span data-i18n="✓ 適用してプレビューに反映">✓ 適用してプレビューに反映</span></button></div>
         </div>
       </div>
 
@@ -887,35 +899,35 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div id="aibar">
         <div id="aibar-in">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-          <input id="ai-inp" placeholder="AIに変更を依頼... 例: 背景を黒に / スコアを追加">
-          <button id="ai-snd" onclick="runAI()">送信</button>
+          <input id="ai-inp" placeholder="AIに変更を依頼... 例: 背景を黒に / スコアを追加" data-i18n-placeholder="AIに変更を依頼... 例: 背景を黒に / スコアを追加">
+          <button id="ai-snd" onclick="runAI()"><span data-i18n="送信">送信</span></button>
         </div>
       </div>
 
       <!-- Auto-Fix -->
       <button id="autofix-btn" onclick="runAutoFix()" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-        🤖 Qwen AIでエラーを修復
+        <span data-i18n="🤖 Qwen AIでエラーを修復">🤖 Qwen AIでエラーを修復</span>
       </button>
       <div id="err-badge" style="display:none"></div>
 
       <!-- Thinking -->
       <div id="thinking">
         <div class="tr"></div>
-        <div class="tm"><span id="tmsg">AIが考えています</span><span class="tc"></span></div>
+        <div class="tm"><span id="tmsg"><span data-i18n="AIが考えています">AIが考えています</span></span><span class="tc"></span></div>
         <div id="thinking-sub" style="font-size:11px;color:var(--t3);margin-top:4px">Ollama Local AI</div>
       </div>
 
       <!-- History Panel -->
       <div id="hp">
-        <div class="hh"><span>バージョン履歴</span><button class="xbtn" onclick="toggleHistory()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+        <div class="hh"><span><span data-i18n="バージョン履歴">バージョン履歴</span></span><button class="xbtn" onclick="toggleHistory()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
         <div id="hl" style="flex:1;overflow-y:auto"></div>
       </div>
 
       <!-- FS exit / back -->
       <button id="ws-back-fs" onclick="backToStudio()" style="display:none;position:absolute;top:12px;left:12px;z-index:60;padding:8px 14px;background:rgba(7,8,13,.88);border:1px solid var(--brh);border-radius:10px;color:var(--t1);cursor:pointer;font-family:var(--f);font-size:12px;font-weight:600;align-items:center;gap:6px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-        作るに戻る
+        <span data-i18n="作るに戻る">作るに戻る</span>
       </button>
       <button id="fsexit" onclick="toggleFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:60;padding:8px;background:rgba(7,8,13,.88);border:1px solid var(--brh);border-radius:10px;color:var(--t1);cursor:pointer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
@@ -933,28 +945,28 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
           <div id="cvs-hdr-top">
             <div id="cvs-label">
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:3px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              チャット履歴
+              <span data-i18n="チャット履歴">チャット履歴</span>
             </div>
-            <button id="cvs-close" onclick="cvsToggle()" title="閉じる">
+            <button id="cvs-close" onclick="cvsToggle()" title="閉じる" data-i18n-title="閉じる">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
           </div>
           <button id="cvs-new" onclick="cvsNew()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-            新しいチャット
+            <span data-i18n="新しいチャット">新しいチャット</span>
           </button>
         </div>
         <div id="cvs-login-note" style="display:none">
-          <a onclick="openAuthModal()">ログイン</a>すると履歴が自動保存されます
+          <a onclick="openAuthModal()"><span data-i18n="ログイン">ログイン</span></a><span data-i18n="すると履歴が自動保存されます">すると履歴が自動保存されます</span>
         </div>
         <div id="cvs-list">
           <div id="cvs-empty">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            履歴がありません<br>AIに話しかけて<br>作成を始めましょう
+            <span data-i18n="履歴がありません">履歴がありません</span><br><span data-i18n="AIに話しかけて">AIに話しかけて</span><br><span data-i18n="作成を始めましょう">作成を始めましょう</span>
           </div>
         </div>
       </div>
-      <button id="cvs-toggle" onclick="cvsToggle()" title="サイドバーを開閉">
+      <button id="cvs-toggle" onclick="cvsToggle()" title="サイドバーを開閉" data-i18n-title="サイドバーを開閉">
         <svg id="cvs-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
       </button>
     </div>
@@ -963,22 +975,22 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div id="cv-left">
       <div id="cv-hdr">
         <!-- 履歴サイドバー開閉ボタン -->
-        <button id="cvs-hdr-btn" onclick="cvsToggle()" title="チャット履歴を開く/閉じる">
+        <button id="cvs-hdr-btn" onclick="cvsToggle()" title="チャット履歴を開く/閉じる" data-i18n-title="チャット履歴を開く/閉じる">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          履歴
+          <span data-i18n="履歴">履歴</span>
         </button>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ac2)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span id="cv-hdr-title">AIチャット</span>
+        <span id="cv-hdr-title"><span data-i18n="AIチャット">AIチャット</span></span>
         <!-- コードを表示ボタン -->
-        <button id="cv-show-code-btn" onclick="cvShowCode()" title="生成されたコードを表示">
+        <button id="cv-show-code-btn" onclick="cvShowCode()" title="生成されたコードを表示" data-i18n-title="生成されたコードを表示">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          コードを表示
+          <span data-i18n="コードを表示">コードを表示</span>
         </button>
       </div>
       <div id="cv-msgs">
         <div class="cvm ai">
           <span class="cvm-name">AI</span>
-          <div class="cvm-bubble">👋 こんにちは！<br>アプリを作りたいことを自由に話しかけてください。会話しながら一緒に作っていきましょう。<br><br>例：「ブロック崩しゲームを作って」「シンプルなTodoリストが欲しい」</div>
+          <div class="cvm-bubble"><span data-i18n="👋 こんにちは！">👋 こんにちは！</span><br><span data-i18n="アプリを作りたいことを自由に話しかけてください。会話しながら一緒に作っていきましょう。">アプリを作りたいことを自由に話しかけてください。会話しながら一緒に作っていきましょう。</span><br><br><span data-i18n="例：「ブロック崩しゲームを作って」「シンプルなTodoリストが欲しい」">例：「ブロック崩しゲームを作って」「シンプルなTodoリストが欲しい」</span></div>
         </div>
       </div>
       <div id="cv-footer">
@@ -986,17 +998,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <div id="cv-img-preview" style="display:none;position:relative;margin-bottom:4px">
           <img id="cv-img-thumb" style="max-height:80px;border-radius:8px;object-fit:contain;border:1px solid var(--br)">
           <button onclick="cvRemoveImg()" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--rd);border:none;color:white;cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center">✕</button>
-          <span style="font-size:10px;color:var(--am);margin-left:6px">🦙 llama3.2-vision で送信</span>
+          <span style="font-size:10px;color:var(--am);margin-left:6px"><span data-i18n="🦙 llama3.2-vision で送信">🦙 llama3.2-vision で送信</span></span>
         </div>
-        <textarea id="cv-inp" rows="2" placeholder="メッセージを入力... （Shift+Enter で送信）" onkeydown="cvKeydown(event)"></textarea>
+        <textarea id="cv-inp" rows="2" placeholder="メッセージを入力... （Shift+Enter で送信）" onkeydown="cvKeydown(event)" data-i18n-placeholder="メッセージを入力... （Shift+Enter で送信）"></textarea>
         <div id="cv-btns">
-          <label title="画像を添付" style="width:36px;height:36px;border-radius:9px;border:1px solid var(--br);background:var(--s3);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);flex-shrink:0;transition:all .15s" onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--br)'">
+          <label title="画像を添付" style="width:36px;height:36px;border-radius:9px;border:1px solid var(--br);background:var(--s3);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);flex-shrink:0;transition:all .15s" onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--br)'" data-i18n-title="画像を添付">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             <input type="file" accept="image/*" style="display:none" onchange="cvAttachImg(event)">
           </label>
           <button id="cv-send" onclick="cvSend()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            送信
+            <span data-i18n="送信">送信</span>
           </button>
         </div>
         <div id="cv-engine"></div>
@@ -1006,8 +1018,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
     <div id="cv-right">
       <div id="cv-pv-bar">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        <span id="cv-pv-title" style="color:var(--t3);font-size:11px;flex:1">プレビュー — まだコードがありません</span>
-        <button id="cv-pv-reload" onclick="cvReload()" title="リロード">
+        <span id="cv-pv-title" style="color:var(--t3);font-size:11px;flex:1"><span data-i18n="プレビュー — まだコードがありません">プレビュー — まだコードがありません</span></span>
+        <button id="cv-pv-reload" onclick="cvReload()" title="リロード" data-i18n-title="リロード">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
         </button>
       </div>
@@ -1017,48 +1029,48 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 
   <!-- APP VIEW -->
   <div id="view-app" class="view" style="position:relative">
-    <iframe id="app-pv" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock"></iframe>
+    <iframe id="app-pv" sandbox="allow-scripts allow-forms allow-pointer-lock"></iframe>
     <div id="hud">
-      <div class="hp2 app-back-main" onclick="goBack()" title="ギャラリーに戻る">
+      <div class="hp2 app-back-main" onclick="goBack()" title="ギャラリーに戻る" data-i18n-title="ギャラリーに戻る">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-        <span id="app-back-label">ギャラリーに戻る</span>
+        <span id="app-back-label"><span data-i18n="ギャラリーに戻る">ギャラリーに戻る</span></span>
       </div>
       <div class="hud-spacer"></div>
-      <div class="hp2" id="app-ttl">無題のアプリ</div>
+      <div class="hp2" id="app-ttl"><span data-i18n="無題のアプリ">無題のアプリ</span></div>
       <div class="hp2" onclick="likeApp()" id="lbtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="#da3633" stroke-width="2" id="lico"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
         <span id="lcnt">0</span>
       </div>
       <div class="hp2" onclick="forkApp()" id="fork-btn" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
-        フォーク
+        <span data-i18n="フォーク">フォーク</span>
       </div>
-      <div class="hp2" onclick="toggleAppCommentsPanel()" id="comment-btn" style="display:none" title="コメント">
+      <div class="hp2" onclick="toggleAppCommentsPanel()" id="comment-btn" style="display:none" title="コメント" data-i18n-title="コメント">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span id="comment-cnt">0</span>
       </div>
-      <div class="hi" onclick="toggleAFS()" title="全画面">
+      <div class="hi" onclick="toggleAFS()" title="全画面" data-i18n-title="全画面">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
       </div>
     </div>
     <button id="afs-back" onclick="goBack()" style="display:none;position:absolute;top:12px;left:12px;z-index:25;padding:8px 14px;background:rgba(7,8,13,.88);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#edf2f7;cursor:pointer;font-family:var(--f);font-size:12px;font-weight:600">
-      ← ギャラリーに戻る
+      <span data-i18n="← ギャラリーに戻る">← ギャラリーに戻る</span>
     </button>
     <button id="afsexit" onclick="toggleAFS()" style="display:none;position:absolute;top:12px;right:12px;z-index:25;padding:8px;background:rgba(7,8,13,.88);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#edf2f7;cursor:pointer">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
     </button>
     <div id="app-comments">
       <div class="app-comments-hdr">
-        <span>コメント <span id="comment-cnt-hdr" style="font-weight:500;color:var(--t3)"></span></span>
-        <button type="button" class="xbtn" onclick="setCommentsPanelVisible(false)" title="閉じる">
+        <span><span data-i18n="コメント">コメント</span> <span id="comment-cnt-hdr" style="font-weight:500;color:var(--t3)"></span></span>
+        <button type="button" class="xbtn" onclick="setCommentsPanelVisible(false)" title="閉じる" data-i18n-title="閉じる">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
       </div>
       <div id="app-comments-list"></div>
       <div class="app-comments-form">
-        <p id="app-comment-login-hint">コメントするにはログインが必要です</p>
-        <textarea id="app-comment-input" rows="2" placeholder="コメントを入力（500文字以内）"></textarea>
-        <button type="button" id="app-comment-post" onclick="postComment()">投稿</button>
+        <p id="app-comment-login-hint"><span data-i18n="コメントするにはログインが必要です">コメントするにはログインが必要です</span></p>
+        <textarea id="app-comment-input" rows="2" placeholder="コメントを入力（500文字以内）" data-i18n-placeholder="コメントを入力（500文字以内）"></textarea>
+        <button type="button" id="app-comment-post" onclick="postComment()"><span data-i18n="投稿">投稿</span></button>
       </div>
     </div>
   </div>
@@ -1067,35 +1079,37 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <!-- SETTINGS MODAL -->
 <div id="sm" class="mo">
   <div class="mb">
-    <div class="mt">設定<button class="mc" onclick="CM('sm')">✕</button></div>
+    <div class="mt"><span data-i18n="設定">設定</span><button class="mc" onclick="CM('sm')">✕</button></div>
+    <label class="language-picker"><span data-i18n="言語 / Language">言語 / Language</span>
+      <select data-language-select aria-label="Language / 言語"><option value="ja">日本語</option><option value="en">English</option></select></label>
     <div class="avr">
       <div class="avc" onclick="document.getElementById('avf').click()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <img id="avimg" alt="">
       </div>
       <div>
-        <div style="font-size:12px;color:var(--t2);margin-bottom:5px">アイコン画像</div>
-        <button onclick="document.getElementById('avf').click()" style="padding:5px 12px;background:var(--s3);border:1px solid var(--br);border-radius:7px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--f)">選択</button>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:5px"><span data-i18n="アイコン画像">アイコン画像</span></div>
+        <button onclick="document.getElementById('avf').click()" style="padding:5px 12px;background:var(--s3);border:1px solid var(--br);border-radius:7px;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--f)"><span data-i18n="選択">選択</span></button>
         <input type="file" id="avf" accept="image/*" style="display:none" onchange="handleAv(event)">
       </div>
     </div>
-    <label class="fl">表示名</label>
-    <input type="text" id="pname" class="fi" placeholder="あなたの名前..." oninput="onPnameInput()">
+    <label class="fl"><span data-i18n="表示名">表示名</span></label>
+    <input type="text" id="pname" class="fi" placeholder="あなたの名前..." oninput="onPnameInput()" data-i18n-placeholder="あなたの名前...">
     <div id="pname-change-warn" style="display:none;font-size:11px;color:var(--am);background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25);border-radius:8px;padding:9px 12px;margin-top:-10px;margin-bottom:14px;line-height:1.6">
-      ⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名と、あなたが投稿したコメントの表示名もすべて更新されます。
+      <span data-i18n="⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名と、あなたが投稿したコメントの表示名もすべて更新されます。">⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名と、あなたが投稿したコメントの表示名もすべて更新されます。</span>
     </div>
     <div class="div1"></div>
     <!-- Ollama設定 -->
     <!-- モード切替 -->
-    <label class="fl">AI モード</label>
+    <label class="fl"><span data-i18n="AI モード">AI モード</span></label>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
       <button id="mode-local-btn" onclick="switchMode('local')"
         style="padding:8px 4px;border-radius:9px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--ac);color:white;border:none;transition:all .15s;line-height:1.4;text-align:center">
-        🖥<br>ローカル AI<br><span style="font-weight:400;opacity:.8">(Ollama)</span>
+        🖥<br><span data-i18n="ローカル AI">ローカル AI</span><br><span style="font-weight:400;opacity:.8">(Ollama)</span>
       </button>
       <button id="mode-cloud-btn" onclick="switchMode('cloud')"
         style="padding:8px 4px;border-radius:9px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--s3);color:var(--t2);border:1px solid var(--br);transition:all .15s;line-height:1.4;text-align:center">
-        ☁<br>クラウド AI<br><span style="font-weight:400;opacity:.8">(Gemini)</span>
+        ☁<br><span data-i18n="クラウド AI">クラウド AI</span><br><span style="font-weight:400;opacity:.8">(Gemini)</span>
       </button>
       <button id="mode-nano-btn" onclick="switchMode('nano')"
         style="padding:8px 4px;border-radius:9px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);background:var(--s3);color:var(--t2);border:1px solid var(--br);transition:all .15s;line-height:1.4;text-align:center">
@@ -1105,24 +1119,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 
     <!-- ローカルモード設定 -->
     <div id="local-settings">
-      <label class="fl">Ollama サーバー URL</label>
+      <label class="fl"><span data-i18n="Ollama サーバー URL">Ollama サーバー URL</span></label>
       <input type="text" id="ollama-url" class="fi" placeholder="http://localhost:11434" value="http://localhost:11434">
       <div id="ollama-chk" class="ollama-status ok" style="display:none"></div>
       <div style="display:flex;gap:8px;margin-bottom:14px">
-        <button onclick="checkOllama()" style="flex:1;padding:7px;background:var(--s3);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--f)">接続テスト</button>
+        <button onclick="checkOllama()" style="flex:1;padding:7px;background:var(--s3);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--f)"><span data-i18n="接続テスト">接続テスト</span></button>
       </div>
       <div class="mnote">
-        Ollamaは<strong>APIキー不要</strong>でローカル動作します。<br>
-        起動: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">ollama serve</code><br>
-        コーダー（チャット）: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">qwen2.5-coder:7b</code><br>
-        一発生成（作る）: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">deepseek-coder-v2:16b</code><br>
-        画像解析: <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">llama3.2-vision</code>
+        <span data-i18n="Ollamaは">Ollamaは</span><strong><span data-i18n="APIキー不要">APIキー不要</span></strong><span data-i18n="でローカル動作します。">でローカル動作します。</span><br>
+        <span data-i18n="起動:">起動:</span> <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">ollama serve</code><br>
+        <span data-i18n="コーダー（チャット）:">コーダー（チャット）:</span> <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">qwen2.5-coder:7b</code><br>
+        <span data-i18n="一発生成（作る）:">一発生成（作る）:</span> <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">deepseek-coder-v2:16b</code><br>
+        <span data-i18n="画像解析:">画像解析:</span> <code style="background:rgba(255,255,255,.08);padding:2px 5px;border-radius:4px">llama3.2-vision</code>
       </div>
     </div>
 
     <!-- クラウドモード設定 -->
     <div id="cloud-settings" style="display:none">
-      <label class="fl">Gemini API キー</label>
+      <label class="fl"><span data-i18n="Gemini API キー">Gemini API キー</span></label>
       <div style="position:relative;margin-bottom:6px">
         <input type="password" id="gemini-key-input" class="fi" placeholder="AIzaSy..." style="margin-bottom:0;padding-right:40px">
         <button onclick="toggleGeminiKeyVis()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t3)">
@@ -1132,8 +1146,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div id="gemini-key-status" style="font-size:10px;color:var(--gr);margin-bottom:10px;height:14px"></div>
       <div class="mnote">
         <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:var(--ac2);text-decoration:underline">Google AI Studio</a>
-        からAPIキーを取得してください。<br>
-        ログイン中はFirestoreに自動保存されます。
+        <span data-i18n="からAPIキーを取得してください。">からAPIキーを取得してください。</span><br>
+        <span data-i18n="ログイン中はFirestoreに自動保存されます。">ログイン中はFirestoreに自動保存されます。</span>
       </div>
     </div>
 
@@ -1143,32 +1157,32 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <details style="margin-bottom:10px">
         <summary style="font-size:11px;font-weight:600;color:var(--ac2);cursor:pointer;padding:8px 12px;background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.18);border-radius:8px;list-style:none;display:flex;align-items:center;gap:6px">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-          Chrome 組み込み AI の有効化手順を見る
+          <span data-i18n="Chrome 組み込み AI の有効化手順を見る">Chrome 組み込み AI の有効化手順を見る</span>
         </summary>
         <div class="mnote" style="margin-top:6px;margin-bottom:0">
-          APIキー不要・完全ローカル動作。Function Calling未対応のためHTMLを正規表現で抽出します。<br><br>
-          <strong>有効化手順：</strong><br>
-          1. Chrome 127以上 (Dev / Canary推奨)<br>
-          2. <code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">chrome://flags</code> を開く<br>
+          <span data-i18n="APIキー不要・完全ローカル動作。Function Calling未対応のためHTMLを正規表現で抽出します。">APIキー不要・完全ローカル動作。Function Calling未対応のためHTMLを正規表現で抽出します。</span><br><br>
+          <strong><span data-i18n="有効化手順：">有効化手順：</span></strong><br>
+          <span data-i18n="1. Chrome 127以上 (Dev / Canary推奨)">1. Chrome 127以上 (Dev / Canary推奨)</span><br>
+          2. <code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">chrome://flags</code> <span data-i18n="を開く">を開く</span><br>
           3. <code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">Prompt API for Gemini Nano</code> → Enabled<br>
           4. <code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">Optimization Guide On Device Model</code> → Enabled BypassPerfRequirement<br>
-          5. Chromeを再起動 → モデルをダウンロード<br><br>
-          <a href="https://developer.chrome.com/docs/ai/built-in" target="_blank" rel="noopener" style="color:var(--ac2);text-decoration:underline">詳細ドキュメント →</a>
+          <span data-i18n="5. Chromeを再起動 → モデルをダウンロード">5. Chromeを再起動 → モデルをダウンロード</span><br><br>
+          <a href="https://developer.chrome.com/docs/ai/built-in" target="_blank" rel="noopener" style="color:var(--ac2);text-decoration:underline"><span data-i18n="詳細ドキュメント →">詳細ドキュメント →</span></a>
         </div>
       </details>
-      <button onclick="checkNanoAvailability()" style="width:100%;padding:8px;background:var(--s3);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--f);margin-bottom:4px">🔷 Chrome AI の利用可否を確認</button>
+      <button onclick="checkNanoAvailability()" style="width:100%;padding:8px;background:var(--s3);border:1px solid var(--br);border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--f);margin-bottom:4px"><span data-i18n="🔷 Chrome AI の利用可否を確認">🔷 Chrome AI の利用可否を確認</span></button>
     </div>
     <div class="div1"></div>
     <!-- Firebase Auth -->
-    <label class="fl">アカウント</label>
-    <div id="auth-status" style="font-size:12px;color:var(--t2);margin-bottom:10px">未ログイン</div>
+    <label class="fl"><span data-i18n="アカウント">アカウント</span></label>
+    <div id="auth-status" style="font-size:12px;color:var(--t2);margin-bottom:10px"><span data-i18n="未ログイン">未ログイン</span></div>
     <div id="auth-btns" style="display:flex;gap:8px;margin-bottom:14px">
-      <button class="mbb tl" onclick="openAuthModal();CM('sm')">ログイン / 新規登録</button>
-      <button id="logout-btn" class="mbb can" onclick="doLogout()" style="display:none">ログアウト</button>
+      <button class="mbb tl" onclick="openAuthModal();CM('sm')"><span data-i18n="ログイン / 新規登録">ログイン / 新規登録</span></button>
+      <button id="logout-btn" class="mbb can" onclick="doLogout()" style="display:none"><span data-i18n="ログアウト">ログアウト</span></button>
     </div>
     <div class="mbs">
-      <button class="mbb can" onclick="CM('sm')">閉じる</button>
-      <button class="mbb ok" onclick="saveSets()">保存</button>
+      <button class="mbb can" onclick="CM('sm')"><span data-i18n="閉じる">閉じる</span></button>
+      <button class="mbb ok" onclick="saveSets()"><span data-i18n="保存">保存</span></button>
     </div>
   </div>
 </div>
@@ -1176,16 +1190,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <!-- AUTH MODAL -->
 <div id="auth-modal" class="mo">
   <div class="mb">
-    <div class="mt">ログイン / 新規登録<button class="mc" onclick="CM('auth-modal')">✕</button></div>
-    <label class="fl">メールアドレス</label>
+    <div class="mt"><span data-i18n="ログイン / 新規登録">ログイン / 新規登録</span><button class="mc" onclick="CM('auth-modal')">✕</button></div>
+    <label class="fl"><span data-i18n="メールアドレス">メールアドレス</span></label>
     <input type="email" id="auth-email" class="fi" placeholder="you@example.com">
-    <label class="fl">パスワード</label>
-    <input type="password" id="auth-pw" class="fi" placeholder="6文字以上">
-    <button type="button" class="auth-forgot" onclick="openResetPasswordModal()">パスワードをお忘れですか？</button>
+    <label class="fl"><span data-i18n="パスワード">パスワード</span></label>
+    <input type="password" id="auth-pw" class="fi" placeholder="6文字以上" data-i18n-placeholder="6文字以上">
+    <button type="button" class="auth-forgot" onclick="openResetPasswordModal()"><span data-i18n="パスワードをお忘れですか？">パスワードをお忘れですか？</span></button>
     <div id="auth-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
     <div class="mbs">
-      <button class="mbb can" onclick="doLogin()">ログイン</button>
-      <button class="mbb ok" onclick="doSignup()">新規登録</button>
+      <button class="mbb can" onclick="doLogin()"><span data-i18n="ログイン">ログイン</span></button>
+      <button class="mbb ok" onclick="doSignup()"><span data-i18n="新規登録">新規登録</span></button>
     </div>
   </div>
 </div>
@@ -1193,17 +1207,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <!-- PASSWORD RESET MODAL -->
 <div id="reset-pw-modal" class="mo">
   <div class="mb">
-    <div class="mt">パスワードの再設定<button class="mc" onclick="CM('reset-pw-modal')">✕</button></div>
+    <div class="mt"><span data-i18n="パスワードの再設定">パスワードの再設定</span><button class="mc" onclick="CM('reset-pw-modal')">✕</button></div>
     <p style="font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:14px">
-      登録したメールアドレスを入力してください。パスワード再設定用のリンクをお送りします。
+      <span data-i18n="登録したメールアドレスを入力してください。パスワード再設定用のリンクをお送りします。">登録したメールアドレスを入力してください。パスワード再設定用のリンクをお送りします。</span>
     </p>
-    <label class="fl">メールアドレス</label>
+    <label class="fl"><span data-i18n="メールアドレス">メールアドレス</span></label>
     <input type="email" id="reset-pw-email" class="fi" placeholder="you@example.com" autocomplete="email">
     <div id="reset-pw-ok"></div>
     <div id="reset-pw-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"></div>
     <div class="mbs">
-      <button type="button" class="mbb can" onclick="CM('reset-pw-modal')">戻る</button>
-      <button type="button" class="mbb ok" id="reset-pw-send-btn" onclick="sendPasswordReset()">再設定メールを送信</button>
+      <button type="button" class="mbb can" onclick="CM('reset-pw-modal')"><span data-i18n="戻る">戻る</span></button>
+      <button type="button" class="mbb ok" id="reset-pw-send-btn" onclick="sendPasswordReset()"><span data-i18n="再設定メールを送信">再設定メールを送信</span></button>
     </div>
   </div>
 </div>
@@ -1211,33 +1225,33 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <!-- SHARE MODAL -->
 <div id="shm" class="mo">
   <div class="mb">
-    <div class="mt">公開・共有<button class="mc" onclick="CM('shm')">✕</button></div>
-    <label class="fl">アプリのタイトル</label>
+    <div class="mt"><span data-i18n="公開・共有">公開・共有</span><button class="mc" onclick="CM('shm')">✕</button></div>
+    <label class="fl"><span data-i18n="アプリのタイトル">アプリのタイトル</span></label>
     <input type="text" id="shtitle" class="fi" placeholder="My Awesome App">
-    <label class="fl">共有URLのフォーク保護</label>
+    <label class="fl"><span data-i18n="共有URLのフォーク保護">共有URLのフォーク保護</span></label>
     <div class="spw-share-opt" style="margin-bottom:4px">
-      <label><input type="radio" name="share-pw-mode" value="0" checked onchange="syncSharePwUI()"> パスワードなし（URLを開いた人がそのままプレビュー・フォーク可）</label>
-      <label><input type="radio" name="share-pw-mode" value="1" onchange="syncSharePwUI()"> パスワードあり（プレビューは誰でも可／<strong>フォーク</strong>時のみパスワード）</label>
+      <label><input type="radio" name="share-pw-mode" value="0" checked onchange="syncSharePwUI()"> <span data-i18n="パスワードなし（URLを開いた人がそのままプレビュー・フォーク可）">パスワードなし（URLを開いた人がそのままプレビュー・フォーク可）</span></label>
+      <label><input type="radio" name="share-pw-mode" value="1" onchange="syncSharePwUI()"> <span data-i18n="パスワードあり（プレビューは誰でも可／">パスワードあり（プレビューは誰でも可／</span><strong><span data-i18n="フォーク">フォーク</span></strong><span data-i18n="時のみパスワード）">時のみパスワード）</span></label>
     </div>
     <div id="share-pw-row" style="display:none">
-      <label class="fl">共有用パスワード（4文字以上）</label>
-      <input type="password" id="share-pw-in" class="fi" placeholder="受け取った人に別途伝えるパスワード" autocomplete="new-password">
+      <label class="fl"><span data-i18n="共有用パスワード（4文字以上）">共有用パスワード（4文字以上）</span></label>
+      <input type="password" id="share-pw-in" class="fi" placeholder="受け取った人に別途伝えるパスワード" autocomplete="new-password" data-i18n-placeholder="受け取った人に別途伝えるパスワード">
     </div>
     <div id="surlbox" style="display:none;margin-bottom:12px">
-      <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:6px">共有URL</div>
+      <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:6px"><span data-i18n="共有URL">共有URL</span></div>
       <div class="share-url-row">
         <div id="surl" class="share-url-d"></div>
-        <button class="cpb" id="cpbtn" onclick="copyURL()">コピー</button>
+        <button class="cpb" id="cpbtn" onclick="copyURL()"><span data-i18n="コピー">コピー</span></button>
       </div>
-      <button id="mailbtn" onclick="shareEmail()" style="display:none;width:100%;padding:9px;background:var(--s3);border:1px solid var(--br);border-radius:9px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;font-family:var(--f);margin-bottom:8px">✉ メールで送信</button>
+      <button id="mailbtn" onclick="shareEmail()" style="display:none;width:100%;padding:9px;background:var(--s3);border:1px solid var(--br);border-radius:9px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;font-family:var(--f);margin-bottom:8px"><span data-i18n="✉ メールで送信">✉ メールで送信</span></button>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;gap:8px">
-        <button class="mbb can" onclick="pubGallery()">📁 マイギャラリーに保存</button>
+        <button class="mbb can" onclick="pubGallery()"><span data-i18n="📁 マイギャラリーに保存">📁 マイギャラリーに保存</span></button>
         <button class="mbb can" onclick="dlCode()">⬇ DL</button>
       </div>
-      <button class="mbb ok" style="background:linear-gradient(135deg,#0ea5e9,#6d5aef)" onclick="openPublishConfirm()">🌏 みんなのギャラリーに公開</button>
-      <button id="curlbtn" class="mbb ok" onclick="createShareURL()">🔗 URLを作成してコピー</button>
+      <button class="mbb ok" style="background:linear-gradient(135deg,#0ea5e9,#6d5aef)" onclick="openPublishConfirm()"><span data-i18n="🌏 みんなのギャラリーに公開">🌏 みんなのギャラリーに公開</span></button>
+      <button id="curlbtn" class="mbb ok" onclick="createShareURL()"><span data-i18n="🔗 URLを作成してコピー">🔗 URLを作成してコピー</span></button>
     </div>
   </div>
 </div>
@@ -1246,29 +1260,29 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <div id="publish-confirm-modal" class="mo">
   <div class="mb">
     <div class="mt">
-      🌏 みんなのギャラリーに公開
+      <span data-i18n="🌏 みんなのギャラリーに公開">🌏 みんなのギャラリーに公開</span>
       <button class="mc" onclick="CM('publish-confirm-modal')">✕</button>
     </div>
     <div style="background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:10px;padding:14px;margin-bottom:16px">
       <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:6px" id="publish-confirm-title"></div>
       <div style="font-size:11px;color:var(--t2);line-height:1.7">
-        この作品をすべてのユーザーが見られる<strong style="color:var(--t1)">みんなのギャラリー</strong>に公開します。<br>
-        公開後も、自分の投稿はいつでも削除できます。
+        <span data-i18n="この作品をすべてのユーザーが見られる">この作品をすべてのユーザーが見られる</span><strong style="color:var(--t1)"><span data-i18n="みんなのギャラリー">みんなのギャラリー</span></strong><span data-i18n="に公開します。">に公開します。</span><br>
+        <span data-i18n="公開後も、自分の投稿はいつでも削除できます。">公開後も、自分の投稿はいつでも削除できます。</span>
       </div>
     </div>
     <label class="fl" style="margin-bottom:5px">
-      作者名
-      <span style="font-weight:400;color:var(--t3);font-size:10px;margin-left:6px">ギャラリーに表示されます</span>
+      <span data-i18n="作者名">作者名</span>
+      <span style="font-weight:400;color:var(--t3);font-size:10px;margin-left:6px"><span data-i18n="ギャラリーに表示されます">ギャラリーに表示されます</span></span>
     </label>
     <input type="text" id="publish-confirm-author-input" class="fi" placeholder="表示名を入力..."
-      oninput="onPublishAuthorInput()" style="margin-bottom:6px">
+      oninput="onPublishAuthorInput()" style="margin-bottom:6px" data-i18n-placeholder="表示名を入力...">
     <div id="publish-author-change-warn" style="display:none;font-size:11px;color:var(--am);background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25);border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.6">
-      ⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名と、あなたが投稿したコメントの表示名もすべて更新されます。
+      <span data-i18n="⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名と、あなたが投稿したコメントの表示名もすべて更新されます。">⚠ 表示名を変更すると、みんなのギャラリーに公開中の作品の作者名と、あなたが投稿したコメントの表示名もすべて更新されます。</span>
     </div>
-    <div id="publish-author-err" style="display:none;font-size:11px;color:var(--rd);margin-bottom:10px">作者名を入力してください</div>
+    <div id="publish-author-err" style="display:none;font-size:11px;color:var(--rd);margin-bottom:10px"><span data-i18n="作者名を入力してください">作者名を入力してください</span></div>
     <div class="mbs">
-      <button class="mbb can" onclick="CM('publish-confirm-modal')">キャンセル</button>
-      <button class="mbb ok" style="background:linear-gradient(135deg,#0ea5e9,#6d5aef)" onclick="doPublishToGallery()">公開する</button>
+      <button class="mbb can" onclick="CM('publish-confirm-modal')"><span data-i18n="キャンセル">キャンセル</span></button>
+      <button class="mbb ok" style="background:linear-gradient(135deg,#0ea5e9,#6d5aef)" onclick="doPublishToGallery()"><span data-i18n="公開する">公開する</span></button>
     </div>
   </div>
 </div>
@@ -1277,18 +1291,18 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <div id="title-required-modal" class="mo">
   <div class="mb">
     <div class="mt">
-      アプリのタイトルを設定
+      <span data-i18n="アプリのタイトルを設定">アプリのタイトルを設定</span>
       <button class="mc" onclick="CM('title-required-modal')">✕</button>
     </div>
     <p style="font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:14px">
-      このアプリにタイトルをつけてください。<br>あとから変更することもできます。
+      <span data-i18n="このアプリにタイトルをつけてください。">このアプリにタイトルをつけてください。</span><br><span data-i18n="あとから変更することもできます。">あとから変更することもできます。</span>
     </p>
-    <label class="fl">タイトル</label>
-    <input type="text" id="title-required-input" class="fi" placeholder="例: ブロック崩しゲーム">
-    <div id="title-required-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none">タイトルを入力してください</div>
+    <label class="fl"><span data-i18n="タイトル">タイトル</span></label>
+    <input type="text" id="title-required-input" class="fi" placeholder="例: ブロック崩しゲーム" data-i18n-placeholder="例: ブロック崩しゲーム">
+    <div id="title-required-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"><span data-i18n="タイトルを入力してください">タイトルを入力してください</span></div>
     <div class="mbs">
-      <button class="mbb can" onclick="CM('title-required-modal')">キャンセル</button>
-      <button class="mbb ok" onclick="submitRequiredTitle()">決定して続ける</button>
+      <button class="mbb can" onclick="CM('title-required-modal')"><span data-i18n="キャンセル">キャンセル</span></button>
+      <button class="mbb ok" onclick="submitRequiredTitle()"><span data-i18n="決定して続ける">決定して続ける</span></button>
     </div>
   </div>
 </div>
@@ -1297,15 +1311,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <div id="rename-app-modal" class="mo">
   <div class="mb">
     <div class="mt">
-      名前を変更
+      <span data-i18n="名前を変更">名前を変更</span>
       <button class="mc" onclick="CM('rename-app-modal')">✕</button>
     </div>
-    <label class="fl">アプリ名</label>
-    <input type="text" id="rename-app-input" class="fi" placeholder="例: ブロック崩しゲーム">
-    <div id="rename-app-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none">名前を入力してください</div>
+    <label class="fl"><span data-i18n="アプリ名">アプリ名</span></label>
+    <input type="text" id="rename-app-input" class="fi" placeholder="例: ブロック崩しゲーム" data-i18n-placeholder="例: ブロック崩しゲーム">
+    <div id="rename-app-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"><span data-i18n="名前を入力してください">名前を入力してください</span></div>
     <div class="mbs">
-      <button class="mbb can" onclick="CM('rename-app-modal')">キャンセル</button>
-      <button class="mbb ok" onclick="submitRenameApp()">保存</button>
+      <button class="mbb can" onclick="CM('rename-app-modal')"><span data-i18n="キャンセル">キャンセル</span></button>
+      <button class="mbb ok" onclick="submitRenameApp()"><span data-i18n="保存">保存</span></button>
     </div>
   </div>
 </div>
@@ -1314,15 +1328,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <div id="edit-comment-modal" class="mo">
   <div class="mb">
     <div class="mt">
-      コメントを編集
+      <span data-i18n="コメントを編集">コメントを編集</span>
       <button class="mc" onclick="CM('edit-comment-modal')">✕</button>
     </div>
-    <label class="fl">コメント</label>
-    <textarea id="edit-comment-input" class="fi" rows="4" placeholder="500文字以内" style="resize:vertical;min-height:88px"></textarea>
-    <div id="edit-comment-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none">コメントを入力してください（500文字以内）</div>
+    <label class="fl"><span data-i18n="コメント">コメント</span></label>
+    <textarea id="edit-comment-input" class="fi" rows="4" placeholder="500文字以内" style="resize:vertical;min-height:88px" data-i18n-placeholder="500文字以内"></textarea>
+    <div id="edit-comment-err" style="font-size:11px;color:var(--rd);margin-bottom:10px;display:none"><span data-i18n="コメントを入力してください（500文字以内）">コメントを入力してください（500文字以内）</span></div>
     <div class="mbs">
-      <button class="mbb can" onclick="CM('edit-comment-modal')">キャンセル</button>
-      <button class="mbb ok" onclick="submitEditComment()">保存</button>
+      <button class="mbb can" onclick="CM('edit-comment-modal')"><span data-i18n="キャンセル">キャンセル</span></button>
+      <button class="mbb ok" onclick="submitEditComment()"><span data-i18n="保存">保存</span></button>
     </div>
   </div>
 </div>
@@ -1331,30 +1345,30 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <div id="publish-setup-modal" class="mo">
   <div class="mb">
     <div class="mt">
-      公開前の設定
+      <span data-i18n="公開前の設定">公開前の設定</span>
       <button class="mc" onclick="CM('publish-setup-modal')">✕</button>
     </div>
     <p style="font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:16px">
-      みんなのギャラリーに公開するために、以下を設定してください。
+      <span data-i18n="みんなのギャラリーに公開するために、以下を設定してください。">みんなのギャラリーに公開するために、以下を設定してください。</span>
     </p>
     <!-- タイトル欄（未設定時のみ表示） -->
     <div id="psetup-title-row">
-      <label class="fl">アプリのタイトル</label>
-      <input type="text" id="psetup-title-input" class="fi" placeholder="例: ブロック崩しゲーム">
-      <div id="psetup-title-err" style="font-size:11px;color:var(--rd);margin-bottom:8px;display:none">タイトルを入力してください</div>
+      <label class="fl"><span data-i18n="アプリのタイトル">アプリのタイトル</span></label>
+      <input type="text" id="psetup-title-input" class="fi" placeholder="例: ブロック崩しゲーム" data-i18n-placeholder="例: ブロック崩しゲーム">
+      <div id="psetup-title-err" style="font-size:11px;color:var(--rd);margin-bottom:8px;display:none"><span data-i18n="タイトルを入力してください">タイトルを入力してください</span></div>
     </div>
     <!-- 表示名欄（未設定時のみ表示） -->
     <div id="psetup-author-row">
-      <label class="fl">表示名（作者として公開されます）</label>
-      <input type="text" id="psetup-author-input" class="fi" placeholder="例: ポテト太郎">
-      <div id="psetup-author-err" style="font-size:11px;color:var(--rd);margin-bottom:8px;display:none">表示名を入力してください</div>
+      <label class="fl"><span data-i18n="表示名（作者として公開されます）">表示名（作者として公開されます）</span></label>
+      <input type="text" id="psetup-author-input" class="fi" placeholder="例: ポテト太郎" data-i18n-placeholder="例: ポテト太郎">
+      <div id="psetup-author-err" style="font-size:11px;color:var(--rd);margin-bottom:8px;display:none"><span data-i18n="表示名を入力してください">表示名を入力してください</span></div>
       <div style="font-size:11px;color:var(--t3);margin-bottom:14px;line-height:1.6">
-        表示名はアカウントに紐付けて保存されます。設定後は「設定」から変更できます。
+        <span data-i18n="表示名はアカウントに紐付けて保存されます。設定後は「設定」から変更できます。">表示名はアカウントに紐付けて保存されます。設定後は「設定」から変更できます。</span>
       </div>
     </div>
     <div class="mbs">
-      <button class="mbb can" onclick="CM('publish-setup-modal')">キャンセル</button>
-      <button class="mbb ok" style="background:linear-gradient(135deg,#0ea5e9,#6d5aef)" onclick="submitPublishSetup()">設定して公開へ進む</button>
+      <button class="mbb can" onclick="CM('publish-setup-modal')"><span data-i18n="キャンセル">キャンセル</span></button>
+      <button class="mbb ok" style="background:linear-gradient(135deg,#0ea5e9,#6d5aef)" onclick="submitPublishSetup()"><span data-i18n="設定して公開へ進む">設定して公開へ進む</span></button>
     </div>
   </div>
 </div>
@@ -1362,14 +1376,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 <!-- 共有アプリ：フォーク時のみパスワード -->
 <div id="fork-pw-modal" class="mo">
   <div class="mb">
-    <div class="mt">フォーク用パスワード<button class="mc" onclick="CM('fork-pw-modal')">✕</button></div>
-    <p style="font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:14px">この共有は<strong style="color:var(--t1)">フォーク</strong>（コードをスタジオに取り込む）にパスワードがかかっています。ゲーム画面の閲覧には影響しません。</p>
-    <label class="fl">共有用パスワード</label>
-    <input type="password" id="fork-pw-verify" class="fi" placeholder="共有者から教えてもらったパスワード" autocomplete="off" onkeydown="if(event.key==='Enter')submitForkPassword()">
+    <div class="mt"><span data-i18n="フォーク用パスワード">フォーク用パスワード</span><button class="mc" onclick="CM('fork-pw-modal')">✕</button></div>
+    <p style="font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:14px"><span data-i18n="この共有は">この共有は</span><strong style="color:var(--t1)"><span data-i18n="フォーク">フォーク</span></strong><span data-i18n="（コードをスタジオに取り込む）にパスワードがかかっています。ゲーム画面の閲覧には影響しません。">（コードをスタジオに取り込む）にパスワードがかかっています。ゲーム画面の閲覧には影響しません。</span></p>
+    <label class="fl"><span data-i18n="共有用パスワード">共有用パスワード</span></label>
+    <input type="password" id="fork-pw-verify" class="fi" placeholder="共有者から教えてもらったパスワード" autocomplete="off" onkeydown="if(event.key==='Enter')submitForkPassword()" data-i18n-placeholder="共有者から教えてもらったパスワード">
     <div id="fork-pw-verify-err" style="display:none;margin-top:8px;font-size:11px;color:var(--rd)"></div>
     <div class="mbs" style="margin-top:14px">
-      <button class="mbb can" onclick="CM('fork-pw-modal')">キャンセル</button>
-      <button class="mbb ok" onclick="submitForkPassword()">確認してフォーク</button>
+      <button class="mbb can" onclick="CM('fork-pw-modal')"><span data-i18n="キャンセル">キャンセル</span></button>
+      <button class="mbb ok" onclick="submitForkPassword()"><span data-i18n="確認してフォーク">確認してフォーク</span></button>
     </div>
   </div>
 </div>
@@ -1416,9 +1430,9 @@ function getShareBaseUrl() {
   return SITE_BASE_URL;
 }
 
-function buildShareUrl(appId) {
+function buildShareUrl(appId, source) {
   var base = getShareBaseUrl().replace(/\/?$/, '/');
-  return base + '?id=' + encodeURIComponent(String(appId));
+  return base + '?id=' + encodeURIComponent(String(appId)) + (source === 'gallery' ? '&source=gallery' : '');
 }
 
 function normalizeLegacyShareUrl(url) {
@@ -1518,13 +1532,13 @@ var cvsUnsubscribe = null; // Firestoreリアルタイムリスナー解除関�
 var ttTimer;
 function T(msg, d) {
   var t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
+  setUiText(t, function(){ return msg; }); t.classList.add('show');
   clearTimeout(ttTimer);
   ttTimer = setTimeout(function(){ t.classList.remove('show'); }, d || 2800);
 }
 function copyPlainText(text, okMsg) {
-  var msg = okMsg || 'クリップボードにコピーしました';
-  if (!text) { T('コピーできる内容がありません'); return; }
+  var msg = okMsg || t('クリップボードにコピーしました');
+  if (!text) { T(t('コピーできる内容がありません')); return; }
   function legacy() {
     try {
       var ta = document.createElement('textarea');
@@ -1535,8 +1549,8 @@ function copyPlainText(text, okMsg) {
       ta.select();
       var ok = document.execCommand('copy');
       document.body.removeChild(ta);
-      if (ok) T(msg); else T('コピーに失敗しました');
-    } catch (e) { T('コピーに失敗しました'); }
+      if (ok) T(msg); else T(t('コピーに失敗しました'));
+    } catch (e) { T(t('コピーに失敗しました')); }
   }
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(function(){ T(msg); }).catch(function(){ legacy(); });
@@ -1554,7 +1568,7 @@ async function sha256Hex(str) {
 function CM(id){ document.getElementById(id).classList.remove('on'); }
 function showOllamaErr(msg) {
   var el = document.getElementById('ollama-err');
-  el.textContent = msg || 'Ollamaを起動してください: ollama serve';
+  setUiText(el, function(){ return msg || t('Ollamaを起動してください: ollama serve'); });
   el.classList.add('show');
   setTimeout(function(){ el.classList.remove('show'); }, 5000);
 }
@@ -1568,12 +1582,12 @@ function formatGeminiApiError(httpStatus, data, networkErr) {
   if (networkErr) {
     var ne = String(networkErr).toLowerCase();
     if (/failed to fetch|networkerror|load failed|network request failed/.test(ne)) {
-      return 'ネットワークエラー：インターネット接続を確認してください。';
+      return t('ネットワークエラー：インターネット接続を確認してください。');
     }
     if (/abort|timeout|timed out/.test(ne)) {
-      return '接続がタイムアウトしました。時間をおいて再試行してください。';
+      return t('接続がタイムアウトしました。時間をおいて再試行してください。');
     }
-    return '接続エラー：通信に失敗しました。';
+    return t('接続エラー：通信に失敗しました。');
   }
 
   var err = data && data.error;
@@ -1587,56 +1601,56 @@ function formatGeminiApiError(httpStatus, data, networkErr) {
     status === 'UNAUTHENTICATED' ||
     /api key not valid|invalid api key|api_key_invalid|api key expired|key string|authentication|credential/.test(msg)
   ) {
-    return 'APIキーの認証に失敗しました。設定 → クラウド AI → Gemini APIキーに、Google AI Studio で発行した AIza で始まるキーを貼り付けて保存してください。';
+    return t('APIキーの認証に失敗しました。設定 → クラウド AI → Gemini APIキーに、Google AI Studio で発行した AIza で始まるキーを貼り付けて保存してください。');
   }
   if (
     status === 'INVALID_ARGUMENT' &&
     (/api key|apikey|key not valid|invalid.*key/.test(msg) || httpStatus === 400)
   ) {
-    return 'APIキーが正しくありません。余分な空白や改行が入っていないか確認し、新しいキーを発行して貼り直してください。';
+    return t('APIキーが正しくありません。余分な空白や改行が入っていないか確認し、新しいキーを発行して貼り直してください。');
   }
   if (status === 'PERMISSION_DENIED' || httpStatus === 403 || /permission|forbidden|not enabled|caller does not/.test(msg)) {
-    return 'このAPIキーでは利用できません。Google AI Studio でキーが有効か、APIキーの「アプリ制限」でこのサイトがブロックされていないか確認してください。';
+    return t('このAPIキーでは利用できません。Google AI Studio でキーが有効か、APIキーの「アプリ制限」でこのサイトがブロックされていないか確認してください。');
   }
   if (status === 'RESOURCE_EXHAUSTED' || httpStatus === 429 || /quota|rate limit|too many requests|exceeded/.test(msg)) {
-    return '利用回数の上限に達しました。Google AI Studio の無料枠を確認するか、しばらく待ってから再試行してください。';
+    return t('利用回数の上限に達しました。Google AI Studio の無料枠を確認するか、しばらく待ってから再試行してください。');
   }
   if (/billing|payment required|account disabled/.test(msg)) {
-    return 'Google Cloud の課金設定が必要な可能性があります。AI Studio の利用条件を確認してください。';
+    return t('Google Cloud の課金設定が必要な可能性があります。AI Studio の利用条件を確認してください。');
   }
   if (/safety|blocked|harm|policy/.test(msg)) {
-    return '安全フィルターにより生成が拒否されました。プロンプトの表現を変えて再試行してください。';
+    return t('安全フィルターにより生成が拒否されました。プロンプトの表現を変えて再試行してください。');
   }
   if (httpStatus === 503 || status === 'UNAVAILABLE') {
-    return 'Gemini サーバーが一時的に利用できません。しばらく待ってから再試行してください。';
+    return t('Gemini サーバーが一時的に利用できません。しばらく待ってから再試行してください。');
   }
   if (httpStatus === 500 || status === 'INTERNAL') {
-    return 'Gemini サーバー側でエラーが発生しました。時間をおいて再試行してください。';
+    return t('Gemini サーバー側でエラーが発生しました。時間をおいて再試行してください。');
   }
   if (status === 'NOT_FOUND' || httpStatus === 404) {
-    return '指定したAIモデルが見つかりません。アプリを最新版に更新するか、管理者に連絡してください。';
+    return t('指定したAIモデルが見つかりません。アプリを最新版に更新するか、管理者に連絡してください。');
   }
 
   var shortMap = {
-    INVALID_ARGUMENT: 'リクエストまたはAPIキーに問題があります。',
-    UNAUTHENTICATED: 'APIキーの認証に失敗しました。',
-    PERMISSION_DENIED: 'APIキーに権限がありません。',
-    RESOURCE_EXHAUSTED: '利用上限に達しました。',
-    NOT_FOUND: 'モデルまたはリソースが見つかりません。',
-    INTERNAL: 'サーバー内部エラーです。',
-    UNAVAILABLE: 'サービスが一時的に利用できません。'
+    INVALID_ARGUMENT: t('リクエストまたはAPIキーに問題があります。'),
+    UNAUTHENTICATED: t('APIキーの認証に失敗しました。'),
+    PERMISSION_DENIED: t('APIキーに権限がありません。'),
+    RESOURCE_EXHAUSTED: t('利用上限に達しました。'),
+    NOT_FOUND: t('モデルまたはリソースが見つかりません。'),
+    INTERNAL: t('サーバー内部エラーです。'),
+    UNAVAILABLE: t('サービスが一時的に利用できません。')
   };
   if (shortMap[status]) {
-    return shortMap[status] + '（エラーコード: ' + code + '）';
+    return shortMap[status] + t('（エラーコード: ') + code + '）';
   }
-  return 'Gemini APIでエラーが発生しました（コード ' + code + '）。APIキーとネットワークを確認してください。';
+  return t('Gemini APIでエラーが発生しました（コード ') + code + t('）。APIキーとネットワークを確認してください。');
 }
 
 async function callGemini(prompt, base64img, mimeType) {
   if (!geminiKey) {
     openSettings();
     switchMode('cloud');
-    T('Gemini APIキーが未設定です。設定 → クラウド AI からキーを入力して保存してください');
+    T(t('Gemini APIキーが未設定です。設定 → クラウド AI からキーを入力して保存してください'));
     return null;
   }
   var model = 'gemini-2.0-flash';
@@ -1665,9 +1679,9 @@ async function callGemini(prompt, base64img, mimeType) {
         !data.candidates[0].content.parts || !data.candidates[0].content.parts.length) {
       var blockReason = (data.candidates && data.candidates[0] && data.candidates[0].finishReason) || '';
       if (blockReason === 'SAFETY') {
-        T('安全フィルターにより回答が得られませんでした。プロンプトを変えて再試行してください。');
+        T(t('安全フィルターにより回答が得られませんでした。プロンプトを変えて再試行してください。'));
       } else {
-        T('Gemini からコードが返ってきませんでした。プロンプトを変えて再試行してください。');
+        T(t('Gemini からコードが返ってきませんでした。プロンプトを変えて再試行してください。'));
       }
       return null;
     }
@@ -1697,8 +1711,8 @@ async function checkNanoAvailability() {
     box.innerHTML =
       '<div class="nano-warn">' +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
-        '<span><strong>window.ai が見つかりません。</strong><br>' +
-        'Chrome の Flags を有効にしてください：<br>' +
+        "<span><strong><span data-i18n=\"window.ai が見つかりません。\">window.ai が見つかりません。</span></strong><br>" +
+        "<span data-i18n=\"Chrome の Flags を有効にしてください：\">Chrome の Flags を有効にしてください：</span><br>" +
         '<code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">chrome://flags/#prompt-api-for-gemini-nano</code> → Enabled<br>' +
         '<code style="background:rgba(255,255,255,.08);padding:1px 4px;border-radius:3px">chrome://flags/#optimization-guide-on-device-model</code> → Enabled BypassPerfRequirement<br>' +
         'その後 Chrome を再起動してください。</span>' +
@@ -1714,7 +1728,7 @@ async function checkNanoAvailability() {
       box.innerHTML =
         '<div class="nano-warn">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
-          '<span><strong>Gemini Nano モデルが利用できません。</strong><br>' +
+          "<span><strong><span data-i18n=\"Gemini Nano モデルが利用できません。\">Gemini Nano モデルが利用できません。</span></strong><br>" +
           'chrome://components で「Optimization Guide On Device Model」をダウンロードしてください。</span>' +
         '</div>';
     } else if (cap.available === 'after-download') {
@@ -1722,8 +1736,8 @@ async function checkNanoAvailability() {
       box.innerHTML =
         '<div class="nano-warn">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
-          '<span><strong>モデルのダウンロード中です。</strong><br>' +
-          'しばらく待ってから再度確認してください。<br>' +
+          "<span><strong><span data-i18n=\"モデルのダウンロード中です。\">モデルのダウンロード中です。</span></strong><br>" +
+          "<span data-i18n=\"しばらく待ってから再度確認してください。\">しばらく待ってから再度確認してください。</span><br>" +
           '(chrome://components でダウンロード状況を確認できます)</span>' +
         '</div>';
     } else {
@@ -1731,7 +1745,7 @@ async function checkNanoAvailability() {
       box.innerHTML =
         '<div class="nano-ok">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>' +
-          '<span><strong>Chrome 組み込み AI 利用可能！</strong>（available: ' + cap.available + '）</span>' +
+          "<span><strong><span data-i18n=\"Chrome 組み込み AI 利用可能！\">Chrome 組み込み AI 利用可能！</span></strong>（available: " + cap.available + '）</span>' +
         '</div>';
     }
   } catch(e) {
@@ -1739,7 +1753,7 @@ async function checkNanoAvailability() {
     box.innerHTML =
       '<div class="nano-warn">' +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/></svg>' +
-        '<span><strong>確認エラー：</strong>' + e.message + '</span>' +
+        "<span><strong><span data-i18n=\"確認エラー：\">確認エラー：</span></strong>" + e.message + '</span>' +
       '</div>';
   }
   return nanoAvailable;
@@ -1749,7 +1763,7 @@ async function checkNanoAvailability() {
 async function callNano(prompt, onChunk) {
   // まず利用可否を確認
   if (!window.ai || !window.ai.languageModel) {
-    T('⚠ Chrome 組み込み AI が利用できません。設定を確認してください');
+    T(t('⚠ Chrome 組み込み AI が利用できません。設定を確認してください'));
     openSettings(); switchMode('nano');
     return null;
   }
@@ -1779,7 +1793,7 @@ async function callNano(prompt, onChunk) {
     session.destroy();
     return result;
   } catch(e) {
-    T('Chrome AI エラー: ' + e.message);
+    T(t('Chrome AI エラー: ') + e.message);
     console.error('Nano error:', e);
     return null;
   }
@@ -1791,7 +1805,7 @@ async function callAI(prompt, base64img, mimeType, onChunk) {
     return await callGemini(prompt, base64img, mimeType);
   } else if (aiMode === 'nano') {
     if (base64img) {
-      T('⚠ Chrome 組み込み AI は画像入力に未対応です。テキストのみで生成します');
+      T(t('⚠ Chrome 組み込み AI は画像入力に未対応です。テキストのみで生成します'));
     }
     return await callNano(prompt, onChunk);
   } else {
@@ -1854,7 +1868,7 @@ async function callOllamaChatStream(model, messages, onToken) {
     return full;
   } catch(e) {
     if (e.name === 'TypeError' || e.message.includes('fetch')) {
-      showOllamaErr('⚠ CORS設定が必要です: launchctl setenv OLLAMA_ORIGINS "*" → Ollamaを再起動');
+      showOllamaErr(t('⚠ CORS設定が必要です: launchctl setenv OLLAMA_ORIGINS "*" → Ollamaを再起動'));
     } else {
       showOllamaErr('⚠ ' + e.message);
     }
@@ -1890,7 +1904,7 @@ async function callOllamaWithImage(model, prompt, base64img) {
     }
     return full;
   } catch(e) {
-    showOllamaErr('⚠ Ollamaに接続できません。「ollama serve」で起動してください');
+    showOllamaErr(t('⚠ Ollamaに接続できません。「ollama serve」で起動してください'));
     return null;
   }
 }
@@ -1899,7 +1913,7 @@ async function checkOllama() {
   var el = document.getElementById('ollama-chk');
   el.style.display = 'flex';
   el.className = 'ollama-status ng';
-  el.textContent = '確認中...';
+  setUiText(el, function(){ return t('確認中...'); });
   ollamaURL = document.getElementById('ollama-url').value.trim() || 'http://localhost:11434';
   try {
     var res = await fetch(ollamaURL + '/api/tags', { signal: AbortSignal.timeout(3000) });
@@ -1907,13 +1921,13 @@ async function checkOllama() {
       var data = await res.json();
       var models = (data.models || []).map(function(m){ return m.name; }).join(', ');
       el.className = 'ollama-status ok';
-      el.textContent = '✓ 接続OK  利用可能モデル: ' + (models || 'なし');
+      setUiText(el, function(){ return t('✓ 接続OK  利用可能モデル: ') + (models || t('なし')); });
     } else {
       throw new Error('HTTP ' + res.status);
     }
   } catch(e) {
     el.className = 'ollama-status ng';
-    el.textContent = '✕ 接続失敗 — ollama serve を実行してください';
+    setUiText(el, function(){ return t('✕ 接続失敗 — ollama serve を実行してください'); });
   }
 }
 
@@ -1963,7 +1977,7 @@ function clearAppPreview() {
 function updateAppBackLabel() {
   var el = document.getElementById('app-back-label');
   if (!el) return;
-  el.textContent = _prevView === 'gallery' ? 'ギャラリーに戻る' : (_prevView === 'chat' ? 'チャットに戻る' : '戻る');
+  setUiText(el, function(){ return _prevView === 'gallery' ? t('ギャラリーに戻る') : (_prevView === 'chat' ? t('チャットに戻る') : t('戻る')); });
 }
 
 /** ゲーム起動中は上部ナビ（設定・ギャラリー・チャット・作る）を非表示 */
@@ -2055,7 +2069,8 @@ function switchGalleryTab(tab) {
   // 検索をリセットして再描画
   var skw = document.getElementById('skw');
   if (skw) {
-    skw.placeholder = tab === 'my' ? 'アプリを検索...' : 'みんなの作品を検索...';
+    skw.setAttribute('data-i18n-placeholder', tab === 'my' ? 'アプリを検索...' : 'みんなの作品を検索...');
+    applyUiTranslations(skw);
   }
   if (tab === 'public') {
     loadPublicApps();
@@ -2069,7 +2084,7 @@ async function loadPublicApps() {
   var g = document.getElementById('gg');
   var em = document.getElementById('g-empty');
   var msg = document.getElementById('g-empty-msg');
-  g.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--t3);font-size:12px">読み込み中...</div>';
+  g.innerHTML = "<div style=\"grid-column:1/-1;text-align:center;padding:40px;color:var(--t3);font-size:12px\"><span data-i18n=\"読み込み中...\">読み込み中...</span></div>";
   em.style.display = 'none';
   try {
     // .where() + .orderBy() の複合インデックスが不要になるよう、
@@ -2094,7 +2109,7 @@ async function loadPublicApps() {
     console.error('Public gallery load failed:', e);
     g.innerHTML = '';
     em.style.display = 'block';
-    if (msg) msg.textContent = 'エラー: ' + e.message;
+    if (msg) setUiText(msg, function(){ return t('エラー: ') + e.message; });
   }
 }
 
@@ -2139,11 +2154,11 @@ function renderGallery() {
     var list = publicApps.filter(function(a) {
       return !q || (a.title||'').toLowerCase().includes(q) || (a.authorName||'').toLowerCase().includes(q);
     });
-    document.getElementById('gcnt').textContent = list.length + '件';
+    setUiText(document.getElementById('gcnt'), function(){ return list.length + t('件'); });
     g.innerHTML = '';
     if (!list.length) {
       em.style.display = 'block';
-      if (msg) msg.textContent = '公開中の作品がまだありません';
+      if (msg) setUiText(msg, function(){ return t('公開中の作品がまだありません'); });
       return;
     }
     em.style.display = 'none';
@@ -2157,7 +2172,7 @@ function renderGallery() {
         '<div class="gc-thumb">' + ICONS[i % ICONS.length] + '</div>' +
         '<div class="gc-body">' +
           '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">' +
-            '<div class="gc-title" style="flex:1">' + E(a.title || '無題') + '</div>' +
+            '<div class="gc-title" style="flex:1">' + E(a.title || t('無題')) + '</div>' +
             (isOwn
               ? '<button class="gc-del" onclick="event.stopPropagation();delPublicApp(\'' + a._docId + '\')" title="削除">' +
                   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
@@ -2166,16 +2181,16 @@ function renderGallery() {
           '</div>' +
           '<div class="gc-public-author">' +
             '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
-            '作: ' + E(a.authorName || '名無しのポテト') + 'さん' +
+            t('作: ') + E(a.authorName || t('名無しのポテト')) + t('さん') +
           '</div>' +
           '<div class="gc-meta">' +
             '<div class="gc-author">' +
               '<div class="gc-av"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>' +
-              '<span class="gc-name">' + E(a.authorName || '名無しのポテト') + '</span>' +
+              '<span class="gc-name">' + E(a.authorName || t('名無しのポテト')) + '</span>' +
             '</div>' +
             '<div class="gc-stats">' +
-              '<div class="gc-comments" title="コメント">' + GC_COMMENT_SVG + publicCommentCountLabel(a) + '</div>' +
-              '<div class="gc-likes" title="いいね"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' + (a.likes||0) + '</div>' +
+              "<div class=\"gc-comments\" title=\"コメント\" data-i18n-title=\"コメント\" data-i18n-title=\"コメント\">" + GC_COMMENT_SVG + publicCommentCountLabel(a) + '</div>' +
+              "<div class=\"gc-likes\" title=\"いいね\" data-i18n-title=\"いいね\" data-i18n-title=\"いいね\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z\"/></svg>" + (a.likes||0) + '</div>' +
             '</div>' +
           '</div>' +
         '</div>';
@@ -2186,18 +2201,18 @@ function renderGallery() {
     // ── マイギャラリー ──
     lb.style.display = curUser ? 'none' : 'block';
     var list = apps.filter(function(a){ return !q || a.title.toLowerCase().includes(q); });
-    document.getElementById('gcnt').textContent = apps.length + '件';
+    setUiText(document.getElementById('gcnt'), function(){ return apps.length + t('件'); });
     g.innerHTML = '';
     if (!list.length) {
       em.style.display = 'block';
-      if (msg) msg.textContent = 'まだアプリがありません';
+      if (msg) setUiText(msg, function(){ return t('まだアプリがありません'); });
       return;
     }
     em.style.display = 'none';
     list.slice().reverse().forEach(function(a, i) {
       var el = document.createElement('div');
       el.className = 'gc';
-      el.onclick = function(){ openApp(a.id); };
+      el.onclick = function(){ openApp(a.urlId || a.id); };
       el.innerHTML =
         '<div class="gc-thumb">' + ICONS[i % ICONS.length] + '</div>' +
         '<div class="gc-body">' +
@@ -2215,7 +2230,7 @@ function renderGallery() {
           '<div class="gc-meta">' +
             '<div class="gc-author">' +
               (a.avatar ? '<div class="gc-av"><img src="' + a.avatar + '"></div>' : '<div class="gc-av"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>') +
-              '<span class="gc-name">' + E(a.author || '匿名') + '</span>' +
+              '<span class="gc-name">' + E(a.author || t('匿名')) + '</span>' +
             '</div>' +
             '<div class="gc-likes"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' + a.likes + '</div>' +
           '</div>' +
@@ -2273,7 +2288,7 @@ async function submitRenameApp() {
       }
     } catch (e) {
       console.warn('rename failed:', e);
-      T('名前の保存に失敗しました');
+      T(t('名前の保存に失敗しました'));
       return;
     }
   }
@@ -2282,27 +2297,27 @@ async function submitRenameApp() {
   if (curAppId != null && (a.id === curAppId || String(a.urlId || a.id) === String(curAppId))) {
     document.getElementById('app-ttl').textContent = val;
   }
-  T('名前を変更しました');
+  T(t('名前を変更しました'));
 }
 
 function delApp(id) {
-  if (!confirm('削除しますか？')) return;
+  if (!confirm(t('削除しますか？'))) return;
   // urlId（文字列）または数値id どちらで渡されても対応
   apps = apps.filter(function(a){ return (a.urlId || String(a.id)) !== String(id) && a.id !== id; });
   localStorage.setItem('pt_apps', JSON.stringify(apps));
   if (curUser) db.collection('users').doc(curUser.uid).collection('apps').doc(String(id)).delete().catch(function(){});
-  renderGallery(); T('削除しました');
+  renderGallery(); T(t('削除しました'));
 }
 
 // みんなのギャラリーの作品を削除（自分の投稿のみ）
 async function delPublicApp(docId) {
-  if (!curUser) { T('ログインが必要です'); return; }
-  if (!confirm('みんなのギャラリーから削除しますか？')) return;
+  if (!curUser) { T(t('ログインが必要です')); return; }
+  if (!confirm(t('みんなのギャラリーから削除しますか？'))) return;
   try {
     var docSnap = await db.collection('gallery').doc(docId).get();
     if (!docSnap.exists) {
       publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
-      renderGallery(); T('削除しました'); return;
+      renderGallery(); T(t('削除しました')); return;
     }
     var docData = docSnap.data();
     console.log('delPublicApp: doc.uid=' + docData.uid + ', curUser.uid=' + curUser.uid);
@@ -2312,10 +2327,10 @@ async function delPublicApp(docId) {
       console.warn('delPublicApp: uid mismatch. doc.uid=' + docData.uid + ', curUser.uid=' + curUser.uid + ', docId=' + docId);
       // users/{uid}/apps/{docId} に自分のエントリを書き込んでから削除を試みる
       // （Firestoreルールに exists(/users/$(uid)/apps/$(appId)) 条件があれば通る）
-      T('uid不一致のため修復を試みています...');
+      T(t('uid不一致のため修復を試みています...'));
       try {
         await db.collection('users').doc(curUser.uid).collection('apps').doc(docId).set({
-          urlId: docId, label: docData.title || '削除予定', code: docData.code || '',
+          urlId: docId, label: docData.title || t('削除予定'), code: docData.code || '',
           uid: curUser.uid, updatedAt: new Date(), isPublic: false, _repairFlag: true
         });
         console.log('delPublicApp: wrote repair entry to users/' + curUser.uid + '/apps/' + docId);
@@ -2332,13 +2347,13 @@ async function delPublicApp(docId) {
         }
         await db.collection('gallery').doc(docId).delete();
         publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
-        renderGallery(); T('削除しました');
+        renderGallery(); T(t('削除しました'));
         return;
       } catch(delErr) {
         console.error('repair-delete failed:', delErr);
         // Firestoreルール側に exists 条件がない場合はここに来る
         // docIdとuidを表示してFirebaseコンソールでの手動削除を案内
-        T('自動修復に失敗しました。Firebaseコンソール → Firestore → gallery → ' + docId + ' を手動で削除してください。また下記のFirestoreルール修正が必要です。');
+        T(t('自動修復に失敗しました。Firebaseコンソール → Firestore → gallery → ') + docId + t(' を手動で削除してください。また下記のFirestoreルール修正が必要です。'));
         console.error('=== Firestoreルールに以下を追加してください ===');
         console.error('allow delete: if request.auth != null && (');
         console.error('  resource.data.uid == request.auth.uid');
@@ -2357,15 +2372,15 @@ async function delPublicApp(docId) {
     }
     await db.collection('gallery').doc(docId).delete();
     publicApps = publicApps.filter(function(a){ return a._docId !== docId; });
-    renderGallery(); T('削除しました');
+    renderGallery(); T(t('削除しました'));
   } catch(e) {
     console.error('delPublicApp error:', e);
     var code = e && e.code ? e.code : '';
     var msg  = e && e.message ? e.message : String(e);
     if (code === 'permission-denied') {
-      T('削除に失敗しました（権限エラー）: Firestoreのdoc.uidが自分のUIDと一致していません。コンソールでdocIdを確認してFirebaseコンソールから手動削除してください。');
+      T(t('削除に失敗しました（権限エラー）: Firestoreのdoc.uidが自分のUIDと一致していません。コンソールでdocIdを確認してFirebaseコンソールから手動削除してください。'));
     } else {
-      T('削除に失敗しました: ' + (code || msg));
+      T(t('削除に失敗しました: ') + (code || msg));
     }
   }
 }
@@ -2411,7 +2426,7 @@ function formatCommentTime(ts) {
   if (!ts) return '';
   var d = ts.toDate ? ts.toDate() : new Date(ts);
   if (isNaN(d.getTime())) return '';
-  return d.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(uiLanguage === 'en' ? 'en-US' : 'ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function commentTimeLabel(d) {
@@ -2420,7 +2435,7 @@ function commentTimeLabel(d) {
     var ut = d.updatedAt.toDate ? d.updatedAt.toDate() : new Date(d.updatedAt);
     var ct = d.createdAt.toDate ? d.createdAt.toDate() : new Date(d.createdAt);
     if (!isNaN(ut.getTime()) && !isNaN(ct.getTime()) && ut.getTime() > ct.getTime() + 500) {
-      label += '（編集済み）';
+      label += t('（編集済み）');
     }
   }
   return label;
@@ -2436,7 +2451,7 @@ function renderCommentsList(snap) {
   if (curPublicDocId) syncPublicAppCommentCount(curPublicDocId, n);
   if (!list) return;
   if (snap.empty) {
-    list.innerHTML = '<div class="app-cmt-empty">まだコメントはありません</div>';
+    list.innerHTML = "<div class=\"app-cmt-empty\"><span data-i18n=\"まだコメントはありません\">まだコメントはありません</span></div>";
     return;
   }
   var html = '';
@@ -2445,7 +2460,7 @@ function renderCommentsList(snap) {
     var isOwn = curUser && d.uid === curUser.uid;
     html += '<div class="app-cmt-item" data-comment-id="' + E(doc.id) + '">' +
       '<div class="app-cmt-head">' +
-        '<span class="app-cmt-author">' + E(d.authorName || '名無しのポテト') + '</span>' +
+        '<span class="app-cmt-author">' + E(d.authorName || t('名無しのポテト')) + '</span>' +
         '<span class="app-cmt-time">' + E(commentTimeLabel(d)) + '</span>' +
         (isOwn
           ? '<span class="app-cmt-actions">' +
@@ -2474,7 +2489,7 @@ function startCommentsListener(appId) {
   stopCommentsListener();
   var list = document.getElementById('app-comments-list');
   if (!list) return;
-  list.innerHTML = '<div class="app-cmt-loading">読み込み中...</div>';
+  list.innerHTML = "<div class=\"app-cmt-loading\"><span data-i18n=\"読み込み中...\">読み込み中...</span></div>";
   commentsUnsub = db.collection('gallery').doc(appId).collection('comments')
     .orderBy('createdAt', 'asc')
     .limit(100)
@@ -2482,30 +2497,30 @@ function startCommentsListener(appId) {
       renderCommentsList(snap);
     }, function(err) {
       console.warn('comments listen failed:', err);
-      list.innerHTML = '<div class="app-cmt-empty">コメントを読み込めませんでした</div>';
+      list.innerHTML = "<div class=\"app-cmt-empty\"><span data-i18n=\"コメントを読み込めませんでした\">コメントを読み込めませんでした</span></div>";
     });
 }
 
 async function postComment() {
-  if (!curUser) { T('ログインが必要です'); return; }
+  if (!curUser) { T(t('ログインが必要です')); return; }
   if (!curPublicDocId) return;
   var ta = document.getElementById('app-comment-input');
   var text = (ta && ta.value || '').trim();
-  if (!text) { T('コメントを入力してください'); return; }
-  if (text.length > 500) { T('コメントは500文字以内にしてください'); return; }
+  if (!text) { T(t('コメントを入力してください')); return; }
+  if (text.length > 500) { T(t('コメントは500文字以内にしてください')); return; }
   var btn = document.getElementById('app-comment-post');
   if (btn) btn.disabled = true;
   try {
     await db.collection('gallery').doc(curPublicDocId).collection('comments').add({
       uid: curUser.uid,
-      authorName: (prof.name) || (curUser.displayName) || '名無しのポテト',
+      authorName: (prof.name) || (curUser.displayName) || t('名無しのポテト'),
       text: text,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     if (ta) ta.value = '';
   } catch (e) {
     console.warn('postComment failed:', e);
-    T('コメントの投稿に失敗しました');
+    T(t('コメントの投稿に失敗しました'));
   }
   if (btn) btn.disabled = !curUser;
 }
@@ -2527,7 +2542,7 @@ async function submitEditComment() {
   var errEl = document.getElementById('edit-comment-err');
   if (!val || val.length > 500) {
     if (errEl) {
-      errEl.textContent = val.length > 500 ? 'コメントは500文字以内にしてください' : 'コメントを入力してください';
+      setUiText(errEl, function(){ return val.length > 500 ? t('コメントは500文字以内にしてください') : t('コメントを入力してください'); });
       errEl.style.display = 'block';
     }
     return;
@@ -2540,22 +2555,22 @@ async function submitEditComment() {
     });
     CM('edit-comment-modal');
     _editCommentId = null;
-    T('コメントを更新しました');
+    T(t('コメントを更新しました'));
   } catch (e) {
     console.warn('submitEditComment failed:', e);
-    T('コメントの更新に失敗しました');
+    T(t('コメントの更新に失敗しました'));
   }
 }
 
 async function deleteComment(commentId) {
   if (!curUser || !curPublicDocId) return;
-  if (!confirm('このコメントを削除しますか？')) return;
+  if (!confirm(t('このコメントを削除しますか？'))) return;
   try {
     await db.collection('gallery').doc(curPublicDocId).collection('comments').doc(commentId).delete();
-    T('コメントを削除しました');
+    T(t('コメントを削除しました'));
   } catch (e) {
     console.warn('deleteComment failed:', e);
-    T('削除に失敗しました');
+    T(t('削除に失敗しました'));
   }
 }
 
@@ -2567,7 +2582,7 @@ function openPublicApp(a) {
   if (apv) apv.srcdoc = '';
   curPublicDocId = a._docId || null;
   curAppId = null;
-  document.getElementById('app-ttl').textContent = a.title || '無題のアプリ';
+  document.getElementById('app-ttl').textContent = a.title || t('無題のアプリ');
   document.getElementById('lcnt').textContent = a.likes || 0;
   // いいね済みかどうかをlocalStorageで確認してハート表示を切り替える
   syncLikeHeartFromStorage();
@@ -2603,9 +2618,10 @@ function openPublicApp(a) {
 //  App View
 // ════════════════════════════════════════════
 function openApp(id) {
-  var a = apps.find(function(x){ return x.id === id; });
+  var a = findMyAppByKey(id);
   if (!a) return;
-  curAppId = id;
+  curPublicDocId = null;
+  curAppId = a.urlId || a.id;
   isTemplate = false;
   document.getElementById('app-ttl').textContent = a.title;
   document.getElementById('lcnt').textContent = a.likes;
@@ -2651,7 +2667,7 @@ function syncLikeHeartFromStorage() {
 }
 
 async function likeApp() {
-  if (!curUser) { T('ログインが必要です'); return; }
+  if (!curUser) { T(t('ログインが必要です')); return; }
   var key = likeStorageKey();
   if (!key) return;
 
@@ -2676,7 +2692,7 @@ async function likeApp() {
         localStorage.setItem(key, '1');
         setLikeHeartUI(true);
         document.getElementById('lcnt').textContent = cur_cnt;
-        T('いいねの解除に失敗しました');
+        T(t('いいねの解除に失敗しました'));
       }
     } else {
       localStorage.setItem(key, '1');
@@ -2693,14 +2709,14 @@ async function likeApp() {
         localStorage.removeItem(key);
         setLikeHeartUI(false);
         document.getElementById('lcnt').textContent = cur_cnt;
-        T('いいねに失敗しました（ログイン・通信を確認）');
+        T(t('いいねに失敗しました（ログイン・通信を確認）'));
       }
     }
     return;
   }
 
   // ── マイギャラリー（端末内カウント＋ログインアカウント単位のいいね記録） ──
-  var a = apps.find(function(x){ return x.id === curAppId; });
+  var a = findMyAppByKey(curAppId);
   if (!a) return;
   if (liked) {
     localStorage.removeItem(key);
@@ -2727,14 +2743,14 @@ function forkApp() {
   if (!forkCode) return;
   // ギャラリーのアプリをフォーク: スタジオのワークスペースを直接起動
   // タイトル取得: マイギャラリー → curAppId、みんなのギャラリー → curPublicDocId で探す
-  var a = curAppId ? apps.find(function(x){ return x.id === curAppId; }) : null;
+  var a = curAppId != null ? findMyAppByKey(curAppId) : null;
   var pub = (!a && curPublicDocId) ? publicApps.find(function(x){ return x._docId === curPublicDocId; }) : null;
   var baseTitle = (a ? a.title : (pub ? pub.title : null));
-  var label = (baseTitle || 'フォーク') + ' のフォーク';
+  var label = (baseTitle || t('フォーク')) + t(' のフォーク');
   nav('studio');
   setTimeout(function(){
     startWS(forkCode, label, 'original');
-    T('フォークしました！コードを自由に編集できます ✓');
+    T(t('フォークしました！コードを自由に編集できます ✓'));
   }, 80);
 }
 function toggleAFS() {
@@ -2769,8 +2785,8 @@ function resetS() {
 
 function launchStudio() {
   var c = document.getElementById('lp-code').value.trim();
-  if (!c) { T('コードを入力してください'); return; }
-  startWS(wrapCode(c), '貼り付けコード', 'original');
+  if (!c) { T(t('コードを入力してください')); return; }
+  startWS(wrapCode(c), t('貼り付けコード'), 'original');
 }
 
 function wrapCode(code) {
@@ -2809,7 +2825,7 @@ function exitWorkspace() { isTemplate = false; nav('studio'); }
 // ════════════════════════════════════════════
 var THINKMSGS = ['コードを設計中','HTMLを書いています','CSSを調整中','JSを実装中','仕上げ中'];
 function startThinking() {
-  var i = 0; tkTimer = setInterval(function(){ document.getElementById('tmsg').textContent = THINKMSGS[i % THINKMSGS.length]; i++; }, 1200);
+  var i = 0; tkTimer = setInterval(function(){ var message = THINKMSGS[i % THINKMSGS.length]; setUiText(document.getElementById('tmsg'), function(){ return t(message); }); i++; }, 1200);
   var sub = document.getElementById('thinking-sub');
   if (sub) {
     if (aiMode === 'cloud') sub.textContent = 'Gemini Cloud AI';
@@ -2828,7 +2844,7 @@ async function genFromPrompt() {
 
   var useDeepBuild = (aiMode === 'local');
   var engineName = aiMode === 'cloud' ? 'Gemini' : aiMode === 'nano' ? 'Chrome Built-in AI (Gemini Nano)' : 'deepseek-coder-v2:16b';
-  document.getElementById('ag-msg').textContent = engineName + ' が生成中...';
+  setUiText(document.getElementById('ag-msg'), function(){ return engineName + t(' が生成中...'); });
 
   var prompt =
     'Create a complete single-file HTML/CSS/JavaScript web application for: ' + p + '\n' +
@@ -2856,13 +2872,13 @@ async function genFromPrompt() {
       { role: 'system', content: buildSys },
       { role: 'user', content: prompt }
     ], function(full) {
-      document.getElementById('ag-msg').textContent = 'DeepSeek-16B … ' + full.length + ' 文字を処理中';
+      setUiText(document.getElementById('ag-msg'), function(){ return 'DeepSeek-16B … ' + full.length + t(' 文字を処理中'); });
     });
     showBuildLoading(false);
   } else {
     raw = await callAI(prompt, null, null, function(chunk) {
       var now = Date.now();
-      document.getElementById('ag-msg').textContent = 'ストリーミング中... ' + chunk.length + ' 文字';
+      setUiText(document.getElementById('ag-msg'), function(){ return t('ストリーミング中... ') + chunk.length + t(' 文字'); });
       if (now - lastPreviewUpdate > 500) {
         lastPreviewUpdate = now;
         var partial = extractCode(chunk);
@@ -2878,8 +2894,8 @@ async function genFromPrompt() {
 
   if (raw) {
     var code = extractCode(raw);
-    if (code) { startWS(code, p + '（AI生成）', 'ai'); T('生成完了！'); }
-    else { T('コードの抽出に失敗しました'); if (useDeepBuild) { document.getElementById('launchpad').style.display = 'flex'; document.getElementById('workspace').style.display = 'none'; updateTopNavVisibility(); } }
+    if (code) { startWS(code, p + t('（AI生成）'), 'ai'); T(t('生成完了！')); }
+    else { T(t('コードの抽出に失敗しました')); if (useDeepBuild) { document.getElementById('launchpad').style.display = 'flex'; document.getElementById('workspace').style.display = 'none'; updateTopNavVisibility(); } }
   } else {
     if (useDeepBuild) {
       document.getElementById('launchpad').style.display = 'flex';
@@ -2926,9 +2942,9 @@ async function runAI() {
       vers.unshift({ id: Date.now(), code: cur, label: p, type: 'ai' });
       renderHist();
       document.getElementById('ai-inp').value = '';
-      T('AI修正完了！');
+      T(t('AI修正完了！'));
       setupErrCapture();
-    } else { T('コードの抽出に失敗しました'); }
+    } else { T(t('コードの抽出に失敗しました')); }
   }
 }
 
@@ -2970,7 +2986,7 @@ function updateChatModeLabel() {
   if (!lbl) return;
   if (aiMode === 'cloud') lbl.textContent = '☁ Gemini Cloud AI';
   else if (aiMode === 'nano') lbl.textContent = '🔷 Chrome Built-in AI';
-  else lbl.textContent = '🖥 チャット: ' + ollamaChatModel + ' ／ 一発作成: ' + ollamaBuildModel;
+  else setUiText(lbl, function(){ return t('🖥 チャット: ') + ollamaChatModel + t(' ／ 一発作成: ') + ollamaBuildModel; });
 }
 
 function clearChat() {
@@ -2979,7 +2995,7 @@ function clearChat() {
   var msgs = document.getElementById('chat-msgs');
   msgs.innerHTML =
     '<div class="cm ai"><span class="cm-role">AI</span>' +
-    '<div class="cm-bubble">チャット履歴をクリアしました。新しい会話を始めましょう！</div></div>';
+    "<div class=\"cm-bubble\"><span data-i18n=\"チャット履歴をクリアしました。新しい会話を始めましょう！\">チャット履歴をクリアしました。新しい会話を始めましょう！</span></div></div>";
 }
 
 function addChatMsg(role, text, extra) {
@@ -2987,13 +3003,13 @@ function addChatMsg(role, text, extra) {
   var msgs = document.getElementById('chat-msgs');
   var wrap = document.createElement('div');
   wrap.className = 'cm ' + role;
-  var roleLabel = role === 'user' ? 'あなた' : 'AI';
+  var roleLabel = role === 'user' ? t('あなた') : 'AI';
   var bubble = document.createElement('div');
   bubble.className = 'cm-bubble';
   bubble.textContent = text;
   var roleEl = document.createElement('span');
   roleEl.className = 'cm-role';
-  roleEl.textContent = roleLabel;
+  setUiText(roleEl, function(){ return role === 'user' ? t('あなた') : 'AI'; });
   wrap.appendChild(roleEl);
   wrap.appendChild(bubble);
   if (extra) {
@@ -3022,7 +3038,7 @@ function addThinkingBubble() {
   roleEl.textContent = 'AI';
   var bubble = document.createElement('div');
   bubble.className = 'cm-bubble thinking';
-  bubble.textContent = '考えています…';
+  setUiText(bubble, function(){ return t('考えています…'); });
   wrap.appendChild(roleEl);
   wrap.appendChild(bubble);
   msgs.appendChild(wrap);
@@ -3044,8 +3060,8 @@ function chatKeydown(e) {
 
 function copyChatWorkspaceCode() {
   var c = (typeof cur === 'string' && cur.trim()) ? cur.trim() : '';
-  if (!c) { T('コピーできるコードがありません'); return; }
-  copyPlainText(c, 'コードをクリップボードにコピーしました');
+  if (!c) { T(t('コピーできるコードがありません')); return; }
+  copyPlainText(c, t('コードをクリップボードにコピーしました'));
 }
 
 async function sendChat() {
@@ -3106,8 +3122,8 @@ async function sendChat() {
     var userMsgObj = { role: 'user', content: userTurn };
     var apiMsgs = [{ role: 'system', content: WS_CHAT_SYSTEM }].concat(trimmedPast).concat([userMsgObj]);
     raw = await callOllamaChatStream(ollamaChatModel, apiMsgs, function(full) {
-      var txt = full.replace(/```html[\s\S]*?```/gi, '[コードを生成中...]');
-      thinkBubble.textContent = txt.slice(-120) || '生成中...';
+      var txt = full.replace(/```html[\s\S]*?```/gi, t('[コードを生成中...]'));
+      setUiText(thinkBubble, function(){ return txt.slice(-120) || t('生成中...'); });
       thinkBubble.className = 'cm-bubble';
       var now = Date.now();
       if (now - lastUpdate > 800) {
@@ -3126,8 +3142,8 @@ async function sendChat() {
   } else {
     raw = await callAI(prompt, null, null, function(chunk) {
       var now = Date.now();
-      var txt = chunk.replace(/```html[\s\S]*?```/gi, '[コードを生成中...]');
-      thinkBubble.textContent = txt.slice(-120) || '生成中...';
+      var txt = chunk.replace(/```html[\s\S]*?```/gi, t('[コードを生成中...]'));
+      setUiText(thinkBubble, function(){ return txt.slice(-120) || t('生成中...'); });
       thinkBubble.className = 'cm-bubble';
       if (now - lastUpdate > 800) {
         lastUpdate = now;
@@ -3143,14 +3159,14 @@ async function sendChat() {
   sndBtn.disabled = false;
 
   if (!raw) {
-    addChatMsg('ai', '⚠ エラーが発生しました。もう一度お試しください。');
+    addChatMsg('ai', t('⚠ エラーが発生しました。もう一度お試しください。'));
     return;
   }
 
   // コードと会話テキストを分離
   var code = extractCode(raw);
   var reply = raw.replace(/```html[\s\S]*?```/gi, '').replace(/```[\s\S]*?```/gi, '').trim();
-  if (!reply) reply = code ? '✓ コードを更新しました！' : raw.trim();
+  if (!reply) reply = code ? t('✓ コードを更新しました！') : raw.trim();
 
   if (code) {
     cur = code;
@@ -3161,12 +3177,12 @@ async function sendChat() {
       document.getElementById('launchpad').style.display = 'none';
       document.getElementById('workspace').style.display = 'flex';
       updateTopNavVisibility();
-      vers = [{ id: Date.now(), code: cur, label: p + '（チャット生成）', type: 'ai' }];
+      vers = [{ id: Date.now(), code: cur, label: p + t('（チャット生成）'), type: 'ai' }];
     } else {
       vers.unshift({ id: Date.now(), code: cur, label: p, type: 'ai' });
     }
     renderHist();
-    addChatMsg('ai', reply, 'プレビュー更新済み');
+    addChatMsg('ai', reply, t('プレビュー更新済み'));
     setupErrCapture();
   } else {
     // コードなし → 純粋な会話返答
@@ -3195,7 +3211,7 @@ async function cvsSaveSession() {
   if (!curUser) return;
   // タイトル = 最初のユーザー発言の先頭30文字
   var firstUser = cvHistory.find(function(m){ return m.role === 'user'; });
-  var title = firstUser ? firstUser.text.slice(0, 30) : '新しいチャット';
+  var title = firstUser ? firstUser.text.slice(0, 30) : t('新しいチャット');
   var payload = {
     title: title,
     code:  cvCode || '',
@@ -3247,7 +3263,7 @@ function cvsRender() {
     el.innerHTML =
       '<span class="cvsi-ico">💬</span>' +
       '<div class="cvsi-body">' +
-        '<div class="cvsi-title" title="' + E(chat.title||'無題') + '">' + E(chat.title||'無題') + '</div>' +
+        '<div class="cvsi-title" title="' + E(chat.title||t('無題')) + '">' + E(chat.title||t('無題')) + '</div>' +
         '<div class="cvsi-meta">' + E(dateStr) + '</div>' +
       '</div>' +
       '<button class="cvsi-del" onclick="event.stopPropagation();cvsDelete(\'' + chat.id + '\')" title="削除">' +
@@ -3281,7 +3297,7 @@ async function cvsLoad(docId) {
   try {
     var snap = await db.collection('users').doc(curUser.uid)
       .collection('cvChats').doc(docId).get();
-    if (!snap.exists) { T('セッションが見つかりません'); return; }
+    if (!snap.exists) { T(t('セッションが見つかりません')); return; }
     var d = snap.data();
     cvsCurDocId = docId;
 
@@ -3311,19 +3327,18 @@ async function cvsLoad(docId) {
     var iframe = document.getElementById('cv-iframe');
     if (cvCode) {
       injectAndSet(iframe, cvCode);
-      document.getElementById('cv-pv-title').textContent =
-        (d.title || '再開したチャット').slice(0, 40);
+      setUiText(document.getElementById('cv-pv-title'), function(){ return (d.title || t('再開したチャット')).slice(0, 40); });
     } else {
       iframe.srcdoc = '';
-      document.getElementById('cv-pv-title').textContent = 'プレビュー — まだコードがありません';
+      setUiText(document.getElementById('cv-pv-title'), function(){ return t('プレビュー — まだコードがありません'); });
     }
 
     cvsRender();
     nav('chat', { keepSidebar: true });
     var btn = document.getElementById('cvs-hdr-btn');
     if (btn) btn.classList.add('open');
-    T('「' + (d.title||'無題') + '」を再開しました');
-  } catch(e) { console.warn('cvsLoad failed:', e); T('読み込みに失敗しました'); }
+    T('「' + (d.title||t('無題')) + t('」を再開しました'));
+  } catch(e) { console.warn('cvsLoad failed:', e); T(t('読み込みに失敗しました')); }
 }
 
 /**
@@ -3336,7 +3351,7 @@ function _cvsRenderBubble(role, text) {
   wrap.className = 'cvm ' + role;
   var nameEl = document.createElement('span');
   nameEl.className = 'cvm-name';
-  nameEl.textContent = role === 'user' ? 'あなた' : 'AI';
+  setUiText(nameEl, function(){ return role === 'user' ? t('あなた') : 'AI'; });
   var bubble = document.createElement('div');
   bubble.className = 'cvm-bubble';
   bubble.textContent = text;
@@ -3359,7 +3374,7 @@ async function cvsNew() {
 
 /** チャットセッションを削除 */
 async function cvsDelete(docId) {
-  if (!curUser || !confirm('この履歴を削除しますか？')) return;
+  if (!curUser || !confirm(t('この履歴を削除しますか？'))) return;
   try {
     await db.collection('users').doc(curUser.uid)
       .collection('cvChats').doc(docId).delete();
@@ -3367,8 +3382,8 @@ async function cvsDelete(docId) {
       cvsCurDocId = null;
       cvClear();
     }
-    T('削除しました');
-  } catch(e) { T('削除に失敗しました'); }
+    T(t('削除しました'));
+  } catch(e) { T(t('削除に失敗しました')); }
 }
 
 // ════════════════════════════════════════════
@@ -3385,7 +3400,7 @@ function cvUpdateEngine() {
   if (!el) return;
   if (aiMode === 'cloud')      el.textContent = '☁ Gemini Cloud AI';
   else if (aiMode === 'nano')  el.textContent = '🔷 Chrome Built-in AI';
-  else                         el.textContent = '🖥 チャット: ' + ollamaChatModel + ' ／ 一発作成: ' + ollamaBuildModel;
+  else                         setUiText(el, function(){ return t('🖥 チャット: ') + ollamaChatModel + t(' ／ 一発作成: ') + ollamaBuildModel; });
 }
 
 async function cvClear() {
@@ -3400,9 +3415,9 @@ async function cvClear() {
   if (imgPreview) imgPreview.style.display = 'none';
   document.getElementById('cv-msgs').innerHTML =
     '<div class="cvm ai"><span class="cvm-name">AI</span>' +
-    '<div class="cvm-bubble">履歴をクリアしました。新しい会話を始めましょう！</div></div>';
+    "<div class=\"cvm-bubble\"><span data-i18n=\"履歴をクリアしました。新しい会話を始めましょう！\">履歴をクリアしました。新しい会話を始めましょう！</span></div></div>";
   document.getElementById('cv-iframe').srcdoc = '';
-  document.getElementById('cv-pv-title').textContent = 'プレビュー — まだコードがありません';
+  setUiText(document.getElementById('cv-pv-title'), function(){ return t('プレビュー — まだコードがありません'); });
   cvsRender();
 }
 
@@ -3417,7 +3432,7 @@ function cvAddMsg(role, text, tag, imgBase64) {
   wrap.className = 'cvm ' + role;
   var nameEl = document.createElement('span');
   nameEl.className = 'cvm-name';
-  nameEl.textContent = role === 'user' ? 'あなた' : 'AI';
+  setUiText(nameEl, function(){ return role === 'user' ? t('あなた') : 'AI'; });
   var bubble = document.createElement('div');
   bubble.className = 'cvm-bubble';
   // 画像サムネ
@@ -3457,7 +3472,7 @@ function cvAddTyping() {
   var nameEl = document.createElement('span');
   nameEl.className = 'cvm-name'; nameEl.textContent = 'AI';
   var bubble = document.createElement('div');
-  bubble.className = 'cvm-bubble typing'; bubble.textContent = '考えています…';
+  bubble.className = 'cvm-bubble typing'; setUiText(bubble, function(){ return t('考えています…'); });
   wrap.appendChild(nameEl); wrap.appendChild(bubble);
   msgs.appendChild(wrap); msgs.scrollTop = msgs.scrollHeight;
   return bubble;
@@ -3474,7 +3489,7 @@ async function cvSend() {
   btn.disabled = true;
 
   // ── ユーザーメッセージをUIに追加 ──
-  cvAddMsg('user', p || '（画像を送信）', null, hasImg ? cvPendingImg : null);
+  cvAddMsg('user', p || t('（画像を送信）'), null, hasImg ? cvPendingImg : null);
 
   // ── Ollama messages配列にユーザー発言を積む（テキストのみ） ──
   var userMsg = { role: 'user', content: '' };
@@ -3503,7 +3518,7 @@ async function cvSend() {
         (p || '画像からHTMLアプリを作成してください') +
         '\n\nHTMLコードは必ず完全な1ファイルを```html ... ```で囲んで出力してください。コード後に日本語で1〜2文の説明を添えてください。';
       fullReply = await callOllamaWithImage(imgModel, imgPrompt, sentImg);
-      if (!fullReply) throw new Error('画像からの応答がありませんでした');
+      if (!fullReply) throw new Error(t('画像からの応答がありませんでした'));
       // Ollama履歴には画像なしのテキスト要約として積む
       cvOllamaMessages.push({ role: 'assistant', content: fullReply });
       cvOllamaMessages = trimOllamaTurns(cvOllamaMessages, 5);
@@ -3537,8 +3552,8 @@ async function cvSend() {
             var token = (obj.message && obj.message.content) ? obj.message.content : '';
             if (token) {
               fullReply += token;
-              var display = fullReply.replace(/```html[\s\S]*?```/gi, '[コード生成中...]');
-              typingBubble.textContent = display.slice(-200) || '生成中...';
+              var display = fullReply.replace(/```html[\s\S]*?```/gi, t('[コード生成中...]'));
+              setUiText(typingBubble, function(){ return display.slice(-200) || t('生成中...'); });
               typingBubble.className = 'cvm-bubble typing';
               var now = Date.now();
               if (now - lastPvUpdate > 600) {
@@ -3563,9 +3578,9 @@ async function cvSend() {
     btn.disabled = false;
     cvOllamaMessages.pop();
     if (e.name === 'TypeError' || (e.message && e.message.includes('fetch'))) {
-      cvAddMsg('ai', '⚠ Ollamaに接続できません。\n「ollama serve」で起動し、OLLAMA_ORIGINS="*" を設定してください。');
+      cvAddMsg('ai', t('⚠ Ollamaに接続できません。\n「ollama serve」で起動し、OLLAMA_ORIGINS="*" を設定してください。'));
     } else {
-      cvAddMsg('ai', '⚠ エラー: ' + e.message);
+      cvAddMsg('ai', t('⚠ エラー: ') + e.message);
     }
     return;
   }
@@ -3576,21 +3591,21 @@ async function cvSend() {
   btn.disabled = false;
 
   if (!fullReply) {
-    cvAddMsg('ai', '⚠ 応答がありませんでした。');
+    cvAddMsg('ai', t('⚠ 応答がありませんでした。'));
     return;
   }
 
   // コードと解説を分離
   var code = extractCode(fullReply);
   var reply = fullReply.replace(/```html[\s\S]*?```/gi, '').replace(/```[\s\S]*?```/gi, '').trim();
-  if (!reply) reply = code ? '✓ コードを更新しました！' : fullReply.trim();
+  if (!reply) reply = code ? t('✓ コードを更新しました！') : fullReply.trim();
 
   if (code) {
     cvCode = code;
     injectAndSet(document.getElementById('cv-iframe'), cvCode);
-    var titleText = (p || '画像からコード生成').slice(0, 40);
+    var titleText = (p || t('画像からコード生成')).slice(0, 40);
     document.getElementById('cv-pv-title').textContent = titleText + (titleText.length >= 40 ? '…' : '');
-    cvAddMsg('ai', reply, 'プレビューに反映済み');
+    cvAddMsg('ai', reply, t('プレビューに反映済み'));
   } else {
     cvAddMsg('ai', reply || fullReply.trim());
   }
@@ -3623,13 +3638,13 @@ function cvRemoveImg() {
 
 function copyCvChatCode() {
   var c = (typeof cvCode === 'string' && cvCode.trim()) ? cvCode.trim() : '';
-  if (!c) { T('コピーできるコードがありません'); return; }
-  copyPlainText(c, 'コードをクリップボードにコピーしました');
+  if (!c) { T(t('コピーできるコードがありません')); return; }
+  copyPlainText(c, t('コードをクリップボードにコピーしました'));
 }
 
 /** コード表示モーダルを開く */
 function cvShowCode() {
-  if (!cvCode) { T('まだコードがありません'); return; }
+  if (!cvCode) { T(t('まだコードがありません')); return; }
   document.getElementById('cv-code-body').textContent = cvCode;
   document.getElementById('cv-code-modal').style.display = 'flex';
 }
@@ -3641,10 +3656,10 @@ function cvCloseCode() {
 function cvCopyCode() {
   if (!cvCode) return;
   var btn = document.getElementById('cv-code-copy-btn');
-  copyPlainText(cvCode, 'コードをコピーしました');
-  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> コピー済み';
+  copyPlainText(cvCode, t('コードをコピーしました'));
+  btn.innerHTML = "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"><polyline points=\"20 6 9 17 4 12\"/></svg> <span data-i18n=\"コピー済み\">コピー済み</span>";
   setTimeout(function() {
-    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> コピー';
+    btn.innerHTML = "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"9\" y=\"9\" width=\"13\" height=\"13\" rx=\"2\"/><path d=\"M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1\"/></svg> <span data-i18n=\"コピー\">コピー</span>";
   }, 2000);
 }
 
@@ -3652,7 +3667,7 @@ function cvReload() {
   if (!cvCode) return;
   var ifr = document.getElementById('cv-iframe');
   ifr.srcdoc = ''; setTimeout(function(){ injectAndSet(ifr, cvCode); }, 50);
-  T('リロードしました');
+  T(t('リロードしました'));
 }
 
 function handleImgSelect(e) { var f = e.target.files[0]; if (f) loadImgFile(f); }
@@ -3672,7 +3687,7 @@ function loadImgFile(file) {
     pr.src = data; pr.style.display = 'block';
     // 追加指示エリアを表示
     document.getElementById('i2c-extra').style.display = 'flex';
-    T('画像を読み込みました。指示を入力して生成ボタンを押してください');
+    T(t('画像を読み込みました。指示を入力して生成ボタンを押してください'));
   };
   r.readAsDataURL(file);
 }
@@ -3681,7 +3696,7 @@ async function generateFromImage() {
   if (!imgBase64) return;
   var btn = document.getElementById('i2c-btn'), st = document.getElementById('i2c-status');
   btn.disabled = true; st.style.display = 'flex';
-  document.getElementById('i2c-msg').textContent = aiMode === 'cloud' ? 'Gemini Vision がデザインを分析中...' : aiMode === 'nano' ? 'Chrome AI は画像未対応 — テキストで生成中...' : 'Llama 3.2-Vision がデザインを分析中...';
+  setUiText(document.getElementById('i2c-msg'), function(){ return aiMode === 'cloud' ? t('Gemini Vision がデザインを分析中...') : aiMode === 'nano' ? t('Chrome AI は画像未対応 — テキストで生成中...') : t('Llama 3.2-Vision がデザインを分析中...'); });
 
   // 追加指示があれば組み込む
   var extraPrompt = (document.getElementById('i2c-prompt') && document.getElementById('i2c-prompt').value.trim()) || '';
@@ -3698,8 +3713,8 @@ async function generateFromImage() {
 
   if (raw) {
     var code = extractCode(raw);
-    if (code) { startWS(code, '画像から生成', 'ai'); T('画像からアプリを生成しました！'); }
-    else { T('コードの抽出に失敗しました'); }
+    if (code) { startWS(code, t('画像から生成'), 'ai'); T(t('画像からアプリを生成しました！')); }
+    else { T(t('コードの抽出に失敗しました')); }
   }
 }
 
@@ -3725,7 +3740,7 @@ function setupErrCapture() {
       msg.indexOf('403') !== -1 ||
       msg.indexOf('generativelanguage') !== -1
     )) {
-      T('このアプリはGemini APIを使用しています。設定からGemini APIキーを入力すると動作します。');
+      T(t('このアプリはGemini APIを使用しています。設定からGemini APIキーを入力すると動作します。'));
     }
     showAutoFix(msg);
   };
@@ -3869,14 +3884,7 @@ function injectAndSet(iframe, code) {
 
   if (iframe && iframe.id === 'app-pv') {
     var injected = injectAppPreview(code);
-    // app-pvにもGeminiプロキシを注入
-    if (geminiProxyScript) {
-      if (/<\/body>/i.test(injected)) {
-        injected = injected.replace(/<\/body>/i, geminiProxyScript + '</body>');
-      } else {
-        injected = injected + geminiProxyScript;
-      }
-    }
+    // 公開・共有作品には閲覧者のAPIキーを渡さない。
     iframe.removeAttribute('src');
     // #region agent log
     _agentDbg('injectAndSet', 'app-pv inject', {
@@ -3903,7 +3911,7 @@ function showAutoFix(msg) {
   lastError = msg;
   var b = document.getElementById('autofix-btn'), bd = document.getElementById('err-badge');
   if (b) {
-    var label = aiMode === 'nano' ? '🔷 Chrome AI でエラーを修復' : aiMode === 'cloud' ? '☁ Gemini でエラーを修復' : '🤖 Qwen AI でエラーを修復';
+    var label = aiMode === 'nano' ? t('🔷 Chrome AI でエラーを修復') : aiMode === 'cloud' ? t('☁ Gemini でエラーを修復') : t('🤖 Qwen AI でエラーを修復');
     b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg> ' + label;
     b.style.display = 'flex';
   }
@@ -3918,7 +3926,7 @@ function hideAutoFix() {
 async function runAutoFix() {
   if (!lastError || !cur) return;
   var btn = document.getElementById('autofix-btn');
-  btn.textContent = '🔧 修復中...'; btn.disabled = true;
+  setUiText(btn, function(){ return t('🔧 修復中...'); }); btn.disabled = true;
   startThinking();
 
   var prompt =
@@ -3942,7 +3950,7 @@ async function runAutoFix() {
   });
   stopBar(); stopThinking();
   btn.disabled = false;
-  var fixLabel = aiMode === 'nano' ? '🔷 Chrome AI でエラーを修復' : aiMode === 'cloud' ? '☁ Gemini でエラーを修復' : '🤖 Qwen AI でエラーを修復';
+  var fixLabel = aiMode === 'nano' ? t('🔷 Chrome AI でエラーを修復') : aiMode === 'cloud' ? t('☁ Gemini でエラーを修復') : t('🤖 Qwen AI でエラーを修復');
   btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg> ' + fixLabel;
 
   if (raw) {
@@ -3953,9 +3961,9 @@ async function runAutoFix() {
       if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
       vers.unshift({ id: Date.now(), code: cur, label: 'Auto-Fix: ' + lastError.slice(0,40), type: 'ai' });
       renderHist(); hideAutoFix();
-      T('✓ エラーを自動修復しました！');
+      T(t('✓ エラーを自動修復しました！'));
       setupErrCapture();
-    } else { T('修復に失敗しました'); }
+    } else { T(t('修復に失敗しました')); }
   }
 }
 
@@ -3981,7 +3989,7 @@ function onCI() {
   if (window.Prism) Prism.highlightElement(el);
   var ls = ta.value.split('\n');
   document.getElementById('cl').innerHTML = ls.map(function(_,i){ return '<span class="ln">'+(i+1)+'</span>'; }).join('');
-  document.getElementById('cp-meta').textContent = ls.length + ' 行 / ' + ta.value.length.toLocaleString() + ' 文字';
+  setUiText(document.getElementById('cp-meta'), function(){ return ls.length + t(' 行 / ') + ta.value.length.toLocaleString() + t(' 文字'); });
 }
 function syncCS() {
   var ta = document.getElementById('ct'), hl = document.getElementById('ch'), ln = document.getElementById('cl');
@@ -3998,8 +4006,8 @@ function ck(e) {
 function applyCode() {
   cur = document.getElementById('ct').value;
   injectAndSet(document.getElementById('sif'), cur);
-  vers.unshift({ id: Date.now(), code: cur, label: 'コード編集', type: 'manual' });
-  renderHist(); T('✓ 適用しました');
+  vers.unshift({ id: Date.now(), code: cur, label: t('コード編集'), type: 'manual' });
+  renderHist(); T(t('✓ 適用しました'));
 }
 
 // ════════════════════════════════════════════
@@ -4013,7 +4021,7 @@ function setDevice(type) {
     b.style.background = d===type ? 'rgba(109,90,239,.3)' : 'transparent';
     b.style.color = d===type ? 'white' : 'var(--t3)';
   });
-  var labels = {desktop:'',tablet:'タブレット横向き 1024×680',mobile:'スマホ横向き 780×380'};
+  var labels = {desktop:'',tablet:t('タブレット横向き 1024×680'),mobile:t('スマホ横向き 780×380')};
   var l = document.getElementById('dlbl'); l.textContent = labels[type]; l.style.display = type==='desktop'?'none':'block';
 }
 function toggleFS() {
@@ -4028,7 +4036,7 @@ function toggleFS() {
 function reloadPreview() {
   if (!cur) return;
   document.getElementById('sif').srcdoc = '';
-  setTimeout(function(){ injectAndSet(document.getElementById('sif'), cur); T('リロードしました'); }, 50);
+  setTimeout(function(){ injectAndSet(document.getElementById('sif'), cur); T(t('リロードしました')); }, 50);
 }
 
 // ════════════════════════════════════════════
@@ -4041,7 +4049,7 @@ function renderHist() {
   document.getElementById('hl').innerHTML = vers.map(function(v,i) {
     return '<div class="vc'+(i===0?' cur':'')+'">'+
       '<div class="vt">'+(tl[v.type]||'')+' '+E(v.label)+'</div>'+
-      '<div class="vm"><span class="vtime">'+new Date(v.id).toLocaleTimeString('ja-JP')+'</span>'+
+      '<div class="vm"><span class="vtime">'+new Date(v.id).toLocaleTimeString(uiLanguage === 'en' ? 'en-US' : 'ja-JP')+'</span>'+
         '<div class="vbs"><button class="vb ok" onclick="restoreV('+i+')">戻す</button></div>'+
       '</div></div>';
   }).join('');
@@ -4050,7 +4058,7 @@ function restoreV(i) {
   cur = vers[i].code;
   injectAndSet(document.getElementById('sif'), cur);
   if (cpOpen) { document.getElementById('ct').value = cur; onCI(); }
-  T('「'+vers[i].label+'」に戻しました');
+  T('「'+vers[i].label+t('」に戻しました'));
 }
 
 // ════════════════════════════════════════════
@@ -4069,7 +4077,7 @@ function _doDownload(title) {
   var a = document.createElement('a'); a.href = URL.createObjectURL(b);
   a.download = (title || 'my-app').replace(/[^\w\-]/g,'_')+'.html';
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
-  T('ダウンロードしました');
+  T(t('ダウンロードしました'));
 }
 
 // ════════════════════════════════════════════
@@ -4084,7 +4092,7 @@ function openShareModal() {
   var r0 = document.querySelector('input[name="share-pw-mode"][value="0"]');
   if (r0) r0.checked = true;
   syncSharePwUI();
-  document.getElementById('curlbtn').textContent = '🔗 URLを作成してコピー';
+  setUiText(document.getElementById('curlbtn'), function(){ return t('🔗 URLを作成してコピー'); });
   document.getElementById('curlbtn').disabled = false;
   document.getElementById('shm').classList.add('on');
 }
@@ -4098,18 +4106,18 @@ async function createShareURL() {
     });
     return;
   }
-  var btn = document.getElementById('curlbtn'); btn.disabled = true; btn.textContent = '⏳ 生成中...';
+  var btn = document.getElementById('curlbtn'); btn.disabled = true; setUiText(btn, function(){ return t('⏳ 生成中...'); });
   try {
-    var title = document.getElementById('shtitle').value.trim() || '無題';
+    var title = document.getElementById('shtitle').value.trim() || t('無題');
     var pwMode = document.querySelector('input[name="share-pw-mode"]:checked');
     var usePw = pwMode && pwMode.value === '1';
     var payload = { title: title, code: cur, createdAt: new Date(), hasPassword: false, shareSalt: null, passwordHash: null };
     if (usePw) {
       var raw = (document.getElementById('share-pw-in') || {}).value || '';
       if (raw.length < 4) {
-        T('共有パスワードは4文字以上にしてください');
+        T(t('共有パスワードは4文字以上にしてください'));
         btn.disabled = false;
-        btn.textContent = '🔗 URLを作成してコピー';
+        setUiText(btn, function(){ return t('🔗 URLを作成してコピー'); });
         return;
       }
       var salt = '';
@@ -4120,9 +4128,9 @@ async function createShareURL() {
       try {
         hash = await sha256Hex(salt + raw);
       } catch (ex) {
-        T('この環境ではパスワード付き共有が使えません（HTTPSまたはlocalhostで開いてください）');
+        T(t('この環境ではパスワード付き共有が使えません（HTTPSまたはlocalhostで開いてください）'));
         btn.disabled = false;
-        btn.textContent = '🔗 URLを作成してコピー';
+        setUiText(btn, function(){ return t('🔗 URLを作成してコピー'); });
         return;
       }
       payload.hasPassword = true;
@@ -4135,8 +4143,8 @@ async function createShareURL() {
     document.getElementById('surlbox').style.display = 'block';
     document.getElementById('mailbtn').style.display = 'block';
     await navigator.clipboard.writeText(surl);
-    btn.textContent = '✓ コピー済み'; T('URLをコピーしました！');
-  } catch(e) { T('URL作成に失敗しました'); btn.disabled=false; btn.textContent='🔗 URLを作成してコピー'; }
+    setUiText(btn, function(){ return t('✓ コピー済み'); }); T(t('URLをコピーしました！'));
+  } catch(e) { T(t('URL作成に失敗しました')); btn.disabled=false; setUiText(btn, function(){ return t('🔗 URLを作成してコピー'); }); }
 }
 function syncSharePwUI() {
   var row = document.getElementById('share-pw-row');
@@ -4150,7 +4158,7 @@ async function submitForkPassword() {
   var inputEl = document.getElementById('fork-pw-verify');
   var input = inputEl ? inputEl.value : '';
   if (!input) {
-    if (err) { err.textContent = 'パスワードを入力してください'; err.style.display = 'block'; }
+    if (err) { setUiText(err, function(){ return t('パスワードを入力してください'); }); err.style.display = 'block'; }
     return;
   }
   var p = sharedGatePayload;
@@ -4158,18 +4166,18 @@ async function submitForkPassword() {
   try {
     var h = await sha256Hex(p.salt + input);
     if (h !== p.hash) {
-      if (err) { err.textContent = 'パスワードが正しくありません'; err.style.display = 'block'; }
+      if (err) { setUiText(err, function(){ return t('パスワードが正しくありません'); }); err.style.display = 'block'; }
       return;
     }
     forkCode = p.code;
     sharedGatePayload = null;
     if (inputEl) inputEl.value = '';
     CM('fork-pw-modal');
-    T('認証しました');
+    T(t('認証しました'));
     nav('studio');
-    setTimeout(function(){ document.getElementById('lp-code').value = forkCode; T('フォークしました！コードを編集して起動してください'); }, 100);
+    setTimeout(function(){ document.getElementById('lp-code').value = forkCode; T(t('フォークしました！コードを編集して起動してください')); }, 100);
   } catch (ex) {
-    if (err) { err.textContent = '認証処理に失敗しました'; err.style.display = 'block'; }
+    if (err) { setUiText(err, function(){ return t('認証処理に失敗しました'); }); err.style.display = 'block'; }
   }
 }
 function copyURL() {
@@ -4177,14 +4185,14 @@ function copyURL() {
   surl = normalizeLegacyShareUrl(surl);
   navigator.clipboard.writeText(surl).then(function(){
     var b = document.getElementById('cpbtn'); b.textContent='✓'; b.classList.add('done');
-    setTimeout(function(){ b.textContent='コピー'; b.classList.remove('done'); }, 2000);
-    T('コピーしました');
+    setTimeout(function(){ setUiText(b, function(){ return t('コピー'); }); b.classList.remove('done'); }, 2000);
+    T(t('コピーしました'));
   });
 }
 function shareEmail() {
   if (!surl) return;
   surl = normalizeLegacyShareUrl(surl);
-  var t = document.getElementById('shtitle').value.trim() || '無題';
+  var t = document.getElementById('shtitle').value.trim() || t('無題');
   location.href = 'mailto:?subject=' + encodeURIComponent('[Poteto] '+t) + '&body=' + encodeURIComponent(t+'\n\n'+surl);
 }
 // タイトルが未入力なら入力モーダルを出し、入力完了後にcallbackを実行する
@@ -4215,7 +4223,7 @@ function openPublishConfirm() {
   if (!curUser) {
     CM('shm');
     openAuthModal();
-    T('公開にはログインが必要です');
+    T(t('公開にはログインが必要です'));
     return;
   }
   var title      = document.getElementById('shtitle').value.trim();
@@ -4320,7 +4328,8 @@ function generateId(len) {
 }
 
 async function doPublishToGallery() {
-  var title = document.getElementById('shtitle').value.trim() || '無題のアプリ';
+  if (!curUser) { T(t('ログインが必要です')); return; }
+  var title = document.getElementById('shtitle').value.trim() || t('無題のアプリ');
   var inp = document.getElementById('publish-confirm-author-input');
   var newAuthor = inp.value.trim();
   if (!newAuthor) {
@@ -4339,10 +4348,10 @@ async function doPublishToGallery() {
     try {
       var pubRes = await updatePublicAuthorNameEverywhere(newAuthor);
       if (pubRes && pubRes.commentCount > 0) {
-        T('コメント ' + pubRes.commentCount + ' 件の表示名も更新しました');
+        T(t('コメント ') + pubRes.commentCount + t(' 件の表示名も更新しました'));
       }
     } catch (e) {
-      T('コメントの表示名更新に失敗しました。Firestoreルールを確認してください');
+      T(t('コメントの表示名更新に失敗しました。Firestoreルールを確認してください'));
     }
     // キャッシュも更新
     if (curUser) {
@@ -4399,24 +4408,25 @@ async function doPublishToGallery() {
     // 新規IDを発行（必ずgenerateIdで衝突しないランダムIDを使う）
     var freshId = generateId(10);
     var localId = Date.now();
-    var newApp = { id: localId, urlId: freshId, title: title, code: cur, likes: 0, createdAt: localId, author: prof.name||'', avatar: prof.avatar||'', uid: curUser.uid };
+    var newApp = { id: freshId, urlId: freshId, title: title, code: cur, likes: 0, createdAt: localId, author: prof.name||'', avatar: prof.avatar||'', uid: curUser.uid };
     apps.push(newApp);
     localStorage.setItem('pt_apps', JSON.stringify(apps));
     appId = newApp.urlId;
     autoSaveToFirestore(title, appId);
   }
   isTemplate = false; // 保存済みになったのでフラグをリセット
-  await saveGalleryToFirestore(title, appId, true);
+  appId = await saveGalleryToFirestore(title, appId, true);
+  if (!appId) return;
 
   // シェアURLを新しく確定した urlId で即時書き換え
-  var newShareUrl = buildShareUrl(appId);
+  var newShareUrl = buildShareUrl(appId, 'gallery');
   surl = newShareUrl;
   var surlEl = document.getElementById('surl');
   if (surlEl) surlEl.textContent = newShareUrl;
 
   curPublicDocId = null; // 公開完了後はフォーク由来フラグをリセット
   CM('shm'); exitWorkspace(); nav('gallery');
-  T(authorChanged ? '🎉 みんなのギャラリーに公開しました！（作者名も更新）' : '🎉 みんなのギャラリーに公開しました！');
+  T(authorChanged ? t('🎉 みんなのギャラリーに公開しました！（作者名も更新）') : t('🎉 みんなのギャラリーに公開しました！'));
 }
 
 function pubGallery() {
@@ -4431,23 +4441,23 @@ function pubGallery() {
       ex.title = title; ex.author = prof.name||''; ex.avatar = prof.avatar||'';
       localStorage.setItem('pt_apps', JSON.stringify(apps));
       autoSaveToFirestore(title, ex.urlId || ex.id);
-      CM('shm'); T('マイギャラリーに保存しました'); return;
+      CM('shm'); T(t('マイギャラリーに保存しました')); return;
     }
     var freshId = generateId(10);
     var localId = Date.now();
-    var newApp = { id: localId, urlId: freshId, title: title, code: cur, likes: 0, createdAt: localId, author: prof.name||'', avatar: prof.avatar||'', uid: curUser ? curUser.uid : '' };
+    var newApp = { id: freshId, urlId: freshId, title: title, code: cur, likes: 0, createdAt: localId, author: prof.name||'', avatar: prof.avatar||'', uid: curUser ? curUser.uid : '' };
     apps.push(newApp);
     localStorage.setItem('pt_apps', JSON.stringify(apps));
     autoSaveToFirestore(title, freshId);
     isTemplate = false;
-    CM('shm'); exitWorkspace(); nav('gallery'); T('マイギャラリーに保存しました！');
+    CM('shm'); exitWorkspace(); nav('gallery'); T(t('マイギャラリーに保存しました！'));
   });
 }
 
 // gallery コレクションに公開データを保存する関数
 async function saveGalleryToFirestore(label, appId, isPublic) {
-  if (!curUser) return;
-  var authorName = (prof.name) || (curUser.displayName) || '名無しのポテト';
+  if (!curUser) { T(t('ログインが必要です')); return null; }
+  var authorName = (prof.name) || (curUser.displayName) || t('名無しのポテト');
   var id = String(appId || Date.now());
   try {
     // 既存ドキュメントを確認
@@ -4458,6 +4468,12 @@ async function saveGalleryToFirestore(label, appId, isPublic) {
         // 他人のドキュメントIDと衝突 → 新IDで保存
         console.warn('saveGalleryToFirestore: ID collision with another user, generating new ID');
         id = generateId(10);
+        // 新IDで新規作成
+        await db.collection('gallery').doc(id).set({
+          code: cur, title: label, isPublic: !!isPublic,
+          authorName: authorName, uid: curUser.uid,
+          likes: 0, createdAt: new Date(), updatedAt: new Date()
+        });
         // ローカルのappsエントリのurlIdも更新
         var local = apps.find(function(a){ return String(a.urlId || a.id) === String(appId); });
         if (local) {
@@ -4465,12 +4481,6 @@ async function saveGalleryToFirestore(label, appId, isPublic) {
           localStorage.setItem('pt_apps', JSON.stringify(apps));
           autoSaveToFirestore(label, id);
         }
-        // 新IDで新規作成
-        await db.collection('gallery').doc(id).set({
-          code: cur, title: label, isPublic: !!isPublic,
-          authorName: authorName, uid: curUser.uid,
-          likes: 0, createdAt: new Date(), updatedAt: new Date()
-        });
       } else {
         // 自分のドキュメントを更新（likesは上書きしない）
         await db.collection('gallery').doc(id).update({
@@ -4496,12 +4506,16 @@ async function saveGalleryToFirestore(label, appId, isPublic) {
     } else if (isPublic) {
       publicApps.push({ _docId: id, uid: curUser.uid, authorName: authorName, title: label, code: cur, likes: 0, isPublic: true });
     }
+    return id;
   } catch(e) {
     console.error('Gallery save failed:', e);
     var code = e && e.code ? e.code : '';
     if (code === 'permission-denied') {
-      T('ギャラリー保存に失敗しました（権限エラー）。別アカウントの作品IDと衝突している可能性があります。');
+      T(t('ギャラリー保存に失敗しました（権限エラー）。別アカウントの作品IDと衝突している可能性があります。'));
+    } else {
+      T(t('ギャラリー保存に失敗しました。通信を確認して再試行してください。'));
     }
+    return null;
   }
 }
 
@@ -4510,7 +4524,7 @@ async function saveGalleryToFirestore(label, appId, isPublic) {
 // ════════════════════════════════════════════
 function autoSaveToFirestore(label, appId) {
   if (!curUser) return;
-  var authorName = (prof.name) || (curUser.displayName) || '名無しのポテト';
+  var authorName = (prof.name) || (curUser.displayName) || t('名無しのポテト');
   var id = String(appId || Date.now());
   db.collection('users').doc(curUser.uid).collection('apps').doc(id).set({
     code: cur, label: label, urlId: id, updatedAt: new Date(), uid: curUser.uid,
@@ -4535,11 +4549,14 @@ async function loadUserApps() {
         deletePromises.push(doc.ref.delete());
         return;
       }
-      var id = parseInt(doc.id) || Date.now();
+      var id = d.urlId || doc.id;
       // urlId/doc.idで重複チェック（コード一致ではなくIDで管理）
       var docKey = d.urlId || doc.id;
-      if (!apps.find(function(a){ return String(a.urlId || a.id) === String(docKey); })) {
-        apps.push({ id: id, urlId: docKey, title: d.label||'保存済みアプリ', code: d.code, likes: 0, createdAt: id, author: prof.name||'', avatar: prof.avatar||'', uid: d.uid || curUser.uid });
+      var existing = apps.find(function(a){ return String(a.urlId || a.id) === String(docKey); });
+      if (existing) {
+        existing.id = id;
+      } else {
+        apps.push({ id: id, urlId: docKey, title: d.label||t('保存済みアプリ'), code: d.code, likes: 0, createdAt: d.updatedAt && d.updatedAt.toMillis ? d.updatedAt.toMillis() : 0, author: prof.name||'', avatar: prof.avatar||'', uid: d.uid || curUser.uid });
       }
     });
     if (deletePromises.length) {
@@ -4548,7 +4565,7 @@ async function loadUserApps() {
     }
     localStorage.setItem('pt_apps', JSON.stringify(apps));
     renderGallery();
-    T('クラウドからアプリを読み込みました');
+    T(t('クラウドからアプリを読み込みました'));
   } catch(e) { console.warn('Firestore load failed:', e); }
 }
 
@@ -4558,21 +4575,21 @@ async function loadUserApps() {
 function formatAuthError(e) {
   var code = (e && e.code) || '';
   var map = {
-    'auth/invalid-email': 'メールアドレスの形式が正しくありません。',
-    'auth/user-disabled': 'このアカウントは無効になっています。',
-    'auth/user-not-found': 'メールアドレスまたはパスワードが正しくありません。',
-    'auth/wrong-password': 'メールアドレスまたはパスワードが正しくありません。',
-    'auth/invalid-credential': 'メールアドレスまたはパスワードが正しくありません。',
-    'auth/email-already-in-use': 'このメールアドレスはすでに登録されています。ログインしてください。',
-    'auth/weak-password': 'パスワードは6文字以上にしてください。',
-    'auth/too-many-requests': '試行回数が多すぎます。しばらく待ってから再試行してください。',
-    'auth/network-request-failed': 'ネットワークエラーです。接続を確認してください。',
-    'auth/operation-not-allowed': 'メールでの登録が有効になっていません。',
-    'auth/missing-email': 'メールアドレスを入力してください。',
-    'auth/invalid-continue-uri': '再設定後の戻り先URLが正しくありません。管理者に連絡してください。',
-    'auth/invalid-action-code': 'リンクの有効期限が切れているか、すでに使用されています。もう一度メールを送信してください。'
+    'auth/invalid-email': t('メールアドレスの形式が正しくありません。'),
+    'auth/user-disabled': t('このアカウントは無効になっています。'),
+    'auth/user-not-found': t('メールアドレスまたはパスワードが正しくありません。'),
+    'auth/wrong-password': t('メールアドレスまたはパスワードが正しくありません。'),
+    'auth/invalid-credential': t('メールアドレスまたはパスワードが正しくありません。'),
+    'auth/email-already-in-use': t('このメールアドレスはすでに登録されています。ログインしてください。'),
+    'auth/weak-password': t('パスワードは6文字以上にしてください。'),
+    'auth/too-many-requests': t('試行回数が多すぎます。しばらく待ってから再試行してください。'),
+    'auth/network-request-failed': t('ネットワークエラーです。接続を確認してください。'),
+    'auth/operation-not-allowed': t('メールでの登録が有効になっていません。'),
+    'auth/missing-email': t('メールアドレスを入力してください。'),
+    'auth/invalid-continue-uri': t('再設定後の戻り先URLが正しくありません。管理者に連絡してください。'),
+    'auth/invalid-action-code': t('リンクの有効期限が切れているか、すでに使用されています。もう一度メールを送信してください。')
   };
-  return map[code] || '認証に失敗しました。入力内容を確認してください。';
+  return map[code] || t('認証に失敗しました。入力内容を確認してください。');
 }
 
 function getAuthEmailValue() {
@@ -4628,25 +4645,25 @@ async function sendAuthGatePasswordReset() {
   var okEl = document.getElementById('auth-gate-reset-ok');
   var btn = document.getElementById('auth-gate-reset-btn');
   if (!email) {
-    if (errEl) { errEl.textContent = 'メールアドレスを入力してください。'; errEl.style.display = 'block'; }
+    if (errEl) { setUiText(errEl, function(){ return t('メールアドレスを入力してください。'); }); errEl.style.display = 'block'; }
     return;
   }
   if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
   if (okEl) okEl.style.display = 'none';
-  if (btn) { btn.disabled = true; btn.textContent = '送信中...'; }
+  if (btn) { btn.disabled = true; setUiText(btn, function(){ return t('送信中...'); }); }
   try {
     var continueUrl = (typeof SITE_BASE_URL !== 'undefined' ? SITE_BASE_URL : (location.origin + location.pathname)).replace(/\/?$/, '/');
     await auth.sendPasswordResetEmail(email, { url: continueUrl, handleCodeInApp: false });
     if (okEl) {
-      okEl.textContent = '再設定用のメールを送信しました。メール内のリンクから新しいパスワードを設定してください。（届かない場合は迷惑メールフォルダもご確認ください）';
+      setUiText(okEl, function(){ return t('再設定用のメールを送信しました。メール内のリンクから新しいパスワードを設定してください。（届かない場合は迷惑メールフォルダもご確認ください）'); });
       okEl.style.display = 'block';
     }
-    T('パスワード再設定メールを送信しました');
+    T(t('パスワード再設定メールを送信しました'));
   } catch (e) {
     console.warn('sendAuthGatePasswordReset failed:', e);
     if (errEl) { errEl.textContent = formatAuthError(e); errEl.style.display = 'block'; }
   }
-  if (btn) { btn.disabled = false; btn.textContent = '再設定メールを送信'; }
+  if (btn) { btn.disabled = false; setUiText(btn, function(){ return t('再設定メールを送信'); }); }
 }
 
 async function sendPasswordReset() {
@@ -4655,25 +4672,25 @@ async function sendPasswordReset() {
   var okEl = document.getElementById('reset-pw-ok');
   var btn = document.getElementById('reset-pw-send-btn');
   if (!email) {
-    if (errEl) { errEl.textContent = 'メールアドレスを入力してください。'; errEl.style.display = 'block'; }
+    if (errEl) { setUiText(errEl, function(){ return t('メールアドレスを入力してください。'); }); errEl.style.display = 'block'; }
     return;
   }
   if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
   if (okEl) okEl.style.display = 'none';
-  if (btn) { btn.disabled = true; btn.textContent = '送信中...'; }
+  if (btn) { btn.disabled = true; setUiText(btn, function(){ return t('送信中...'); }); }
   try {
     var continueUrl = (typeof SITE_BASE_URL !== 'undefined' ? SITE_BASE_URL : (location.origin + location.pathname)).replace(/\/?$/, '/');
     await auth.sendPasswordResetEmail(email, { url: continueUrl, handleCodeInApp: false });
     if (okEl) {
-      okEl.textContent = '再設定用のメールを送信しました。メール内のリンクから新しいパスワードを設定してください。（届かない場合は迷惑メールフォルダもご確認ください）';
+      setUiText(okEl, function(){ return t('再設定用のメールを送信しました。メール内のリンクから新しいパスワードを設定してください。（届かない場合は迷惑メールフォルダもご確認ください）'); });
       okEl.style.display = 'block';
     }
-    T('パスワード再設定メールを送信しました');
+    T(t('パスワード再設定メールを送信しました'));
   } catch (e) {
     console.warn('sendPasswordReset failed:', e);
     if (errEl) { errEl.textContent = formatAuthError(e); errEl.style.display = 'block'; }
   }
-  if (btn) { btn.disabled = false; btn.textContent = '再設定メールを送信'; }
+  if (btn) { btn.disabled = false; setUiText(btn, function(){ return t('再設定メールを送信'); }); }
 }
 
 function isAuthGateVisible() {
@@ -4735,14 +4752,14 @@ async function doLogin() {
   var pw = els.pw ? els.pw.value : '';
   var err = els.err;
   if (!email || !pw) {
-    if (err) { err.textContent = 'メールアドレスとパスワードを入力してください。'; err.style.display = 'block'; }
+    if (err) { setUiText(err, function(){ return t('メールアドレスとパスワードを入力してください。'); }); err.style.display = 'block'; }
     return;
   }
   if (err) { err.style.display = 'none'; err.textContent = ''; }
   try {
     await auth.signInWithEmailAndPassword(email, pw);
     if (!isAuthGateVisible()) CM('auth-modal');
-    T('ログインしました');
+    T(t('ログインしました'));
   } catch (e) {
     if (err) { err.textContent = formatAuthError(e); err.style.display = 'block'; }
   }
@@ -4754,18 +4771,18 @@ async function doSignup() {
   var pw = els.pw ? els.pw.value : '';
   var err = els.err;
   if (!email || !pw) {
-    if (err) { err.textContent = 'メールアドレスとパスワードを入力してください。'; err.style.display = 'block'; }
+    if (err) { setUiText(err, function(){ return t('メールアドレスとパスワードを入力してください。'); }); err.style.display = 'block'; }
     return;
   }
   if (pw.length < 6) {
-    if (err) { err.textContent = 'パスワードは6文字以上にしてください。'; err.style.display = 'block'; }
+    if (err) { setUiText(err, function(){ return t('パスワードは6文字以上にしてください。'); }); err.style.display = 'block'; }
     return;
   }
   if (err) { err.style.display = 'none'; err.textContent = ''; }
   try {
     await auth.createUserWithEmailAndPassword(email, pw);
     if (!isAuthGateVisible()) CM('auth-modal');
-    T('アカウントを作成しました');
+    T(t('アカウントを作成しました'));
   } catch (e) {
     if (err) { err.textContent = formatAuthError(e); err.style.display = 'block'; }
   }
@@ -4774,7 +4791,7 @@ async function doSignup() {
 async function doLogout() {
   appBootstrapped = false;
   await auth.signOut();
-  T('ログアウトしました');
+  T(t('ログアウトしました'));
 }
 
 auth.onAuthStateChanged(async function(user) {
@@ -4793,7 +4810,7 @@ auth.onAuthStateChanged(async function(user) {
       await finishAppBootstrap();
     }
   } else {
-    as.textContent = '未ログイン';
+    setUiText(as, function(){ return t('未ログイン'); });
     as.style.color = 'var(--t2)';
     lb.style.display = 'none';
     appBootstrapped = false;
@@ -4850,8 +4867,8 @@ function updateNavBadge() {
       badge.style.borderColor = 'rgba(14,165,233,.3)';
       badge.style.color = 'var(--tl)';
     }
-    if (lpSub) lpSub.textContent = 'クラウド AI（Gemini）でコードを生成・編集';
-    if (lpLbl) lpLbl.textContent = 'AI でコードを生成（Gemini 2.0 Flash）';
+    if (lpSub) setUiText(lpSub, function(){ return t('クラウド AI（Gemini）でコードを生成・編集'); });
+    if (lpLbl) setUiText(lpLbl, function(){ return t('AI でコードを生成（Gemini 2.0 Flash）'); });
   } else if (aiMode === 'nano') {
     if (badge) {
       badge.innerHTML = '<span class="ai-dot" style="background:#a78bfa"></span> Chrome Built-in AI (Nano)';
@@ -4859,8 +4876,8 @@ function updateNavBadge() {
       badge.style.borderColor = 'rgba(124,58,237,.35)';
       badge.style.color = '#a78bfa';
     }
-    if (lpSub) lpSub.textContent = 'Chrome 組み込み AI（Gemini Nano）でコードを生成・編集';
-    if (lpLbl) lpLbl.textContent = 'AI でコードを生成（Chrome Built-in AI — Gemini Nano）';
+    if (lpSub) setUiText(lpSub, function(){ return t('Chrome 組み込み AI（Gemini Nano）でコードを生成・編集'); });
+    if (lpLbl) setUiText(lpLbl, function(){ return t('AI でコードを生成（Chrome Built-in AI — Gemini Nano）'); });
   } else {
     if (badge) {
       badge.innerHTML = '<span class="ai-dot"></span> Local AI Mode (Qwen 7B &amp; DeepSeek 16B)';
@@ -4868,8 +4885,8 @@ function updateNavBadge() {
       badge.style.borderColor = 'rgba(46,160,67,.3)';
       badge.style.color = 'var(--gr)';
     }
-    if (lpSub) lpSub.textContent = 'ローカル AI（Ollama）でコードを生成・編集';
-    if (lpLbl) lpLbl.textContent = 'AI でコードを一発生成（' + ollamaBuildModel + '）';
+    if (lpSub) setUiText(lpSub, function(){ return t('ローカル AI（Ollama）でコードを生成・編集'); });
+    if (lpLbl) setUiText(lpLbl, function(){ return t('AI でコードを一発生成（') + ollamaBuildModel + (uiLanguage === 'en' ? ')' : '）'); });
   }
   // チャットビューのエンジン表示も更新
   cvUpdateEngine();
@@ -5020,7 +5037,7 @@ async function loadUserSettings() {
       if (d.geminiApiKey) {
         geminiKey = d.geminiApiKey;
         var ks = document.getElementById('gemini-key-status');
-        if (ks) { ks.textContent = '✓ 保存済み: ' + geminiKey.slice(0,8) + '••••••••'; }
+        if (ks) { setUiText(ks, function(){ return t('✓ 保存済み: ') + geminiKey.slice(0,8) + '••••••••'; }); }
       }
       if (d.selectedMode) {
         aiMode = d.selectedMode;
@@ -5058,7 +5075,7 @@ function openSettings() {
   var gki = document.getElementById('gemini-key-input');
   if (gki) gki.value = geminiKey || '';
   var gks = document.getElementById('gemini-key-status');
-  if (gks) gks.textContent = geminiKey ? ('✓ 設定済み: ' + geminiKey.slice(0,8) + '••••••••') : '';
+  if (gks) setUiText(gks, function(){ return geminiKey ? (t('✓ 設定済み: ') + geminiKey.slice(0,8) + '••••••••') : ''; });
   var img = document.getElementById('avimg');
   if (prof.avatar) { img.src = prof.avatar; img.style.display = 'block'; } else { img.style.display = 'none'; }
   document.getElementById('sm').classList.add('on');
@@ -5077,11 +5094,11 @@ async function saveSets() {
   var gki = document.getElementById('gemini-key-input');
   if (gki && gki.value.trim()) {
     var newKey = gki.value.trim();
-    if (!newKey.startsWith('AIza')) { T('Gemini APIキーの形式が正しくありません'); return; }
+    if (!newKey.startsWith('AIza')) { T(t('Gemini APIキーの形式が正しくありません')); return; }
     geminiKey = newKey;
     saveGeminiKeyToFirestore(geminiKey);
   } else if (aiMode === 'cloud' && !geminiKey) {
-    T('クラウドモードにはGemini APIキーが必要です'); return;
+    T(t('クラウドモードにはGemini APIキーが必要です')); return;
   }
 
   if (curUser) {
@@ -5094,7 +5111,7 @@ async function saveSets() {
 
     // 表示名が変わった場合、galleryの投稿・コメントを一括更新
     if (nameChanged) {
-      T('表示名を更新中...');
+      T(t('表示名を更新中...'));
       try {
         if (curUser.updateProfile) {
           await curUser.updateProfile({ displayName: newName });
@@ -5107,7 +5124,7 @@ async function saveSets() {
         var res = await updatePublicAuthorNameEverywhere(newName);
         commentUpdated = (res && res.commentCount) || 0;
       } catch (e) {
-        T('コメントの表示名更新に失敗しました。Firestoreルール（authorName）を確認してください');
+        T(t('コメントの表示名更新に失敗しました。Firestoreルール（authorName）を確認してください'));
       }
       // みんなのギャラリーのキャッシュも更新
       publicApps.forEach(function(a) {
@@ -5116,9 +5133,9 @@ async function saveSets() {
       CM('sm');
       T(nameChanged
         ? (commentUpdated > 0
-          ? '設定を保存しました（作品とコメント' + commentUpdated + '件の表示名を更新）✓'
-          : '設定を保存しました（作者名を更新しました）✓')
-        : '設定を保存しました ✓');
+          ? t('設定を保存しました（作品とコメント') + commentUpdated + t('件の表示名を更新）✓')
+          : t('設定を保存しました（作者名を更新しました）✓'))
+        : t('設定を保存しました ✓'));
       localStorage.setItem('pt_mode', aiMode);
       updateNavBadge();
       return;
@@ -5128,7 +5145,7 @@ async function saveSets() {
   localStorage.setItem('pt_mode', aiMode);
   updateNavBadge();
   CM('sm');
-  T('設定を保存しました ✓');
+  T(t('設定を保存しました ✓'));
 }
 function handleAv(e) {
   var f = e.target.files[0]; if (!f) return;
@@ -5209,8 +5226,8 @@ function getTemplate(name) {
 function loadTemplate(name) {
   var code = getTemplate(name);
   if (!code) return;
-  startWS(code, name + ' テンプレート', 'original', true); // テンプレートは自動保存しない
-  T(name + ' テンプレートを起動しました ✓');
+  startWS(code, name + t(' テンプレート'), 'original', true); // テンプレートは自動保存しない
+  T(name + t(' テンプレートを起動しました ✓'));
 }
 
 // ローカルストレージに残ったテンプレートコードを除去（一度だけ実行）
@@ -5229,18 +5246,37 @@ function loadTemplate(name) {
 //  Shared URL load
 // ════════════════════════════════════════════
 async function loadShared() {
-  var id = new URLSearchParams(location.search).get('id');
+  var params = new URLSearchParams(location.search);
+  var id = params.get('id');
   if (!id) return false;
-  T('共有アプリを読み込み中...', 4000);
+  T(t('共有アプリを読み込み中...'), 4000);
   try {
-    var snap = await db.collection('apps').doc(id).get();
+    var fromGallery = params.get('source') === 'gallery';
+    var snap;
+    if (!fromGallery) {
+      try {
+        snap = await db.collection('apps').doc(id).get();
+      } catch (e) {
+        if (e.code !== 'permission-denied') throw e;
+      }
+    }
+    // 旧形式の公開URLも扱う。明示的な共有データがあればそちらを優先する。
+    if (!snap || !snap.exists) {
+      snap = await db.collection('gallery').doc(id).get();
+      fromGallery = true;
+    }
     if (snap.exists) {
       var d = snap.data();
+      if (fromGallery && d.isPublic !== true) return false;
+      if (fromGallery) {
+        openPublicApp(Object.assign({}, d, { _docId: id }));
+        return true;
+      }
       if (d.hasPassword && (!d.passwordHash || !d.shareSalt)) {
-        T('この共有リンクは開けません（再作成が必要な形式です）');
+        T(t('この共有リンクは開けません（再作成が必要な形式です）'));
         return false;
       }
-      document.getElementById('app-ttl').textContent = d.title || '共有されたアプリ';
+      document.getElementById('app-ttl').textContent = d.title || t('共有されたアプリ');
       document.getElementById('lcnt').textContent = '-';
 
       forkCode = '';
@@ -5324,12 +5360,12 @@ window.addEventListener('DOMContentLoaded', function() {
       <div id="cv-code-mhdr">
         <span id="cv-code-mtitle">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ac2)" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          生成されたコード
+          <span data-i18n="生成されたコード">生成されたコード</span>
         </span>
         <div style="display:flex;gap:6px;align-items:center">
           <button id="cv-code-copy-btn" onclick="cvCopyCode()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            コピー
+            <span data-i18n="コピー">コピー</span>
           </button>
           <button id="cv-code-close-btn" onclick="cvCloseCode()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>

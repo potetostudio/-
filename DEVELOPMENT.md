@@ -71,6 +71,9 @@ Firestore permissions, and public deployment require separate live validation.
 
 Gallery behavior:
 
+- The top-left Poteto STUDIO logo is a keyboard-accessible gallery button. It
+  uses the existing return handler to flush current work and stop the studio
+  preview without reloading the site, retaining the selected gallery tab.
 - My Gallery cards expose a prominent labeled Edit button and a separate labeled
   pin toggle on the preview. Rename, Duplicate, and Delete live in the More menu;
   Delete is visually separated in red and retains its confirmation. A shared

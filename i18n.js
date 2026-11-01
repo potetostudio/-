@@ -413,6 +413,7 @@ var UI_EN = {
   "並び順とピン留めはこのブラウザーに保存されます": "Sort order and pins are saved in this browser",
   "この作品を複製": "Duplicate this app",
   "編集する": "Edit",
+  "Poteto STUDIO：ギャラリーに戻る": "Poteto STUDIO: Back to gallery",
   "その他": "More",
   "その他の操作": "More app actions",
   "作品の操作": "App actions",

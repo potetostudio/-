@@ -118,10 +118,10 @@ function restoreStudioDraft() {
 }
 function setWorkLoading(loading) {
   ['lp-code','ct'].forEach(function(id){var field=document.getElementById(id);if(field)field.readOnly=loading;});
-  document.querySelectorAll('button[onclick="launchStudio()"],#code-file-button,#code-clear-button').forEach(function(button){button.disabled=loading;});
+  document.querySelectorAll('button[onclick="launchStudio()"],#code-file-button,#code-clear-button,#code-undo-button').forEach(function(button){button.disabled=loading;});
 }
 async function hydrateAccountWork(revision) {
-  try {await loadLocalRecords(['apps','profile','draft'].map(function(name){return accountKey(name);}));}
+  try {await loadLocalRecords(['apps','profile','draft','gallery'].map(function(name){return accountKey(name);}));}
   catch(e){console.warn('Saved work unavailable:',e);}
   if(revision!==accountRevision)return;
   var stored=readLocalJson(accountKey('apps'),null);
@@ -129,6 +129,7 @@ async function hydrateAccountWork(revision) {
   else if(apps.length)persistApps(); // Migrate positively owned legacy records.
   var profile=readLocalJson(accountKey('profile'),null);
   if(profile && typeof profile==='object')prof={name:typeof profile.name==='string' ? profile.name : '',avatar:typeof profile.avatar==='string' ? profile.avatar : ''};
+  restoreGalleryPreferences();
   accountStorageLoading=false;setWorkLoading(false);
   if(document.getElementById('view-studio').classList.contains('active')) {
     if(document.getElementById('workspace').style.display==='flex')flushStudioDraft();
@@ -160,6 +161,7 @@ function resetAccountState(user) {
   _titleCallback = null;
   lastError = ''; _renameAppId = null; _editCommentId = null;
   geminiKey = ''; aiMode = 'local'; publicApps = []; galleryTab = 'my';
+  restoreGalleryPreferences();
   cvsChats = []; cvsCurDocId = null; cvHistory = []; cvOllamaMessages = []; cvCode = ''; cvPendingImg = ''; cvPendingMime = '';
   chatHistory = []; wsOllamaMessages = []; editingAppId = null;
   sharedGatePayload = null; forkCode = ''; curAppId = null; curPublicDocId = null; surl = '';
@@ -172,8 +174,8 @@ function resetAccountState(user) {
   document.getElementById('cv-code-modal') && cvCloseCode();
   document.getElementById('image-create-options').open=false;
   document.getElementById('ai-create-options').open=false;
-  updateNavBadge();renderGallery();
-  accountStorageLoading=true;setWorkLoading(true);renderSaveState();
+  accountStorageLoading=true;setWorkLoading(true);
+  updateNavBadge();renderGallery();renderSaveState();
   accountStorageReady=hydrateAccountWork(accountRevision);
   return accountStorageReady;
 }
@@ -210,7 +212,7 @@ async function saveStudioApp(title) {
     var id=generateId(10);
     app={id:id,urlId:id,likes:0,createdAt:Date.now(),uid:uid || ''}; apps.push(app);
   }
-  Object.assign(app,{title:title,code:cur,author:prof.name || '',avatar:prof.avatar || '',pendingCloud:!!uid});
+  Object.assign(app,{title:title,code:cur,author:prof.name || '',avatar:prof.avatar || '',pendingCloud:!!uid,updatedAt:Date.now()});
   editingAppId=app.urlId || app.id; isTemplate=false;
   var appId=editingAppId, savedCode=cur;
   persistApps();flushStudioDraft();

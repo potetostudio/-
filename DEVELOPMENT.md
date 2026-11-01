@@ -14,6 +14,10 @@ The Create input's Clear all code button empties the input in one click, cancels
 pending file reads, and persists an empty recovery state. It resets the imported
 file type/title and edit target so replacement code starts a new app; saved gallery
 apps and their per-app work records are retained.
+Undo restores the cleared input, filename/type, title, edit target, and history
+without executing code. The undo snapshot is memory-only and is discarded on
+new input/import, entering another screen's editor, or changing accounts. Repeated
+clears of an already empty input keep the original undo snapshot.
 
 Persistence behavior:
 
@@ -67,6 +71,19 @@ Firestore permissions, and public deployment require separate live validation.
 
 Gallery behavior:
 
+- My Gallery supports Recently updated, Recently created, and Name ordering.
+  Pinned matching cards always appear first. Search still filters pinned cards.
+  Sort and pins use the account-scoped `gallery` record in local browser storage;
+  they do not modify app timestamps, likes, public records, or array order.
+  Private saves retain the original creation timestamp in cloud records. Older
+  records without one fall back to their saved timestamp for creation ordering.
+- Duplicate copies the saved gallery code into a new independently identified
+  private app, with a unique copy name, fresh timestamps, zero likes, and no pin.
+  It stays in the gallery and never overwrites the source or republishes it.
+  Signed-in copies use the existing private cloud save/retry path; guest copies
+  stay local. Failed cloud writes retain the same local copy for retry. Concurrent
+  clicks for one source share an operation guard, and account changes cancel UI
+  completion. Pending editor changes are separate from the saved source copied.
 - New work uses its HTML title, imported filename, or first heading as its name.
   Explicit names are retained. Legacy Pasted code/Saved app names are improved
   in the local cache; remote records change only on an explicit save/rename.

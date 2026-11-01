@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Poteto STUDIO v6</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="./i18n.js?v=20261031-clear-code"></script>
-<script src="./local-store.js?v=20261031-clear-code"></script>
-<script src="./studio-state.js?v=20261031-clear-code"></script>
-<script src="./gallery-ui.js?v=20261031-clear-code"></script>
+<script src="./i18n.js?v=20261101-gallery-tools"></script>
+<script src="./local-store.js?v=20261101-gallery-tools"></script>
+<script src="./studio-state.js?v=20261101-gallery-tools"></script>
+<script src="./gallery-ui.js?v=20261101-gallery-tools"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -64,8 +64,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 #toast.show{opacity:1}
 
 /* ══ GALLERY ══ */
-#g-search{padding:12px 16px;border-bottom:1px solid var(--br);background:rgba(13,16,24,.9);display:flex;align-items:center;gap:8px;flex-shrink:0;border-top:none}
-.sw{position:relative;flex:1}
+#g-search{padding:12px 16px;border-bottom:1px solid var(--br);background:rgba(13,16,24,.9);display:flex;align-items:center;flex-wrap:wrap;gap:8px;flex-shrink:0;border-top:none}
+.sw{position:relative;flex:1 1 180px;min-width:0}
+.gallery-sort-control{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t2)}
+#gallery-sort-control[hidden]{display:none}
+#gallery-sort{padding:6px;border:1px solid var(--br);border-radius:8px;background:var(--s2);color:var(--t1);font-family:var(--f);font-size:12px;max-width:160px}
 .sw svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--t3);pointer-events:none}
 #skw{width:100%;background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:7px 10px 7px 30px;font-size:12px;color:var(--t1);outline:none;font-family:var(--f);transition:border-color .15s}
 #skw:focus{border-color:var(--ac)}
@@ -86,7 +89,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .gc-stats{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .gc-comments{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--ac2);flex-shrink:0}
 .gc-likes{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--rd);flex-shrink:0}
-.gc-actions{display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity .15s}
+.gc-actions{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.gc-actions button{width:28px;height:28px}
+.gc-pinned{border-color:var(--ac)}
+.gc-pin-indicator{position:absolute;top:8px;left:8px;z-index:2;padding:3px 6px;background:var(--s1);border-radius:6px;font-size:13px;pointer-events:none}
+.gc-rename[aria-pressed="true"]{color:var(--ac2);background:rgba(109,90,239,.2)}
+.gc-actions button:disabled{opacity:.45;cursor:wait}
+@media(pointer:coarse){.gc-actions button{width:32px;height:32px}}
 .gc:hover .gc-actions{opacity:1}
 .gc-rename,.gc-del{width:24px;height:24px;background:rgba(0,0,0,.6);border:none;border-radius:6px;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .gc-rename:hover{background:var(--ac);color:white}
@@ -155,6 +164,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 #code-drop-zone{width:100%;max-width:600px;padding:10px;border:1px dashed var(--brh);border-radius:var(--r);transition:border-color .15s,background .15s}
 #code-drop-zone.drag{border-color:var(--ac2);background:rgba(109,90,239,.12)}
 .code-file-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+#code-undo-button[hidden]{display:none}
 .code-file-hint{font-size:11px;color:var(--t2);line-height:1.5}
 #code-file-status{font-size:11px;color:var(--t2);line-height:1.5;overflow-wrap:anywhere;margin-top:6px}
 #code-file-status.error{color:var(--rd)}
@@ -715,6 +725,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input id="skw" placeholder="アプリを検索..." oninput="renderGallery()" autocomplete="off" data-i18n-placeholder="アプリを検索...">
       </div>
+      <label id="gallery-sort-control" class="gallery-sort-control" title="並び順とピン留めはこのブラウザーに保存されます" data-i18n-title="並び順とピン留めはこのブラウザーに保存されます">
+        <span data-i18n="並び替え">並び替え</span>
+        <select id="gallery-sort" onchange="setGallerySort(this.value)">
+          <option value="updated" data-i18n="更新が新しい順">更新が新しい順</option>
+          <option value="created" data-i18n="作成が新しい順">作成が新しい順</option>
+          <option value="name" data-i18n="名前順">名前順</option>
+        </select>
+      </label>
       <span id="gcnt" style="font-size:11px;color:var(--t3);white-space:nowrap"></span>
     </div>
     <div id="g-body">
@@ -743,6 +761,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <div class="code-file-controls">
           <button type="button" class="nb" id="code-file-button" onclick="document.getElementById('code-file-input').click()"><span data-i18n="ファイルを選択">ファイルを選択</span></button>
           <button type="button" class="nb" id="code-clear-button" onclick="clearCodeInput()" aria-controls="lp-code"><span data-i18n="コードをすべて削除">コードをすべて削除</span></button>
+          <button type="button" class="nb" id="code-undo-button" onclick="undoCodeClear()" aria-controls="lp-code" hidden><span data-i18n="元に戻す">元に戻す</span></button>
           <input id="code-file-input" type="file" accept=".html,.htm,.js,.css,.txt" hidden>
           <span class="code-file-hint" id="code-file-hint" data-i18n="ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）">ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）</span>
         </div>
@@ -2188,6 +2207,7 @@ function switchGalleryTab(tab) {
 
 // みんなのギャラリーをFirestoreから読み込む
 async function loadPublicApps() {
+  syncGalleryControls();
   var g = document.getElementById('gg');
   var em = document.getElementById('g-empty');
   var msg = document.getElementById('g-empty-msg');
@@ -2250,6 +2270,7 @@ async function refreshPublicCommentCounts() {
 function renderGallery() {
   stopGalleryThumbnails();
   normalizeGalleryTitles();
+  syncGalleryControls();
   var q = (document.getElementById('skw').value || '').toLowerCase();
   var g = document.getElementById('gg');
   var em = document.getElementById('g-empty');
@@ -2311,8 +2332,8 @@ function renderGallery() {
   } else {
     // ── マイギャラリー ──
     lb.style.display = curUser ? 'none' : 'block';
-    var list = apps.filter(function(a){ return !q || a.title.toLowerCase().includes(q); });
-    setUiText(document.getElementById('gcnt'), function(){ return apps.length + t('件'); });
+    var list = sortedMyGallery(apps.filter(function(a){ return !q || (a.title || '').toLowerCase().includes(q); }));
+    setUiText(document.getElementById('gcnt'), function(){ return list.length + t('件'); });
     g.innerHTML = '';
     if (!list.length) {
       em.style.display = 'block';
@@ -2320,25 +2341,15 @@ function renderGallery() {
       return;
     }
     em.style.display = 'none';
-    list.slice().reverse().forEach(function(a, i) {
+    list.forEach(function(a, i) {
       var el = document.createElement('div');
       el.className = 'gc';
       el.onclick = function(){ openApp(a.urlId || a.id); };
       el.innerHTML =
         '<div class="gc-thumb"></div>' +
         '<div class="gc-body">' +
-          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">' +
-            '<div class="gc-title" style="flex:1">' + E(a.title) + '</div>' +
-            '<div class="gc-actions">' +
-              '<button class="gc-rename" onclick="event.stopPropagation();editMyApp(\'' + (a.urlId || a.id) + '\')" title="' + E(t('この作品を編集')) + '">✎</button>' +
-              '<button class="gc-rename" onclick="event.stopPropagation();openRenameApp(\'' + (a.urlId || a.id) + '\')" title="名前を変更">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
-              '</button>' +
-              '<button class="gc-del" onclick="event.stopPropagation();delApp(\'' + (a.urlId || a.id) + '\')" title="削除">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
-              '</button>' +
-            '</div>' +
-          '</div>' +
+          '<div class="gc-title">' + E(a.title) + '</div>' +
+          '<div class="gc-actions"></div>' +
           '<div class="gc-meta">' +
             '<div class="gc-author">' +
               (a.avatar ? '<div class="gc-av"><img src="' + a.avatar + '"></div>' : '<div class="gc-av"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>') +
@@ -2349,6 +2360,7 @@ function renderGallery() {
         '</div>';
       g.appendChild(el);
       el.querySelector('.gc-title').title=a.title || '';
+      decorateMyGalleryCard(el,a);
       attachGalleryThumbnail(el.querySelector('.gc-thumb'),a,isPublicTab);
     });
   }
@@ -2384,7 +2396,7 @@ async function submitRenameApp() {
   var a = findMyAppByKey(_renameAppId);
   if (!a) { CM('rename-app-modal'); return; }
   var docId = String(a.urlId || a.id);
-  a.title = val;
+  a.title = val;a.updatedAt=Date.now();
   persistApps();
   if (curUser) {
     try {
@@ -2882,6 +2894,7 @@ function toggleAFS() {
 //  Studio
 // ════════════════════════════════════════════
 function resetS() {
+  discardCodeClearUndo();
   codeImportSequence++;
   codeInputFileName = '';
   document.getElementById('code-file-input').value = '';
@@ -2910,12 +2923,33 @@ function resetS() {
 // File contents stay in this input until the user explicitly starts the app.
 var codeInputFileName = '';
 var codeImportSequence = 0;
+var codeClearUndo = null;
+
+function discardCodeClearUndo() {
+  codeClearUndo=null;
+  document.getElementById('code-undo-button').hidden=true;
+}
+
+function undoCodeClear() {
+  var snapshot=codeClearUndo,input=document.getElementById('lp-code');
+  if(accountStorageLoading)return;
+  if(!snapshot || snapshot.revision!==accountRevision || input.value!==''){discardCodeClearUndo();return;}
+  codeImportSequence++;
+  input.value=snapshot.code;codeInputFileName=snapshot.fileName;
+  document.getElementById('shtitle').value=snapshot.title;
+  editingAppId=snapshot.editingAppId && findMyAppByKey(snapshot.editingAppId) ? snapshot.editingAppId : null;
+  cur=snapshot.cur;vers=snapshot.versions;
+  discardCodeClearUndo();flushStudioDraft();
+  showCodeFileStatus('削除したコードを元に戻しました');input.focus();
+}
 
 function clearCodeInput() {
   if(accountStorageLoading)return;
+  var input=document.getElementById('lp-code');
+  if(input.value!=='')codeClearUndo={revision:accountRevision,code:input.value,fileName:codeInputFileName,
+    title:document.getElementById('shtitle').value,editingAppId:editingAppId,cur:cur,versions:vers.slice()};
   codeImportSequence++;
   clearTimeout(draftTimer);draftTimer=null;
-  var input=document.getElementById('lp-code');
   input.value='';
   codeInputFileName='';
   document.getElementById('code-file-input').value='';
@@ -2926,6 +2960,7 @@ function clearCodeInput() {
   // Persist an explicit empty state; normal navigation resets retain recovery.
   writeLocalJson(accountKey('draft'),null);
   showCodeFileStatus('コードをすべて削除しました');
+  document.getElementById('code-undo-button').hidden=!codeClearUndo;
   renderSaveState();input.focus();
 }
 
@@ -2967,6 +3002,7 @@ async function importCodeFiles(files) {
       return false;
     }
     input.value = code;
+    discardCodeClearUndo();
     editingAppId = null;
     codeInputFileName = file.name;
     document.getElementById('shtitle').value=inferAppTitle(code,file.name);
@@ -2984,6 +3020,7 @@ async function importCodeFiles(files) {
 function setupCodeFileInput() {
   var zone = document.getElementById('code-drop-zone');
   var picker = document.getElementById('code-file-input');
+  document.getElementById('lp-code').addEventListener('input',discardCodeClearUndo);
   picker.addEventListener('change', function() {
     var files = Array.from(picker.files);
     picker.value = ''; // Permit choosing the same file again.
@@ -3048,6 +3085,7 @@ function wrapCode(code, fileType) {
 }
 
 function startWS(code, label, type, skipAutoSave, existingId) {
+  discardCodeClearUndo();
   editingAppId = existingId || null;
   label=chooseWorkTitle(code,label,codeInputFileName);
   document.getElementById('shtitle').value=label;
@@ -4897,10 +4935,13 @@ async function saveGalleryToFirestore(label, appId, isPublic, sourceCode) {
 function autoSaveToFirestore(label, appId, sourceCode) {
   if (!curUser) return Promise.resolve(false);
   var id=String(appId || editingAppId || generateId(10));
-  return writeCloudSnapshot({ uid:curUser.uid, id:id, payload:{
+  var payload={
     code:typeof sourceCode==='string' ? sourceCode : cur, label:label, urlId:id, updatedAt:new Date(), uid:curUser.uid,
     authorName:prof.name || curUser.displayName || t('名無しのポテト')
-  }});
+  };
+  var app=findMyAppByKey(id),createdAt=app ? galleryTime(app.createdAt) : 0;
+  if(createdAt)payload.createdAt=new Date(createdAt);
+  return writeCloudSnapshot({ uid:curUser.uid, id:id, payload:payload });
 }
 
 async function loadUserApps() {
@@ -4913,17 +4954,19 @@ async function loadUserApps() {
       var d = doc.data();
       if (d.uid && d.uid!==uid) return;
       var savedAt=d.updatedAt && d.updatedAt.toMillis ? d.updatedAt.toMillis() : Number(new Date(d.updatedAt)) || 0;
+      var createdAt=galleryTime(d.createdAt);
       var id = d.urlId || doc.id;
       // urlId/doc.idで重複チェック（コード一致ではなくIDで管理）
       var docKey = d.urlId || doc.id;
       var existing = apps.find(function(a){ return String(a.urlId || a.id) === String(docKey); });
       if (existing) {
         existing.id = id;
+        if(createdAt)existing.createdAt=createdAt;
         if(!existing.pendingCloud && savedAt>(existing.savedAt || 0) && typeof d.code==='string'){
-          existing.code=d.code;existing.title=d.label || existing.title;existing.savedAt=savedAt;
+          existing.code=d.code;existing.title=d.label || existing.title;existing.savedAt=savedAt;existing.updatedAt=savedAt;
         }
       } else {
-        apps.push({ id: id, urlId: docKey, title: d.label||t('保存済みアプリ'), code: d.code, likes: 0, createdAt:savedAt,savedAt:savedAt, author: prof.name||'', avatar: prof.avatar||'', uid: d.uid || curUser.uid });
+        apps.push({ id: id, urlId: docKey, title: d.label||t('保存済みアプリ'), code: d.code, likes: 0, createdAt:createdAt || savedAt,savedAt:savedAt, author: prof.name||'', avatar: prof.avatar||'', uid: d.uid || curUser.uid });
       }
     });
     persistApps();

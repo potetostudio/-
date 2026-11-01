@@ -1,3 +1,106 @@
+// My Gallery organization is local to the current account/browser.
+var galleryPreferences={sort:'updated',pinned:[]};
+var galleryDuplicateRequests=new Set();
+
+function restoreGalleryPreferences() {
+  var value=readLocalJson(accountKey('gallery'),null);
+  galleryPreferences={sort:value && ['updated','created','name'].includes(value.sort) ? value.sort : 'updated',
+    pinned:value && Array.isArray(value.pinned) ? Array.from(new Set(value.pinned.filter(function(id){return typeof id==='string';}))) : []};
+}
+function syncGalleryControls() {
+  document.getElementById('gallery-sort-control').hidden=galleryTab==='public';
+  var select=document.getElementById('gallery-sort');
+  select.value=galleryPreferences.sort;select.disabled=accountStorageLoading;
+}
+function setGallerySort(order) {
+  if(accountStorageLoading || !['updated','created','name'].includes(order))return;
+  galleryPreferences.sort=order;writeLocalJson(accountKey('gallery'),galleryPreferences);renderGallery();
+}
+function isGalleryPinned(app) {
+  return galleryPreferences.pinned.includes(String(app.urlId || app.id));
+}
+function toggleGalleryPin(id) {
+  if(accountStorageLoading)return;
+  var app=findMyAppByKey(id);
+  if(!app || (app.uid && (!curUser || app.uid!==curUser.uid)))return;
+  var key=String(app.urlId || app.id);
+  if(isGalleryPinned(app))galleryPreferences.pinned=galleryPreferences.pinned.filter(function(value){return value!==key;});
+  else galleryPreferences.pinned.push(key);
+  writeLocalJson(accountKey('gallery'),galleryPreferences);renderGallery();
+}
+function galleryTime(value) {
+  if(value && typeof value.toMillis==='function')return value.toMillis();
+  var time=typeof value==='number' ? value : Number(new Date(value || 0));
+  return Number.isFinite(time) ? time : 0;
+}
+function sortedMyGallery(list) {
+  return list.map(function(app,index){return {app:app,index:index};}).sort(function(a,b) {
+    var pinned=Number(isGalleryPinned(b.app))-Number(isGalleryPinned(a.app));
+    if(pinned)return pinned;
+    if(galleryPreferences.sort==='name') {
+      var name=String(a.app.title || '').localeCompare(String(b.app.title || ''),uiLanguage==='en' ? 'en' : 'ja',{numeric:true,sensitivity:'base'});
+      if(name)return name;
+    } else {
+      var field=galleryPreferences.sort==='created' ? 'createdAt' : 'updatedAt';
+      var at=galleryTime(a.app[field] || a.app.savedAt || a.app.createdAt);
+      var bt=galleryTime(b.app[field] || b.app.savedAt || b.app.createdAt);
+      if(at!==bt)return bt-at;
+    }
+    return b.index-a.index;
+  }).map(function(item){return item.app;});
+}
+function galleryAction(parent,className,label,content,handler) {
+  var button=document.createElement('button');button.type='button';button.className=className;
+  button.setAttribute('data-i18n-title',label);button.setAttribute('data-i18n-aria-label',label);
+  button.title=t(label);button.setAttribute('aria-label',t(label));button.innerHTML=content;
+  button.addEventListener('click',function(event){event.stopPropagation();handler();});parent.appendChild(button);
+  return button;
+}
+function decorateMyGalleryCard(card,app) {
+  var key=app.urlId || app.id, actions=card.querySelector('.gc-actions'),pinned=isGalleryPinned(app);
+  card.dataset.appId=String(key);card.classList.toggle('gc-pinned',pinned);
+  galleryAction(actions,'gc-rename gc-edit','この作品を編集','✎',function(){editMyApp(key);});
+  galleryAction(actions,'gc-rename','名前を変更','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16 4l4 4L8 20l-5 1 1-5Z"/></svg>',function(){openRenameApp(key);});
+  var duplicate=galleryAction(actions,'gc-rename gc-duplicate','この作品を複製','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></svg>',function(){duplicateMyApp(key);});
+  duplicate.disabled=accountStorageLoading || galleryDuplicateRequests.has(accountRevision+'/'+key);
+  var pin=galleryAction(actions,'gc-rename gc-pin',pinned ? 'ピン留めを解除' : 'ピン留め','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 5 5-5 2-2 5-2 2-5-5 2-2 5-2ZM8 16l-5 5"/></svg>',function(){toggleGalleryPin(key);});
+  pin.setAttribute('aria-pressed',String(pinned));pin.disabled=accountStorageLoading;
+  galleryAction(actions,'gc-del','削除','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15"/></svg>',function(){delApp(key);});
+  if(pinned) {
+    var badge=document.createElement('span');badge.className='gc-pin-indicator';badge.textContent='📌';
+    badge.setAttribute('data-i18n-title','ピン留め済み');badge.title=t('ピン留め済み');card.appendChild(badge);
+  }
+}
+async function duplicateMyApp(id) {
+  var revision=accountRevision,token=revision+'/'+id;
+  if(galleryDuplicateRequests.has(token))return false;
+  galleryDuplicateRequests.add(token);
+  try {
+    await accountStorageReady;if(revision!==accountRevision)return false;
+    var source=findMyAppByKey(id);
+    if(!source || typeof source.code!=='string' || (source.uid && (!curUser || source.uid!==curUser.uid)))return false;
+    var base=source.title || inferAppTitle(source.code),suffix=t('のコピー'),n=1,title;
+    do {
+      var number=n===1 ? '' : ' '+n;
+      title=base.slice(0,Math.max(1,100-suffix.length-number.length))+suffix+number;n++;
+    } while(apps.some(function(app){return app.title===title;}));
+    var copyId;do {copyId=generateId(10);}while(findMyAppByKey(copyId));
+    var uid=curUser ? curUser.uid : null,now=Date.now();
+    var copy={id:copyId,urlId:copyId,uid:uid || '',title:title,code:source.code,author:prof.name || '',avatar:prof.avatar || '',
+      likes:0,createdAt:now,updatedAt:now,pendingCloud:!!uid};
+    apps.push(copy);persistApps();renderGallery();
+    var localOK=await waitForLocalWrites([accountKey('apps')]);
+    if(revision!==accountRevision)return false;
+    var saved=uid ? await autoSaveToFirestore(title,copyId,copy.code) : localOK;
+    if(revision!==accountRevision)return false;
+    T(t(saved ? '作品を複製しました' : '複製の保存に失敗しました。保存状況を確認してください'));
+    return saved ? copyId : false;
+  } finally {
+    galleryDuplicateRequests.delete(token);
+    if(revision===accountRevision)renderGallery();
+  }
+}
+
 // Names are inferred from inert markup; parsing never executes the imported app.
 function isAutomaticAppTitle(title) {
   return !String(title || '').trim() || /^(貼り付けコード|Pasted code|保存済みアプリ|Saved app)$/i.test(String(title).trim());

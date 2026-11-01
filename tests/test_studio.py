@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright
 
 HTML = Path(__file__).resolve().parents[1].joinpath('index.html').read_text()
 # Embed the real local modules, including URLs with deployment cache versions.
-HTML = re.sub(r'<script src="\./(i18n|local-store|studio-state|gallery-ui)\.js(?:\?[^\"]*)?"></script>',
+HTML = re.sub(r'<script src="\./(i18n|local-store|studio-state|gallery-ui|app-compare)\.js(?:\?[^\"]*)?"></script>',
               lambda match: '<script>\n' + Path(__file__).resolve().parents[1].joinpath(match[1]+'.js').read_text() + '</script>', HTML)
 # Replace only the external SDKs. Execute the application's real inline code.
 HTML = re.sub(r'<script src="[^"]+"></script>', '', HTML)

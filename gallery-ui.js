@@ -76,6 +76,8 @@ function openGalleryActionMenu(trigger,app) {
     button.setAttribute('role','menuitem');button.tabIndex=-1;galleryButtonLabel(button,label);return button;
   }
   item('gc-menu-rename','名前を変更','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16 4l4 4L8 20l-5 1 1-5Z"/></svg>',function(){openRenameApp(key);});
+  var update=item('gc-update','ファイルで更新・比較','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></svg>',function(){openAppComparison(key);});
+  update.disabled=accountStorageLoading;
   var duplicate=item('gc-duplicate','複製する','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></svg>',function(){duplicateMyApp(key);});
   duplicate.disabled=accountStorageLoading || galleryDuplicateRequests.has(accountRevision+'/'+key);
   item('gc-menu-danger','削除する','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15"/></svg>',function(){delApp(key);});

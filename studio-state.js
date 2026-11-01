@@ -138,6 +138,7 @@ async function hydrateAccountWork(revision) {
   renderGallery();renderSaveState();
 }
 function resetAccountState(user) {
+  closeAppComparison(false);
   if (accountInitialized) { flushStudioDraft(); persistApps(); persistProfile(); }
   stopGalleryThumbnails(true);
   accountRevision++; cloudSaveSequence++; clearTimeout(draftTimer);draftTimer=null;
@@ -190,7 +191,7 @@ async function editMyApp(id) {
   var app=findMyAppByKey(id);
   if(!app || (app.uid && (!curUser || app.uid!==curUser.uid)))return;
   var key=app.urlId || app.id;
-  await loadLocalRecords([accountKey('work_'+key)]);
+  await loadLocalRecords([accountKey('work_'+key),accountKey('before_update_'+key)]);
   if(revision!==accountRevision || navigation!==workNavigationRevision || request!==workEditSequence)return;
   app=findMyAppByKey(key);if(!app)return;
   var work=readLocalJson(accountKey('work_'+key),null);
@@ -200,6 +201,7 @@ async function editMyApp(id) {
   var code=work ? work.code : app.code,title=app.title;
   nav('studio');startWS(code,title,'original',true,key);
   if(work){vers=workVersions(work);renderHist();}
+  vers=withComparisonHistory(vers,readLocalJson(accountKey('before_update_'+key),null),code);renderHist();
   showCP();flushStudioDraft();
 }
 async function saveStudioApp(title) {

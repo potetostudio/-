@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Poteto STUDIO v6</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="./i18n.js?v=20261101-logo-home"></script>
-<script src="./local-store.js?v=20261101-logo-home"></script>
-<script src="./studio-state.js?v=20261101-logo-home"></script>
-<script src="./gallery-ui.js?v=20261101-logo-home"></script>
+<script src="./i18n.js?v=20261101-app-compare"></script>
+<script src="./local-store.js?v=20261101-app-compare"></script>
+<script src="./studio-state.js?v=20261101-app-compare"></script>
+<script src="./gallery-ui.js?v=20261101-app-compare"></script>
+<script src="./app-compare.js?v=20261101-app-compare"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -112,6 +113,28 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .gc-menu-item svg{width:17px;height:17px;flex-shrink:0}
 .gc-menu-item:hover,.gc-menu-item:focus-visible{background:var(--s3)}
 .gc-menu-danger{color:var(--rd);margin-top:5px;border-top:1px solid var(--br);border-radius:0 0 7px 7px}
+.comparison-dialog{width:calc(100vw - 24px);max-width:none;height:calc(100vh - 24px);height:calc(100dvh - 24px);max-height:none;margin:auto;padding:0;border:1px solid var(--brh);border-radius:14px;background:var(--bg);color:var(--t1);overflow-y:auto}
+.comparison-dialog[open]{display:flex;flex-direction:column}
+.comparison-dialog::backdrop{background:rgba(0,0,0,.8)}
+.comparison-header,.comparison-controls,.comparison-footer{display:flex;align-items:center;gap:10px;padding:10px 14px;flex-wrap:wrap;flex-shrink:0;border-bottom:1px solid var(--br)}
+.comparison-header>div{flex:1;min-width:0}.comparison-header h2{font-size:16px}.comparison-header p{font-size:12px;color:var(--t2);overflow-wrap:anywhere}
+.comparison-dialog button{min-height:40px}.comparison-hint{font-size:11px;color:var(--t2);line-height:1.6}
+#compare-file-zone{padding:10px 14px;border-bottom:1px dashed var(--brh)}
+#compare-file-zone.drag{background:rgba(109,90,239,.15);border-color:var(--ac2)}
+#compare-file-status,#compare-result{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.comparison-error{color:var(--rd)}
+.comparison-paste{padding:8px 14px;flex-shrink:0;font-size:12px;color:var(--t2)}
+.comparison-paste summary{cursor:pointer}.comparison-paste textarea{display:block;width:100%;height:90px;margin:8px 0;padding:8px;background:var(--s2);color:var(--t1);border:1px solid var(--brh);border-radius:6px;font-family:var(--fm)}
+.comparison-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--brh);flex:1;min-height:240px}
+.comparison-pane{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--s1)}
+.comparison-pane header{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:6px 8px;flex-shrink:0}.comparison-pane h3{font-size:12px}
+.comparison-frame-wrap{position:relative;flex:1;min-height:0;background:white;color:#536173}
+.comparison-frame-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:white}
+.comparison-placeholder{display:flex;align-items:center;justify-content:center;height:100%;padding:12px;font-size:12px;text-align:center}
+.comparison-frame-error{padding:6px 8px;max-height:90px;overflow:auto;font-size:11px;color:var(--rd);overflow-wrap:anywhere}
+.comparison-dialog [hidden]{display:none!important}
+.comparison-footer{border-top:1px solid var(--br);border-bottom:0;justify-content:space-between}.comparison-footer>div{flex:1;min-width:180px}
+@media(max-width:600px){.comparison-header,.comparison-controls,.comparison-footer{padding:8px;gap:6px}.comparison-pane header{height:80px;flex-direction:column;align-items:flex-start;justify-content:center}.comparison-dialog button{min-height:44px}.comparison-dialog{width:calc(100vw - 12px);height:calc(100dvh - 12px)}#compare-file-zone{padding:8px}}
 .gc-rename,.gc-del{width:24px;height:24px;background:rgba(0,0,0,.6);border:none;border-radius:6px;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .gc-rename:hover{background:var(--ac);color:white}
 .gc-del:hover{background:var(--rd);color:white}
@@ -764,6 +787,45 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   </div>
 
   <div id="gallery-action-menu" role="menu" aria-label="作品の操作" data-i18n-aria-label="作品の操作" hidden></div>
+  <dialog id="app-compare-dialog" class="comparison-dialog" aria-labelledby="compare-title">
+    <header class="comparison-header">
+      <div><h2 id="compare-title" data-i18n="ファイルで更新・比較">ファイルで更新・比較</h2><p id="compare-app-title"></p></div>
+      <button type="button" class="nb" onclick="closeAppComparison()"><span data-i18n="閉じる">閉じる</span></button>
+    </header>
+    <div id="compare-file-zone">
+      <div class="code-file-controls">
+        <button type="button" class="nb" id="compare-file-button" onclick="document.getElementById('compare-file-input').click()"><span data-i18n="新しいファイルを選ぶ">新しいファイルを選ぶ</span></button>
+        <input type="file" id="compare-file-input" accept=".html,.htm,.css,.js,.txt" hidden>
+        <span class="comparison-hint" data-i18n="ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）">ここにファイルをドロップ（HTML / CSS / JS / TXT・UTF-8・5MBまで）</span>
+      </div>
+      <div id="compare-file-status" role="status" aria-live="polite"></div>
+    </div>
+    <details id="compare-paste-options" class="comparison-paste">
+      <summary data-i18n="コードを貼り付けて比較する">コードを貼り付けて比較する</summary>
+      <textarea id="compare-code-input" aria-label="比較する新しいコード" data-i18n-aria-label="比較する新しいコード" spellcheck="false"></textarea>
+      <button type="button" class="nb" id="compare-paste-button" onclick="useComparisonPaste()"><span data-i18n="このコードを読み込む">このコードを読み込む</span></button>
+    </details>
+    <div class="comparison-controls">
+      <button type="button" class="nb pri" id="compare-run" onclick="runAppComparison()" disabled><span data-i18n="左右で動かして比較">左右で動かして比較</span></button>
+      <p class="comparison-hint" data-i18n="左右の画面をそれぞれ操作できます。確認してから更新してください。">左右の画面をそれぞれ操作できます。確認してから更新してください。</p>
+    </div>
+    <div class="comparison-grid">
+      <section class="comparison-pane">
+        <header><h3 id="compare-old-label" data-i18n="現在の保存版">現在の保存版</h3><button type="button" class="nb compare-restart" onclick="restartComparisonPane('old')" disabled><span data-i18n="再起動">再起動</span></button></header>
+        <div id="compare-error-old" class="comparison-frame-error" role="alert" hidden></div>
+        <div class="comparison-frame-wrap"><p id="compare-placeholder-old" class="comparison-placeholder" data-i18n="比較を開始すると表示されます">比較を開始すると表示されます</p><iframe id="compare-frame-old" sandbox="allow-scripts allow-forms allow-pointer-lock" title="現在の保存版" data-i18n-title="現在の保存版" hidden></iframe></div>
+      </section>
+      <section class="comparison-pane">
+        <header><h3 data-i18n="新しい版">新しい版</h3><button type="button" class="nb compare-restart" onclick="restartComparisonPane('new')" disabled><span data-i18n="再起動">再起動</span></button></header>
+        <div id="compare-error-new" class="comparison-frame-error" role="alert" hidden></div>
+        <div class="comparison-frame-wrap"><p id="compare-placeholder-new" class="comparison-placeholder" data-i18n="比較を開始すると表示されます">比較を開始すると表示されます</p><iframe id="compare-frame-new" sandbox="allow-scripts allow-forms allow-pointer-lock" title="新しい版" data-i18n-title="新しい版" hidden></iframe></div>
+      </section>
+    </div>
+    <footer class="comparison-footer">
+      <div><p id="compare-result" role="status" aria-live="polite"></p><p class="comparison-hint" data-i18n="更新前のコードは編集画面の履歴に残ります。公開版の更新は「公開・共有」から行えます。">更新前のコードは編集画面の履歴に残ります。公開版の更新は「公開・共有」から行えます。</p></div>
+      <button type="button" class="nb pri" id="compare-apply" onclick="applyAppComparison()" disabled><span data-i18n="この新しい版で更新">この新しい版で更新</span></button>
+    </footer>
+  </dialog>
 
   <!-- STUDIO -->
   <div id="view-studio" class="view">
@@ -2152,6 +2214,7 @@ function goBack() {
 }
 
 function nav(v, opts) {
+  closeAppComparison(false);
   closeGalleryActionMenu(false);
   workNavigationRevision++;
   flushStudioDraft();
@@ -4099,6 +4162,8 @@ function setupErrCapture() {
   }
   _errRelayListener = function(e) {
     if (!e.data || e.data.type !== '__poteto_err__') return;
+    var frame=document.getElementById('sif');
+    if(!frame || e.source!==frame.contentWindow)return;
     // Gemini APIキーが未設定でAPIを叩こうとした場合に案内を出す
     var msg = e.data.msg || '';
     if (!geminiKey && (
@@ -5842,6 +5907,7 @@ window.addEventListener('message', function(e) {
 
 window.addEventListener('DOMContentLoaded', function() {
   setupCodeFileInput();
+  setupAppComparison();
   setupStudioPersistence();
   loadPrism();
   var savedMode = readLocalText('pt_mode', null);

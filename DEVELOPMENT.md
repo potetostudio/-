@@ -54,7 +54,7 @@ Persistence behavior:
   subscription setup cannot keep the login overlay open. Local hydration still
   precedes cloud-cache merging to retain unsynced edits. Shared links that finish
   after a user navigates away cannot replace that screen. Local script URLs use
-  a release query; bump all four together when deploying related script changes.
+  a release query; bump the local modules together when deploying related changes.
 - If both stores are unavailable/full, the editor and gallery navigation remain
   usable. Memory preserves work within the page, and a visible error prompts
   HTML export before closing. Guest saves do not report success in this case.
@@ -71,6 +71,25 @@ Firestore permissions, and public deployment require separate live validation.
 
 Gallery behavior:
 
+- More > Update and compare opens `app-compare.js`'s comparison dialog. It stages
+  one UTF-8 HTML/CSS/JS/TXT file (5 MiB limit), a drop, or pasted code. Loading is
+  separate from Run side by side and the explicit Update action. The old saved
+  app and new candidate run in equal-width independent opaque-origin iframes,
+  including on narrow screens. Each side can restart without resetting the other.
+  No viewer API key is injected. Parent access and same-origin privileges remain
+  disabled; external dependencies and restricted browser APIs retain the normal
+  sandbox limitations. Runtime errors are scoped to the current frame/token.
+- Updates keep the app ID, name, creation date, likes, pins, and public version.
+  They use the existing private save/retry path without creating another app.
+  The current code is checked again before replacement; navigation, cancellation,
+  and account changes invalidate pending reads. Closing destroys both previews.
+- A full last-before-update snapshot is committed locally before replacement in
+  `before_update_<appId>`, including pending per-app work when present. If that
+  write fails the update is blocked. `editMyApp` adds the saved/pending old code
+  to its normal history, including code larger than the usual history budget.
+  This recovery snapshot is scoped to the account/browser and retained for the
+  most recent replacement. Updating the public version still requires Publish /
+  Share; comparison and local recovery do not silently publish anything.
 - The top-left Poteto STUDIO logo is a keyboard-accessible gallery button. It
   uses the existing return handler to flush current work and stop the studio
   preview without reloading the site, retaining the selected gallery tab.

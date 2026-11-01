@@ -71,6 +71,12 @@ Firestore permissions, and public deployment require separate live validation.
 
 Gallery behavior:
 
+- My Gallery cards expose a prominent labeled Edit button and a separate labeled
+  pin toggle on the preview. Rename, Duplicate, and Delete live in the More menu;
+  Delete is visually separated in red and retains its confirmation. A shared
+  viewport-positioned menu avoids clipping inside cards and closes on outside
+  clicks, Escape, navigation, rerender, scroll, or resize. Arrow/Home/End navigation
+  and focus return support keyboard use, with 44px edit/menu targets on mobile.
 - My Gallery supports Recently updated, Recently created, and Name ordering.
   Pinned matching cards always appear first. Search still filters pinned cards.
   Sort and pins use the account-scoped `gallery` record in local browser storage;

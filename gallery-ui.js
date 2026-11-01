@@ -1,6 +1,7 @@
 // My Gallery organization is local to the current account/browser.
 var galleryPreferences={sort:'updated',pinned:[]};
 var galleryDuplicateRequests=new Set();
+var galleryActionMenuState=null;
 
 function restoreGalleryPreferences() {
   var value=readLocalJson(accountKey('gallery'),null);
@@ -56,20 +57,74 @@ function galleryAction(parent,className,label,content,handler) {
   button.addEventListener('click',function(event){event.stopPropagation();handler();});parent.appendChild(button);
   return button;
 }
+function galleryButtonLabel(button,label) {
+  var span=document.createElement('span');span.setAttribute('data-i18n',label);span.textContent=t(label);button.appendChild(span);
+}
+function closeGalleryActionMenu(restoreFocus) {
+  var state=galleryActionMenuState;galleryActionMenuState=null;
+  var menu=document.getElementById('gallery-action-menu');
+  if(menu){menu.hidden=true;menu.textContent='';}
+  if(state){state.trigger.setAttribute('aria-expanded','false');if(restoreFocus && state.trigger.isConnected)state.trigger.focus({preventScroll:true});}
+}
+function openGalleryActionMenu(trigger,app) {
+  if(galleryActionMenuState && galleryActionMenuState.trigger===trigger){closeGalleryActionMenu(true);return;}
+  closeGalleryActionMenu(false);
+  var menu=document.getElementById('gallery-action-menu'),key=app.urlId || app.id;
+  galleryActionMenuState={trigger:trigger};trigger.setAttribute('aria-expanded','true');
+  function item(className,label,icon,handler) {
+    var button=galleryAction(menu,'gc-menu-item '+className,label,icon,function(){closeGalleryActionMenu(true);handler();});
+    button.setAttribute('role','menuitem');button.tabIndex=-1;galleryButtonLabel(button,label);return button;
+  }
+  item('gc-menu-rename','名前を変更','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16 4l4 4L8 20l-5 1 1-5Z"/></svg>',function(){openRenameApp(key);});
+  var duplicate=item('gc-duplicate','複製する','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></svg>',function(){duplicateMyApp(key);});
+  duplicate.disabled=accountStorageLoading || galleryDuplicateRequests.has(accountRevision+'/'+key);
+  item('gc-menu-danger','削除する','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15"/></svg>',function(){delApp(key);});
+  menu.hidden=false;
+  var rect=trigger.getBoundingClientRect(),width=menu.offsetWidth,height=menu.offsetHeight;
+  menu.style.left=Math.max(8,Math.min(rect.right-width,window.innerWidth-width-8))+'px';
+  menu.style.top=Math.max(8,rect.bottom+height+8<=window.innerHeight-8 ? rect.bottom+8 : rect.top-height-8)+'px';
+  menu.querySelector('button:not(:disabled)').focus({preventScroll:true});
+}
+document.addEventListener('pointerdown',function(event) {
+  var state=galleryActionMenuState,menu=document.getElementById('gallery-action-menu');
+  if(state && !state.trigger.contains(event.target) && !menu.contains(event.target))closeGalleryActionMenu(false);
+});
+document.addEventListener('keydown',function(event) {
+  if(!galleryActionMenuState)return;
+  if(event.key==='Escape'){event.preventDefault();closeGalleryActionMenu(true);return;}
+  if(event.key==='Tab'){closeGalleryActionMenu(true);return;}
+  var menu=document.getElementById('gallery-action-menu');
+  if(!menu.contains(event.target))return;
+  var buttons=Array.from(menu.querySelectorAll('button:not(:disabled)')),index=buttons.indexOf(document.activeElement);
+  if(event.key==='ArrowDown')index=(index+1)%buttons.length;
+  else if(event.key==='ArrowUp')index=(index-1+buttons.length)%buttons.length;
+  else if(event.key==='Home')index=0;
+  else if(event.key==='End')index=buttons.length-1;
+  else return;
+  event.preventDefault();buttons[index].focus();
+});
+document.addEventListener('scroll',function(event) {
+  var menu=document.getElementById('gallery-action-menu');
+  if(galleryActionMenuState && !menu.contains(event.target))closeGalleryActionMenu(false);
+},true);
+window.addEventListener('resize',function(){closeGalleryActionMenu(false);});
 function decorateMyGalleryCard(card,app) {
   var key=app.urlId || app.id, actions=card.querySelector('.gc-actions'),pinned=isGalleryPinned(app);
   card.dataset.appId=String(key);card.classList.toggle('gc-pinned',pinned);
-  galleryAction(actions,'gc-rename gc-edit','この作品を編集','✎',function(){editMyApp(key);});
-  galleryAction(actions,'gc-rename','名前を変更','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16 4l4 4L8 20l-5 1 1-5Z"/></svg>',function(){openRenameApp(key);});
-  var duplicate=galleryAction(actions,'gc-rename gc-duplicate','この作品を複製','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></svg>',function(){duplicateMyApp(key);});
-  duplicate.disabled=accountStorageLoading || galleryDuplicateRequests.has(accountRevision+'/'+key);
-  var pin=galleryAction(actions,'gc-rename gc-pin',pinned ? 'ピン留めを解除' : 'ピン留め','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 5 5-5 2-2 5-2 2-5-5 2-2 5-2ZM8 16l-5 5"/></svg>',function(){toggleGalleryPin(key);});
+  var edit=galleryAction(actions,'gc-edit','この作品を編集','',function(){editMyApp(key);});galleryButtonLabel(edit,'編集する');
+  var more=galleryAction(actions,'gc-more','その他の操作','<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',function(){openGalleryActionMenu(more,app);});
+  galleryButtonLabel(more,'その他');more.setAttribute('aria-haspopup','menu');more.setAttribute('aria-controls','gallery-action-menu');more.setAttribute('aria-expanded','false');
+  more.addEventListener('keydown',function(event){
+    if(event.key!=='ArrowDown' && event.key!=='ArrowUp')return;
+    event.preventDefault();event.stopPropagation();openGalleryActionMenu(more,app);
+    if(event.key==='ArrowUp'){var buttons=document.querySelectorAll('#gallery-action-menu button:not(:disabled)');if(buttons.length)buttons[buttons.length-1].focus();}
+  });
+  var pin=galleryAction(card,'gc-pin',pinned ? 'ピン留めを解除' : 'ピン留め','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 5 5-5 2-2 5-2 2-5-5 2-2 5-2ZM8 16l-5 5"/></svg>',function(){
+    var focused=document.activeElement===pin;toggleGalleryPin(key);
+    if(focused){var next=Array.from(document.querySelectorAll('#gg .gc')).find(function(node){return node.dataset.appId===String(key);});if(next)next.querySelector('.gc-pin').focus({preventScroll:true});}
+  });
+  galleryButtonLabel(pin,pinned ? 'ピン留め済み' : 'ピン留め');
   pin.setAttribute('aria-pressed',String(pinned));pin.disabled=accountStorageLoading;
-  galleryAction(actions,'gc-del','削除','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15"/></svg>',function(){delApp(key);});
-  if(pinned) {
-    var badge=document.createElement('span');badge.className='gc-pin-indicator';badge.textContent='📌';
-    badge.setAttribute('data-i18n-title','ピン留め済み');badge.title=t('ピン留め済み');card.appendChild(badge);
-  }
 }
 async function duplicateMyApp(id) {
   var revision=accountRevision,token=revision+'/'+id;

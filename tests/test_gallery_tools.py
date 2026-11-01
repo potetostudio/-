@@ -74,7 +74,8 @@ class GalleryToolsTests(StudioBrowserCase):
           apps[0].likes=7;store['gallery/testID']={uid:'test',isPublic:true,likes:7,code:apps[0].code};
           nav('gallery');
         }""")
-        self.page.locator('[data-app-id="testID"] .gc-duplicate').click()
+        self.page.locator('[data-app-id="testID"] .gc-more').click()
+        self.page.get_by_role('menuitem',name='複製する',exact=True).click()
         self.page.wait_for_function("apps.length===2 && !apps[1].pendingCloud")
         copy_id=self.page.evaluate('apps[1].id')
         self.assertNotEqual(copy_id, 'testID')
@@ -223,7 +224,9 @@ class GalleryToolsTests(StudioBrowserCase):
         self.seed_gallery()
         self.page.evaluate("setLanguage('en')")
         self.assertEqual(self.page.locator('#gallery-sort option:checked').inner_text(), 'Recently updated')
-        self.assertEqual(self.page.locator('[data-app-id="a"] .gc-duplicate').get_attribute('aria-label'), 'Duplicate this app')
+        self.page.locator('[data-app-id="a"] .gc-more').click()
+        self.assertEqual(self.page.get_by_role('menuitem',name='Duplicate',exact=True).inner_text(), 'Duplicate')
+        self.page.keyboard.press('Escape')
         self.page.locator('[data-app-id="a"] .gc-pin').click()
         self.assertEqual(self.page.locator('[data-app-id="a"] .gc-pin').get_attribute('aria-label'), 'Unpin')
         self.assertTrue(self.page.locator('#view-gallery').is_visible())

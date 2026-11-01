@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Poteto STUDIO v6</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="./i18n.js?v=20261101-gallery-tools"></script>
-<script src="./local-store.js?v=20261101-gallery-tools"></script>
-<script src="./studio-state.js?v=20261101-gallery-tools"></script>
-<script src="./gallery-ui.js?v=20261101-gallery-tools"></script>
+<script src="./i18n.js?v=20261101-gallery-actions"></script>
+<script src="./local-store.js?v=20261101-gallery-actions"></script>
+<script src="./studio-state.js?v=20261101-gallery-actions"></script>
+<script src="./gallery-ui.js?v=20261101-gallery-actions"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -89,14 +89,27 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .gc-stats{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .gc-comments{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--ac2);flex-shrink:0}
 .gc-likes{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--rd);flex-shrink:0}
-.gc-actions{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
-.gc-actions button{width:28px;height:28px}
+.gc-actions{display:flex;gap:6px;margin-bottom:10px}
+.gc-actions button{min-height:44px;border-radius:8px;font-family:var(--f);cursor:pointer}
+.gc-edit{flex:1;min-width:0;padding:8px;border:1px solid var(--ac);background:var(--ac);color:white;font-size:12px;font-weight:650;white-space:nowrap}
+.gc-edit:hover{background:var(--ac2);border-color:var(--ac2)}
+.gc-more{display:flex;align-items:center;justify-content:center;gap:4px;flex-shrink:0;padding:6px;border:1px solid var(--brh);background:var(--s2);color:var(--t2);font-size:11px}
+.gc-more:hover,.gc-more[aria-expanded="true"]{background:var(--s3);color:var(--t1)}
+.gc-more svg{width:14px;height:14px;flex-shrink:0}
+.gc-pin{position:absolute;top:8px;right:8px;z-index:2;display:flex;align-items:center;gap:5px;min-height:40px;padding:8px 10px;border:1px solid var(--brh);border-radius:20px;background:rgba(7,8,13,.88);color:var(--t1);font-family:var(--f);font-size:11px;cursor:pointer}
+.gc-pin svg{width:15px;height:15px;flex-shrink:0}
+.gc-pin:hover{background:var(--s3)}
+.gc-pin[aria-pressed="true"]{border-color:var(--ac2);color:white;background:var(--ac)}
+.gc-edit:focus-visible,.gc-more:focus-visible,.gc-pin:focus-visible,.gc-menu-item:focus-visible{outline:2px solid var(--ac2);outline-offset:2px}
 .gc-pinned{border-color:var(--ac)}
-.gc-pin-indicator{position:absolute;top:8px;left:8px;z-index:2;padding:3px 6px;background:var(--s1);border-radius:6px;font-size:13px;pointer-events:none}
-.gc-rename[aria-pressed="true"]{color:var(--ac2);background:rgba(109,90,239,.2)}
-.gc-actions button:disabled{opacity:.45;cursor:wait}
-@media(pointer:coarse){.gc-actions button{width:32px;height:32px}}
-.gc:hover .gc-actions{opacity:1}
+.gc-actions button:disabled,.gc-pin:disabled,.gc-menu-item:disabled{opacity:.45;cursor:wait}
+@media(pointer:coarse){.gc-pin{min-height:44px}}
+#gallery-action-menu{position:fixed;z-index:200;width:210px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow-y:auto;padding:6px;border:1px solid var(--brh);border-radius:12px;background:var(--s2);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+#gallery-action-menu[hidden]{display:none}
+.gc-menu-item{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:10px;border:0;border-radius:7px;background:transparent;color:var(--t1);font-family:var(--f);font-size:13px;text-align:left;cursor:pointer}
+.gc-menu-item svg{width:17px;height:17px;flex-shrink:0}
+.gc-menu-item:hover,.gc-menu-item:focus-visible{background:var(--s3)}
+.gc-menu-danger{color:var(--rd);margin-top:5px;border-top:1px solid var(--br);border-radius:0 0 7px 7px}
 .gc-rename,.gc-del{width:24px;height:24px;background:rgba(0,0,0,.6);border:none;border-radius:6px;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .gc-rename:hover{background:var(--ac);color:white}
 .gc-del:hover{background:var(--rd);color:white}
@@ -747,6 +760,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       </div>
     </div>
   </div>
+
+  <div id="gallery-action-menu" role="menu" aria-label="作品の操作" data-i18n-aria-label="作品の操作" hidden></div>
 
   <!-- STUDIO -->
   <div id="view-studio" class="view">
@@ -2135,6 +2150,7 @@ function goBack() {
 }
 
 function nav(v, opts) {
+  closeGalleryActionMenu(false);
   workNavigationRevision++;
   flushStudioDraft();
   if (!curUser && !guestMode) {
@@ -2268,6 +2284,7 @@ async function refreshPublicCommentCounts() {
 }
 
 function renderGallery() {
+  closeGalleryActionMenu(false);
   stopGalleryThumbnails();
   normalizeGalleryTitles();
   syncGalleryControls();
